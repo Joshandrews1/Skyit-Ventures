@@ -16,7 +16,7 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 // Initialize Gemini Client
 const apiKey = process.env.GEMINI_API_KEY;
@@ -1021,7 +1021,7 @@ app.get('/payment-callback', (req, res) => {
 
 // Configure Vite integration
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV === "development") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
