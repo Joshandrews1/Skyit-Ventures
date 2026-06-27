@@ -12,3 +12,19 @@ runConfig:
 env:
   - variable: NODE_ENV
     value: production
+
+  # Sensitive Secrets (Configured in Google Cloud Secret Manager)
+  # To use these, create matching secrets in Google Cloud Secret Manager and 
+  # grant the App Hosting service account access to them.
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+  - variable: FLUTTERWAVE_SECRET_KEY
+    secret: FLUTTERWAVE_SECRET_KEY
+  - variable: GMAIL_APP_PASSWORD
+    secret: GMAIL_APP_PASSWORD
+
+  # Standard configuration variables (Plaintext)
+  - variable: GMAIL_USER
+    value: "your_business_email@gmail.com"
+  - variable: NOTIFICATION_EMAIL_RECIPIENT
+    value: "your_receive_notifications_email@gmail.com"
