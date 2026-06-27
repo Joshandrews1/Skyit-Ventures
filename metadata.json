@@ -1,0 +1,6 @@
+{
+  "name": "SkyIT Ventures",
+  "description": "High-fidelity e-commerce application with Google Firebase Auth, secure administration command decks, real-time installation tracking, AI advisors, and premium product catalogue.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

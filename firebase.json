@@ -1,0 +1,20 @@
+{
+  "hosting": {
+    "site": "gen-lang-client-0122140096",
+    "public": "public_firebase",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "ais-pre-ixel3foez5m5r6mxcett27-790635648389",
+          "region": "europe-west2"
+        }
+      }
+    ]
+  }
+}

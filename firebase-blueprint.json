@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "Whitelisted administrator accounts",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication User UID"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the administrator"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role string, must be 'admin'"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of assignment"
+        }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Tracked customer equipment purchase orders",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Order Tracking Code"
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Contact email of the customer"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who ordered this"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current engineering execution delivery state"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of order creation"
+        }
+      },
+      "required": ["id", "customerEmail", "userId", "status", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Dynamic custom solar equipment catalog product",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique product identification token"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the equipment"
+        },
+        "description": {
+          "type": "string",
+          "description": "Technical descriptive overview of the system"
+        },
+        "category": {
+          "type": "string",
+          "description": "Product directory slot reference"
+        },
+        "price": {
+          "type": "number",
+          "description": "Current selling price"
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Before discount price reference value"
+        },
+        "discountPercent": {
+          "type": "number",
+          "description": "Percentage discount applied to product"
+        },
+        "image": {
+          "type": "string",
+          "description": "High-quality compressed picture (base64 string or URL)"
+        },
+        "images": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Additional high-quality compressed gallery pictures (base64 string or URL)"
+        },
+        "features": {
+          "type": "array",
+          "description": "Highly responsive highlighted bullet specs list"
+        },
+        "specs": {
+          "type": "object",
+          "description": "Bento technical grid parameters"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available pieces remaining in central logistics storage"
+        },
+        "allowCOD": {
+          "type": "boolean",
+          "description": "Whether the product supports payment on delivery"
+        }
+      },
+      "required": ["id", "name", "description", "category", "price", "originalPrice", "discountPercent", "image", "features", "specs", "stock"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Product rating and written customer review",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique review identifier"
+        },
+        "productId": {
+          "type": "string",
+          "description": "ID of the reviewed product"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the reviewer"
+        },
+        "userName": {
+          "type": "string",
+          "description": "Display name of the reviewer"
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email address of the reviewer"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Numeric star score from 1 to 5"
+        },
+        "comment": {
+          "type": "string",
+          "description": "Review details and feedback text"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of creation"
+        },
+        "isVerifiedPurchase": {
+          "type": "boolean",
+          "description": "Whether the client actually purchased the item"
+        }
+      },
+      "required": ["id", "productId", "userId", "userName", "userEmail", "rating", "comment", "createdAt", "isVerifiedPurchase"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Collection storing authorized administrator profiles"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection tracking all installation orders"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Custom inventory and store catalogue items"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Customer feedback and star scores"
+    }
+  }
+}

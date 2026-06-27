@@ -1,0 +1,229 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // global primitive validation helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function emailVerified() {
+      return isSignedIn() && (
+        ('email_verified' in request.auth.token && request.auth.token.email_verified == true) || 
+        ('email' in request.auth.token && request.auth.token.email == 'jeemestore@gmail.com') || 
+        ('firebase' in request.auth.token && 'sign_in_provider' in request.auth.token.firebase && request.auth.token.firebase.sign_in_provider == 'anonymous')
+      );
+    }
+
+    function getRole() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+         getRole() == 'admin') ||
+        ('email' in request.auth.token && request.auth.token.email == 'jeemestore@gmail.com')
+      );
+    }
+
+    function isEditor() {
+      return isSignedIn() && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+         (getRole() == 'editor' || getRole() == 'admin'))
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation entity schemas
+    function isValidAdmin(admin) {
+      return admin.keys().hasAll(['uid', 'email', 'role', 'createdAt']) && 
+             admin.keys().size() == 4 &&
+             admin.uid is string && admin.uid.size() <= 128 &&
+             admin.email is string && admin.email.size() <= 256 &&
+             (admin.role == 'admin' || admin.role == 'editor') &&
+             admin.createdAt is string && admin.createdAt.size() <= 60;
+    }
+
+    function isValidOrder(order) {
+      return order.keys().hasAll(['id', 'status', 'createdAt', 'customerDetails', 'subtotal', 'deliveryFee', 'discount', 'total', 'paymentMethod']) &&
+             order.id is string && order.id.size() <= 64 &&
+             order.status is string && order.status.size() <= 32 &&
+             order.createdAt is string && order.createdAt.size() <= 50 &&
+             order.paymentMethod is string && order.paymentMethod.size() <= 100 &&
+             order.total is number && order.subtotal is number && order.deliveryFee is number && order.discount is number &&
+             order.customerDetails is map &&
+             order.customerDetails.keys().hasAll(['name', 'email', 'phone', 'city', 'address']) &&
+             order.customerDetails.name is string && order.customerDetails.name.size() <= 128 &&
+             order.customerDetails.email is string && order.customerDetails.email.size() <= 128 &&
+             order.customerDetails.phone is string && order.customerDetails.phone.size() <= 64 &&
+             order.customerDetails.city is string && order.customerDetails.city.size() <= 64 &&
+             order.customerDetails.address is string && order.customerDetails.address.size() <= 512 &&
+             (!order.keys().hasAny(['userId']) || (order.userId is string && order.userId.size() <= 128)) &&
+             (!order.keys().hasAny(['trackingProgress']) || (order.trackingProgress is list && order.trackingProgress.size() < 20)) &&
+             (!order.keys().hasAny(['items']) || (order.items is list && order.items.size() < 100));
+    }
+
+    function isValidProduct(product) {
+      return product.keys().hasAll(['id', 'name', 'description', 'category', 'price', 'originalPrice', 'discountPercent', 'rating', 'ratingCount', 'image', 'features', 'specs', 'stock']) &&
+             product.id is string && product.id.size() <= 128 &&
+             product.name is string && product.name.size() <= 200 &&
+             product.description is string && product.description.size() <= 8000 &&
+             product.category is string && product.category.size() <= 64 &&
+             product.price is number && product.originalPrice is number && product.discountPercent is number &&
+             product.rating is number && product.ratingCount is number &&
+             product.image is string && product.image.size() <= 500000 &&
+             product.features is list && product.features.size() <= 15 &&
+             product.specs is map &&
+             product.stock is number &&
+             (!product.keys().hasAny(['images']) || (product.images is list && product.images.size() <= 10)) &&
+             (!product.keys().hasAny(['allowCOD']) || product.allowCOD is bool);
+    }
+
+    function isValidAuditLog(log) {
+      return log.keys().hasAll(['id', 'actorUid', 'actorEmail', 'action', 'details', 'targetId', 'targetType', 'timestamp']) &&
+             log.id is string && log.id.size() <= 64 &&
+             log.actorUid is string && log.actorUid.size() <= 128 &&
+             log.actorEmail is string && log.actorEmail.size() <= 256 &&
+             log.action is string && log.action.size() <= 128 &&
+             log.details is string && log.details.size() <= 4000 &&
+             log.targetId is string && log.targetId.size() <= 128 &&
+             log.targetType is string && log.targetType.size() <= 64 &&
+             log.timestamp is string && log.timestamp.size() <= 60;
+    }
+
+    function isValidUser(usr) {
+      return usr.keys().hasAll(['uid', 'email', 'createdAt', 'lastLoginAt']) &&
+             usr.uid is string && usr.uid.size() <= 128 &&
+             usr.email is string && usr.email.size() <= 256 &&
+             usr.createdAt is string && usr.createdAt.size() <= 60 &&
+             usr.lastLoginAt is string && usr.lastLoginAt.size() <= 60 &&
+             (!usr.keys().hasAny(['displayName']) || (usr.displayName is string && usr.displayName.size() <= 256));
+    }
+
+    function isValidReview(review) {
+      return review.keys().hasAll(['id', 'productId', 'userId', 'userName', 'userEmail', 'rating', 'comment', 'createdAt', 'isVerifiedPurchase']) &&
+             review.keys().size() == 9 &&
+             review.id is string && review.id.size() <= 64 &&
+             review.productId is string && review.productId.size() <= 64 &&
+             review.userId is string && review.userId.size() <= 128 &&
+             review.userName is string && review.userName.size() <= 200 &&
+             review.userEmail is string && review.userEmail.size() <= 256 &&
+             review.rating is number && review.rating >= 1 && review.rating <= 5 &&
+             review.comment is string && review.comment.size() <= 2000 &&
+             review.createdAt is string && review.createdAt.size() <= 60 &&
+             review.isVerifiedPurchase is bool;
+    }
+
+    function isValidChatThread(thread) {
+      return thread.keys().hasAll(['id', 'userId', 'title', 'messages', 'updatedAt']) &&
+             thread.id is string && thread.id.size() <= 128 &&
+             thread.userId is string && thread.userId.size() <= 128 &&
+             thread.title is string && thread.title.size() <= 512 &&
+             thread.messages is list && thread.messages.size() <= 250 &&
+             thread.updatedAt != null &&
+             (!thread.keys().hasAny(['summary']) || thread.summary is string || thread.summary == null);
+    }
+
+    // Admins Collection: holds administrator references
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && (request.auth.uid == adminId || isEditor());
+      allow list: if isSignedIn() && isAdmin();
+      allow create, update: if isSignedIn() && (
+        (request.auth.uid == adminId && 'email' in request.auth.token && request.auth.token.email == 'jeemestore@gmail.com') ||
+        isAdmin()
+      ) && isValidAdmin(incoming());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Orders Collection: holds customer orders
+    match /orders/{orderId} {
+      allow get: if true; 
+      allow list: if isSignedIn() && (isEditor() || (resource != null && (!resource.data.keys().hasAny(['userId']) || resource.data.userId == request.auth.uid)));
+      allow create: if (
+        (isSignedIn() && (isEditor() || !incoming().keys().hasAny(['userId']) || incoming().userId == request.auth.uid)) ||
+        (!isSignedIn() && (!incoming().keys().hasAny(['userId']) || (incoming().userId is string && incoming().userId.startsWith('guest-uid-'))))
+      ) && isValidOrder(incoming());
+      allow update: if isSignedIn() && (
+        isEditor() || (resource != null && (!resource.data.keys().hasAny(['userId']) || resource.data.userId == request.auth.uid) && (!incoming().keys().hasAny(['userId']) || incoming().userId == request.auth.uid))
+      ) && isValidOrder(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'trackingProgress', 'updatedAt']) ||
+        isEditor()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Products Collection: catalog of items
+    match /products/{productId} {
+      allow read, get, list: if true; // Public catalogs reading
+      allow create, update: if isSignedIn() && isEditor() && isValidProduct(incoming());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Audit Logs Collection: immutable ledger of activities
+    match /audit_logs/{logId} {
+      allow get: if isSignedIn() && isAdmin();
+      allow list: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn() && incoming().actorUid == request.auth.uid && isValidAuditLog(incoming());
+      allow update, delete: if false; // strictly immutable under all conditions
+    }
+
+    // Users Collection: records user sign-ins and dates
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && isAdmin();
+      allow create, update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Carts Collection: allows authenticated users to synchronize their persistent cart
+    match /carts/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // System Settings Collection: toggle global parameters like allowing guest checkouts
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isSignedIn() && isAdmin();
+    }
+
+    // Chat Threads Collection: store persistent chat transcripts
+    match /chat_threads/{threadId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidChatThread(incoming());
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && incoming().userId == request.auth.uid && isValidChatThread(incoming());
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Reviews Collection: customer feedback and ratings
+    match /reviews/{reviewId} {
+      allow read, get, list: if true; // anyone can fetch and see reviews
+      allow create: if isSignedIn() && 
+                    incoming().userId == request.auth.uid && 
+                    isValidReview(incoming());
+      allow update: if isSignedIn() && 
+                    (resource.data.userId == request.auth.uid || isEditor()) && 
+                    isValidReview(incoming());
+      allow delete: if isSignedIn() && 
+                    (resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}
