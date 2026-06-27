@@ -13,6 +13,53 @@ import { parse } from "path";
 dotenv.config();
 
 const app = express();
+
+// Proxy /__/auth/* to Firebase's default Auth Domain to make custom-domain authentication work.
+// Placed BEFORE body parsers to safely forward raw request bodies.
+app.all('/__/auth/*', async (req, res) => {
+  const targetUrl = `https://gen-lang-client-0122140096.firebaseapp.com${req.originalUrl}`;
+  try {
+    const forwardHeaders: Record<string, string> = {};
+    Object.entries(req.headers).forEach(([key, value]) => {
+      if (value !== undefined) {
+        forwardHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
+      }
+    });
+    // Set Host header to let Google/Firebase recognize the target auth domain
+    forwardHeaders['host'] = 'gen-lang-client-0122140096.firebaseapp.com';
+
+    const options: RequestInit = {
+      method: req.method,
+      headers: forwardHeaders,
+    };
+
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      const chunks: any[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      if (chunks.length > 0) {
+        options.body = Buffer.concat(chunks);
+      }
+    }
+
+    const response = await fetch(targetUrl, options);
+
+    res.status(response.status);
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() !== 'content-encoding') {
+        res.setHeader(key, value);
+      }
+    });
+
+    const bodyBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(bodyBuffer));
+  } catch (error) {
+    console.error('[Firebase Auth Proxy Error]:', error);
+    res.status(500).send('Authentication proxy failed.');
+  }
+});
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
