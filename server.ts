@@ -1076,7 +1076,12 @@ async function startServer() {
     app.use(vite.middlewares);
     console.log("Mounted Vite middleware.");
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    // Robust path resolution: in production, server.cjs lives in dist/ so __dirname is dist.
+    // Otherwise, if run directly from root, fallback to process.cwd() / dist.
+    const distPath = __dirname.endsWith("dist") 
+      ? __dirname 
+      : path.join(process.cwd(), "dist");
+    
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
