@@ -3,16 +3,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/
 import { initializeFirestore, persistentLocalCache, doc, setDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
-// Dynamically resolve authDomain to prevent iframe 404/CSP block and blank page issues
-// on localhost, development, and AI Studio preview environments.
-const dynamicAuthDomain = (typeof window !== 'undefined' && window.location.hostname === 'skyitonline.org')
-  ? 'skyitonline.org'
-  : 'gen-lang-client-0122140096.firebaseapp.com';
-
-const app = initializeApp({
-  ...firebaseConfig,
-  authDomain: dynamicAuthDomain
-});
+const app = initializeApp(firebaseConfig);
 // CRITICAL: The app will break without passing firestoreDatabaseId in the second parameter
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({})
