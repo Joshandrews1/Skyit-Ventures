@@ -39,6 +39,5 @@ env:
     availability:
       - RUNTIME
   - variable: VITE_FLUTTERWAVE_PUBLIC_KEY
-    secret: VITE_FLUTTERWAVE_PUBLIC_KEY
-    availability:
-      - RUNTIME
+    value: "FLWPUBK-1e2c466173f81bf36fc4972485be5130-X"
+
