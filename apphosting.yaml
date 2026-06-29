@@ -31,13 +31,9 @@ env:
 
   # Standard configuration variables (Plaintext)
   - variable: GMAIL_USER
-    secret: GMAIL_USER
-    availability:
-      - RUNTIME
+    value: "skyitventures01@gmail.com"
   - variable: NOTIFICATION_EMAIL_RECIPIENT
-    secret: NOTIFICATION_EMAIL_RECIPIENT
-    availability:
-      - RUNTIME
+    value: "skyitventures01@gmail.com"
   - variable: VITE_FLUTTERWAVE_PUBLIC_KEY
     value: "FLWPUBK-1e2c466173f81bf36fc4972485be5130-X"
 
