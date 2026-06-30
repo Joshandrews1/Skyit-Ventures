@@ -1132,8 +1132,9 @@ async function startServer() {
       ? __dirname 
       : path.join(process.cwd(), "dist");
     
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, { index: false }));
     app.get("*", (req, res) => {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
