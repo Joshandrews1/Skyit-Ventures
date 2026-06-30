@@ -38,7 +38,9 @@ import {
   X,
   AlertTriangle,
   Store,
-  ArrowUp
+  ArrowUp,
+  Check,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function App() {
@@ -342,6 +344,21 @@ export default function App() {
   });
 
   const [isCartLoaded, setIsCartLoaded] = useState(false);
+  const [cartNotification, setCartNotification] = useState<{
+    show: boolean;
+    productName: string;
+    productImage?: string;
+  } | null>(null);
+
+  // Auto-dismiss the cart notification toast after 3 seconds
+  useEffect(() => {
+    if (cartNotification) {
+      const timer = setTimeout(() => {
+        setCartNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [cartNotification]);
 
   // Load cart from Firestore on login
   useEffect(() => {
@@ -639,6 +656,16 @@ export default function App() {
       }
       return [...prev, { product, quantity: 1 }];
     });
+
+    // Reset and trigger new cart notification
+    setCartNotification(null);
+    setTimeout(() => {
+      setCartNotification({
+        show: true,
+        productName: product.name,
+        productImage: product.image
+      });
+    }, 50);
   };
 
   const handleAddToCartWithQty = (product: Product, quantity: number) => {
@@ -651,6 +678,16 @@ export default function App() {
       }
       return [...prev, { product, quantity }];
     });
+
+    // Reset and trigger new cart notification
+    setCartNotification(null);
+    setTimeout(() => {
+      setCartNotification({
+        show: true,
+        productName: product.name,
+        productImage: product.image
+      });
+    }, 50);
   };
 
   const handleUpdateQty = (prodId: string, quantity: number) => {
@@ -1826,6 +1863,72 @@ export default function App() {
         onClose={() => setIsPolicyOpen(false)}
         initialTab={policyTab}
       />
+
+      {/* Dynamic green Toast notification for "Added to Cart" */}
+      <AnimatePresence>
+        {cartNotification?.show && (
+          <motion.div
+            key="cart-notification"
+            initial={{ opacity: 0, y: -40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:translate-x-0 z-[9999] w-[92%] max-w-sm bg-white rounded-2xl shadow-xl border border-emerald-100 p-4 overflow-hidden flex flex-col gap-3"
+            style={{
+              boxShadow: '0 20px 25px -5px rgb(16 185 129 / 0.05), 0 8px 10px -6px rgb(16 185 129 / 0.05), 0 0 0 1px rgb(16 185 129 / 0.1)'
+            }}
+          >
+            {/* Soft decorative top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100/50 shrink-0">
+                <CheckCircle2 size={20} className="animate-pulse" />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h4 className="font-display font-bold text-slate-900 text-sm leading-snug">Added to Cart!</h4>
+                <p className="text-slate-500 text-xs mt-0.5 truncate font-medium">
+                  {cartNotification.productName}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setCartNotification(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 mt-1 pt-2 border-t border-slate-100">
+              {cartNotification.productImage && (
+                <div className="size-8 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                  <img
+                    src={cartNotification.productImage}
+                    alt={cartNotification.productName}
+                    className="size-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              )}
+              <div className="flex-1 text-[11px] text-slate-400 font-medium">
+                Added to your solar order
+              </div>
+              <button
+                onClick={() => {
+                  setCartNotification(null);
+                  setIsCartOpen(true);
+                }}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] transition duration-150 cursor-pointer border-none flex items-center gap-1 shadow-xs hover:shadow-md"
+              >
+                <span>View Cart</span>
+                <ChevronRight size={12} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Scroll to Top Button */}
       <AnimatePresence>

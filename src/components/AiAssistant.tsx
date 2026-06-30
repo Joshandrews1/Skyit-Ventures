@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Product, ChatMessage, CartItem } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Send, Sparkles, MessageSquare, ShoppingCart, Loader2, Trash2, 
   Plus, SquarePen, Settings, History, ChevronDown, ChevronLeft, Check, Lightbulb, Compass, FileText, Menu, X, Zap, ShoppingBag, Mic, MicOff,
@@ -45,6 +46,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
   onOpenLogin
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -334,12 +336,15 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
     }
   };
 
-  const handleDeleteThread = async (threadId: string, e: React.MouseEvent) => {
+  const handleDeleteThread = (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this chat session?")) return;
+    setThreadToDelete(threadId);
+  };
 
+  const confirmDeleteThread = async () => {
+    if (!threadToDelete) return;
     try {
-      if (activeThreadId === threadId) {
+      if (activeThreadId === threadToDelete) {
         setActiveThreadId(null);
         setMessages([]);
         setCurrentThreadSummary('');
@@ -347,9 +352,11 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
           localStorage.removeItem(`skyit_active_thread_${currentUser.uid}`);
         }
       }
-      await deleteDoc(doc(db, 'chat_threads', threadId));
+      await deleteDoc(doc(db, 'chat_threads', threadToDelete));
     } catch (err) {
       console.error("[Firestore] Thread deletion failed:", err);
+    } finally {
+      setThreadToDelete(null);
     }
   };
 
@@ -1175,6 +1182,66 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80%] h-32 bg-[#adc6ff]/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       </main>
+
+      {/* Custom beautiful confirmation dialog for thread deletion */}
+      <AnimatePresence>
+        {threadToDelete && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setThreadToDelete(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs cursor-pointer"
+            />
+
+            {/* Modal content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', duration: 0.3 }}
+              className="relative w-full max-w-md overflow-hidden rounded-2xl bg-[#0d1527] border border-white/10 p-6 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-200"
+            >
+              {/* Top Accent Warning Bar */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-red-500" />
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-red-500/10 rounded-xl text-red-400 border border-red-500/20 shrink-0">
+                  <Trash2 size={24} className="animate-pulse" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display font-bold text-white text-lg">Delete Chat History?</h3>
+                  <p className="text-slate-400 text-sm mt-2 leading-relaxed">
+                    Are you sure you want to permanently delete this chat session? This action cannot be undone and you will lose all conversations in this session.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setThreadToDelete(null)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-sm transition-all cursor-pointer border-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteThread}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all shadow-md shadow-red-900/20 hover:shadow-lg cursor-pointer border-none flex items-center gap-1.5"
+                >
+                  <Trash2 size={15} />
+                  <span>Delete Chat</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

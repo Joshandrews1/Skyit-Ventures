@@ -7,15 +7,17 @@ import {
   Fingerprint, 
   Eye, 
   EyeOff, 
-  ArrowRight 
+  ArrowRight,
+  AlertTriangle,
+  ExternalLink
 } from 'lucide-react';
 import { 
   auth, 
   googleProvider, 
-  db 
+  db,
+  signInWithGoogle
 } from '../firebase';
 import { 
-  signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   updateProfile,
@@ -43,6 +45,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [resetSentEmail, setResetSentEmail] = useState('');
+
+  // Reset errors when modal is opened
+  React.useEffect(() => {
+    if (isOpen) {
+      setErrorMessage('');
+      setSuccessMessage('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -141,8 +151,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleGoogleSignIn = async () => {
     setIsAuthorizing(true);
     setErrorMessage('');
+
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithGoogle();
       const user = result.user;
       
       const isAdminUser = user.email === 'jeemestore@gmail.com';
@@ -201,7 +212,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         <form onSubmit={handleEmailAuthSubmit} className="p-6 space-y-4" id="login-body">
           
           {/* Centered Logo block */}
-          <div className="flex flex-col items-center justify-center pb-2 pt-1 border-b border-gray-900">
+              <div className="flex flex-col items-center justify-center pb-2 pt-1 border-b border-gray-900">
             <img 
               src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
               alt="SkyIT Logo" 
@@ -211,6 +222,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <p className="text-[9px] uppercase font-black tracking-widest text-brand">Solar & Energy Solutions</p>
           </div>
           
+
           {successMessage && !resetSentEmail && (
             <div className="text-emerald-500 text-[11px] font-semibold p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-center">
               ✅ {successMessage}

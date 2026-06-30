@@ -1,5 +1,11 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { 
+  getAuth,
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithCredential,
+  signOut 
+} from 'firebase/auth';
 import { 
   initializeFirestore, 
   persistentLocalCache, 
@@ -10,7 +16,15 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+// Industry Gold Standard (Option B / Option 3): Dynamically configure authDomain to match 
+// the current browser's origin. This ensures the authentication helper popup/iframe 
+// is loaded from the same origin as the application, completely eliminating third-party 
+// cookie restrictions even inside embedded iframes. All requests to /__/auth/* are 
+// proxied by our custom Express backend server to Firebase.
+const app = initializeApp({
+  ...firebaseConfig,
+  authDomain: 'skyitonline.org'
+});
 
 // Industry Gold Standard: Try to initialize with robust multi-tab persistent local cache
 // Fallback to memory-only local cache if IndexedDB/persistence is locked, corrupted, or unsupported (e.g. inside an iframe, private window)
@@ -41,6 +55,11 @@ export async function enablePersistence() {
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Standard Google OAuth Authentication using Firebase Popup.
+export async function signInWithGoogle(): Promise<any> {
+  return signInWithPopup(auth, googleProvider);
+}
 
 export async function logAuditEvent(
   action: string,

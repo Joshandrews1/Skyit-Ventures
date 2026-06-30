@@ -9,6 +9,7 @@ import { Order, OrderStatus, TrackingMilestone } from "./src/types";
 import { initializeApp } from 'firebase/app';
 import { initializeFirestore, collection, getDocs } from 'firebase/firestore';
 import fs from 'fs';
+import https from 'https';
 
 // Helper to safely load dotenv
 import dotenv from "dotenv";
@@ -35,47 +36,54 @@ try {
 
 // Proxy /__/auth/* to Firebase's default Auth Domain to make custom-domain authentication work.
 // Placed BEFORE body parsers to safely forward raw request bodies.
-app.all('/__/auth/*', async (req, res) => {
-  const targetUrl = `https://gen-lang-client-0122140096.firebaseapp.com${req.originalUrl}`;
-  try {
-    const forwardHeaders: Record<string, string> = {};
-    Object.entries(req.headers).forEach(([key, value]) => {
-      if (value !== undefined) {
-        forwardHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
-      }
-    });
-    // Set Host header to let Google/Firebase recognize the target auth domain
-    forwardHeaders['host'] = 'gen-lang-client-0122140096.firebaseapp.com';
+app.all('/__/auth/*', (req, res) => {
+  const targetHost = 'gen-lang-client-0122140096.firebaseapp.com';
+  const targetPath = req.originalUrl;
 
-    const options: RequestInit = {
-      method: req.method,
-      headers: forwardHeaders,
-    };
+  const forwardHeaders: Record<string, any> = {};
+  const excludedHeaders = new Set([
+    'host',
+    'connection',
+    'keep-alive',
+    'accept-encoding'
+  ]);
 
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-      const chunks: any[] = [];
-      for await (const chunk of req) {
-        chunks.push(chunk);
-      }
-      if (chunks.length > 0) {
-        options.body = Buffer.concat(chunks);
-      }
+  Object.entries(req.headers).forEach(([key, value]) => {
+    const lowerKey = key.toLowerCase();
+    if (value !== undefined && !excludedHeaders.has(lowerKey)) {
+      forwardHeaders[key] = value;
     }
+  });
+  
+  // Set host header so Google/Firebase recognizes the request
+  forwardHeaders['host'] = targetHost;
 
-    const response = await fetch(targetUrl, options);
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => {
-      if (key.toLowerCase() !== 'content-encoding') {
+  const proxyReq = https.request({
+    hostname: targetHost,
+    port: 443,
+    path: targetPath,
+    method: req.method,
+    headers: forwardHeaders
+  }, (proxyRes) => {
+    res.status(proxyRes.statusCode || 500);
+    Object.entries(proxyRes.headers).forEach(([key, value]) => {
+      if (value !== undefined) {
         res.setHeader(key, value);
       }
     });
+    proxyRes.pipe(res);
+  });
 
-    const bodyBuffer = await response.arrayBuffer();
-    res.send(Buffer.from(bodyBuffer));
-  } catch (error) {
-    console.error('[Firebase Auth Proxy Error]:', error);
-    res.status(500).send('Authentication proxy failed.');
+  proxyReq.on('error', (err) => {
+    console.error('[Firebase Auth Proxy Error]:', err);
+    res.status(500).send(`Authentication proxy failed: ${err.message}\nStack: ${err.stack || ''}`);
+  });
+
+  // Pipe client request body (if any) directly to target server for write methods, otherwise end it immediately
+  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+    req.pipe(proxyReq);
+  } else {
+    proxyReq.end();
   }
 });
 
