@@ -31,6 +31,47 @@
       gtag('js', new Date());
       gtag('config', 'G-LL9G72ZTT9');
     </script>
+
+    <!-- Automatic Recovery for stale/cached tabs after redeployment -->
+    <script>
+      function triggerUpdateReload() {
+        try {
+          const now = Date.now();
+          const lastReload = sessionStorage.getItem('last_chunk_error_reload');
+          // Throttled: If we reloaded less than 10 seconds ago, don't loop reload (prevents infinite reload loops when offline)
+          if (lastReload && (now - parseInt(lastReload, 10) < 10000)) {
+            console.error('Chunk reload throttled to prevent loop.');
+            return;
+          }
+          sessionStorage.setItem('last_chunk_error_reload', now.toString());
+          window.location.reload();
+        } catch (e) {
+          window.location.reload();
+        }
+      }
+
+      // 1. Catch Vite's specific dynamic preload error
+      window.addEventListener('vite:preloadError', (event) => {
+        console.warn('Vite preload error detected. Reloading page to fetch the latest version...', event);
+        triggerUpdateReload();
+      });
+
+      // 2. Catch general chunk, module script, or chunk asset loader errors
+      window.addEventListener('error', (event) => {
+        const message = event.message || '';
+        const target = event.target || {};
+        
+        if (
+          message.includes('Failed to fetch dynamically imported module') ||
+          message.includes('Importing a module script failed') ||
+          message.includes('error loading dynamically imported module') ||
+          (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK') && target.src && target.src.includes('/assets/'))
+        ) {
+          console.warn('Stale asset or chunk load failure. Reloading to get latest version...', event);
+          triggerUpdateReload();
+        }
+      }, true); // useCapture to catch resource load failures as well
+    </script>
   </head>
   <body>
     <div id="root"></div>
