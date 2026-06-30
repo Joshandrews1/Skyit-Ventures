@@ -21,10 +21,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 // is loaded from the same origin as the application, completely eliminating third-party 
 // cookie restrictions even inside embedded iframes. All requests to /__/auth/* are 
 // proxied by our custom Express backend server to Firebase.
-const app = initializeApp({
-  ...firebaseConfig,
-  authDomain: 'skyitonline.org'
-});
+const app = initializeApp(firebaseConfig);
 
 // Industry Gold Standard: Try to initialize with robust multi-tab persistent local cache
 // Fallback to memory-only local cache if IndexedDB/persistence is locked, corrupted, or unsupported (e.g. inside an iframe, private window)
