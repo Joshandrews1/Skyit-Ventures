@@ -1,16 +1,42 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache, doc, setDoc } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  memoryLocalCache,
+  doc, 
+  setDoc 
+} from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-// CRITICAL: The app will break without passing firestoreDatabaseId in the second parameter
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({})
-}, firebaseConfig.firestoreDatabaseId);
+
+// Industry Gold Standard: Try to initialize with robust multi-tab persistent local cache
+// Fallback to memory-only local cache if IndexedDB/persistence is locked, corrupted, or unsupported (e.g. inside an iframe, private window)
+export let db: any;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  }, firebaseConfig.firestoreDatabaseId);
+  console.log("Firestore initialized successfully with multi-tab persistence.");
+} catch (error) {
+  console.warn("Firestore persistentLocalCache initialization failed, falling back to memoryLocalCache:", error);
+  try {
+    db = initializeFirestore(app, {
+      localCache: memoryLocalCache()
+    }, firebaseConfig.firestoreDatabaseId);
+  } catch (fallbackError) {
+    console.error("Firestore critical initialization fallback failed:", fallbackError);
+    // Last-resort fallback to standard initialization
+    db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
+  }
+}
 
 export async function enablePersistence() {
-  // Persistence is now enabled at initialization
+  // Persistence is handled at initialization
 }
 
 export const auth = getAuth(app);

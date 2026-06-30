@@ -557,7 +557,17 @@ export default function App() {
     const fetchProducts = async () => {
       try {
         const productsColRef = collection(db, 'products');
-        const snapshot = await getDocs(productsColRef);
+        
+        // Fast 2-second timeout to prevent indefinite hangs in restricted/sandboxed iframe environments or private browser storage
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error("Firestore fetch timed out")), 2000)
+        );
+
+        const snapshot = await Promise.race([
+          getDocs(productsColRef),
+          timeoutPromise
+        ]);
+
         if (!active) return;
         const firestoreProducts: Product[] = [];
         snapshot.forEach((docSnap) => {
@@ -573,7 +583,7 @@ export default function App() {
         setProducts(merged);
         setIsProductsLoading(false);
       } catch (error) {
-        console.warn("Firestore 'products' fetch notice, using rest query fallback:", error);
+        console.warn("Firestore 'products' fetch notice/timeout, using rest query fallback:", error);
         if (!active) return;
         fetch('/api/products')
           .then(res => res.ok ? res.json() : mockProducts)

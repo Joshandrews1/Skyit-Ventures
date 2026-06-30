@@ -6,6 +6,9 @@ import nodemailer from "nodemailer";
 import { mockProducts } from "./src/data/products";
 import { SOLAR_PACKAGES, calculateHeuristicFallback, APPLIANCES, hasHeavyLoad } from "./src/data/quote-data";
 import { Order, OrderStatus, TrackingMilestone } from "./src/types";
+import { initializeApp } from 'firebase/app';
+import { initializeFirestore, collection, getDocs } from 'firebase/firestore';
+import fs from 'fs';
 
 // Helper to safely load dotenv
 import dotenv from "dotenv";
@@ -13,6 +16,22 @@ import { parse } from "path";
 dotenv.config();
 
 const app = express();
+
+// Initialize server-side firebase instance for proxying Firestore queries
+let serverDb: any = null;
+try {
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const serverApp = initializeApp(firebaseConfig, 'server-app');
+    serverDb = initializeFirestore(serverApp, {}, firebaseConfig.firestoreDatabaseId);
+    console.log("[SERVER_FIREBASE] Server-side Firestore initialized successfully.");
+  } else {
+    console.warn("[SERVER_FIREBASE] firebase-applet-config.json not found, using static mockProducts.");
+  }
+} catch (e) {
+  console.error("[SERVER_FIREBASE] Failed to initialize server-side Firebase:", e);
+}
 
 // Proxy /__/auth/* to Firebase's default Auth Domain to make custom-domain authentication work.
 // Placed BEFORE body parsers to safely forward raw request bodies.
@@ -404,8 +423,31 @@ async function processOrderMailing(orderData: OrderMailingInput) {
 }
 
 // API: Get products
-app.get("/api/products", (req, res) => {
-  res.json(mockProducts);
+app.get("/api/products", async (req, res) => {
+  try {
+    if (!serverDb) {
+      return res.json(mockProducts);
+    }
+    const productsColRef = collection(serverDb, 'products');
+    const snapshot = await getDocs(productsColRef);
+    const firestoreProducts: any[] = [];
+    snapshot.forEach((docSnap) => {
+      firestoreProducts.push(docSnap.data());
+    });
+    
+    // Merge with mockProducts to ensure all baseline products are present
+    const merged = [...firestoreProducts];
+    mockProducts.forEach((staticProd) => {
+      if (!merged.some(p => p.id === staticProd.id)) {
+        merged.push(staticProd);
+      }
+    });
+    
+    res.json(merged);
+  } catch (error) {
+    console.error("[SERVER_PRODUCTS_ERROR] Failed to fetch products from Firestore server-side:", error);
+    res.json(mockProducts);
+  }
 });
 
 // API: AI Product Sizing and Generation Suggestion Agent
