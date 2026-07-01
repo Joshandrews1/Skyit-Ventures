@@ -182,29 +182,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in" id="login-modal-overlay">
-      <div className="bg-[#0D0D0D] rounded-2xl max-w-md w-full overflow-hidden shadow-2xl relative border border-gray-800 flex flex-col text-gray-300 animate-scale-up" id="login-modal-card">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in" id="login-modal-overlay">
+      <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-xl relative border border-slate-200 flex flex-col text-slate-700 animate-scale-up" id="login-modal-card">
         
         {/* Header bar */}
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-[#0F0F0F] text-white">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white text-slate-900">
           <div className="flex items-center gap-2">
-            <img 
-              src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
-              alt="SkyIT Logo" 
-              className="h-5 w-auto object-contain"
-              referrerPolicy="no-referrer"
-            />
-            <h3 className="font-display font-black text-sm uppercase tracking-wider ml-1">
+            <div className="p-0.5 rounded-lg border border-slate-100 flex items-center justify-center bg-white shadow-2xs w-7 h-7">
+              <img 
+                src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
+                alt="SkyIT Logo" 
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <h3 className="font-display font-bold text-sm text-slate-900 tracking-tight ml-1">
               {mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Reset Password'}
             </h3>
           </div>
           <button 
             type="button" 
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+            className="text-slate-450 hover:text-slate-700 transition-colors cursor-pointer bg-slate-50 hover:bg-slate-100 p-1.5 rounded-lg"
             aria-label="Close modal"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
@@ -212,51 +214,51 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         <form onSubmit={handleEmailAuthSubmit} className="p-6 space-y-4" id="login-body">
           
           {/* Centered Logo block */}
-              <div className="flex flex-col items-center justify-center pb-2 pt-1 border-b border-gray-900">
+          <div className="flex flex-col items-center justify-center pb-4 pt-1 border-b border-slate-100">
             <img 
               src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
               alt="SkyIT Logo" 
-              className="h-10 w-auto object-contain mb-1"
+              className="h-10 w-auto object-contain mb-1.5"
               referrerPolicy="no-referrer"
             />
-            <p className="text-[9px] uppercase font-black tracking-widest text-brand">Solar & Energy Solutions</p>
+            <p className="text-[9px] uppercase font-black tracking-widest text-brand font-display">Solar & Security Solutions</p>
           </div>
           
 
           {successMessage && !resetSentEmail && (
-            <div className="text-emerald-500 text-[11px] font-semibold p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-center">
+            <div className="text-emerald-700 text-[11px] font-semibold p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-center">
               ✅ {successMessage}
             </div>
           )}
 
           {mode === 'forgot' && resetSentEmail ? (
             <div className="space-y-4 py-2 animate-fadeIn text-center">
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-100">
                 <Mail size={22} className="animate-pulse" />
               </div>
               <div className="space-y-1.5">
-                <h4 className="text-xs font-black uppercase tracking-wider text-white">Reset Link Dispatched</h4>
-                <p className="text-[11px] text-gray-400 leading-relaxed">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">Reset Link Dispatched</h4>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
                   We have requested Firebase to send a secure credential recovery link to:
                 </p>
-                <div className="bg-[#141414] py-2 px-3 border border-gray-800 rounded-lg max-w-xs mx-auto">
+                <div className="bg-slate-50 py-2 px-3 border border-slate-200 rounded-lg max-w-xs mx-auto">
                   <span className="font-mono text-xs font-bold text-brand">{resetSentEmail}</span>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-amber-500/5 border border-amber-500/20 rounded-xl text-left space-y-1.5">
-                <p className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 text-amber-400">
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-left space-y-1.5">
+                <p className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 text-amber-800">
                   <span>⚠️ Password Reset Troubleshooting Checklist</span>
                 </p>
-                <ul className="text-[10px] space-y-1.5 list-disc pl-4 leading-normal text-gray-300">
+                <ul className="text-[10px] space-y-1.5 list-disc pl-4 leading-normal text-slate-600">
                   <li>
-                    <strong className="text-amber-400">Check Spam & Junk Folders:</strong> Automated emails from <code className="text-brand font-mono text-[9px]">noreply@...</code> are often misclassified by email providers.
+                    <strong className="text-amber-800">Check Spam & Junk Folders:</strong> Automated emails from <code className="text-brand font-mono text-[9px]">noreply@...</code> are often misclassified by email providers.
                   </li>
                   <li>
-                    <strong className="text-amber-400">Verify Account Email Presence:</strong> For security against hackers (Email Enumeration Protection), Firebase always returns a success status even if the email is not registered on the platform. Please verify that you signed up with this exact address.
+                    <strong className="text-amber-800">Verify Account Email Presence:</strong> For security against hackers (Email Enumeration Protection), Firebase always returns a success status even if the email is not registered on the platform. Please verify that you signed up with this exact address.
                   </li>
                   <li>
-                    <strong className="text-amber-400">Check Connected Accounts:</strong> If you registered using Google SSO ("Continue with Google"), a standard password reset link will not be applicable. Try signing in via Google.
+                    <strong className="text-amber-800">Check Connected Accounts:</strong> If you registered using Google SSO ("Continue with Google"), a standard password reset link will not be applicable. Try signing in via Google.
                   </li>
                 </ul>
               </div>
@@ -289,7 +291,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     }
                   }}
                   disabled={isAuthorizing}
-                  className="w-full bg-[#161616] hover:bg-gray-900 border border-gray-800 text-gray-400 hover:text-white py-2 rounded-xl text-[10px] uppercase font-bold tracking-wider transition-colors cursor-pointer"
+                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-800 py-2 rounded-xl text-[10px] uppercase font-bold tracking-wider transition-colors cursor-pointer"
                 >
                   {isAuthorizing ? "Re-sending Link..." : "Re-send Reset Link"}
                 </button>
@@ -299,11 +301,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <>
               {mode === 'signup' && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block" htmlFor="signup-name">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block font-mono" htmlFor="signup-name">
                     Full Name
                   </label>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                       <User size={14} />
                     </span>
                     <input
@@ -312,19 +314,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="John Doe"
-                      className="w-full bg-[#141414] text-white border border-gray-800 rounded-lg pl-9 pr-3 py-2.5 text-xs focus:ring-1 focus:ring-brand focus:border-brand focus:outline-hidden"
+                      placeholder="e.g. John Doe"
+                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium placeholder-slate-450"
                     />
                   </div>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block" htmlFor="login-email">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block font-mono" htmlFor="login-email">
                   Email Address
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                     <Mail size={14} />
                   </span>
                   <input
@@ -333,8 +335,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full bg-[#141414] text-white border border-gray-800 rounded-lg pl-9 pr-3 py-2.5 text-xs focus:ring-1 focus:ring-brand focus:border-brand focus:outline-hidden"
+                    placeholder="e.g. you@example.com"
+                    className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium placeholder-slate-450"
                   />
                 </div>
               </div>
@@ -342,7 +344,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               {mode !== 'forgot' && (
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block" htmlFor="login-password">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block font-mono" htmlFor="login-password">
                       Password
                     </label>
                     {mode === 'signin' && (
@@ -353,14 +355,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           setErrorMessage('');
                           setSuccessMessage('');
                         }}
-                        className="text-[10px] text-gray-500 hover:text-brand transition-colors cursor-pointer"
+                        className="text-[10px] text-slate-400 hover:text-brand font-bold transition-colors cursor-pointer"
                       >
                         Forgot password?
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                       <Lock size={14} />
                     </span>
                     <input
@@ -370,12 +372,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-[#141414] text-white border border-gray-800 rounded-lg pl-9 pr-10 py-2.5 text-xs focus:ring-1 focus:ring-brand focus:border-brand focus:outline-hidden"
+                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-10 py-2.5 text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono placeholder-slate-450"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-white cursor-pointer"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-650 cursor-pointer"
                       title={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -385,7 +387,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               )}
 
               {errorMessage && (
-                <div className="text-rose-500 text-[11px] font-semibold p-2 bg-rose-500/10 border border-rose-500/25 rounded-lg text-center">
+                <div className="text-rose-700 text-[11px] font-semibold p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-center leading-normal">
                   ⚠️ {errorMessage}
                 </div>
               )}
@@ -393,7 +395,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <button
                 type="submit"
                 disabled={isAuthorizing}
-                className="w-full bg-brand hover:bg-brand-hover disabled:bg-brand/50 text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-1.5 transition-colors mt-4 cursor-pointer"
+                className="w-full bg-brand hover:bg-brand-hover disabled:bg-brand/50 text-white py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer mt-4 active:scale-98"
               >
                 {isAuthorizing ? (
                   <span>Processing secure credentials...</span>
@@ -406,7 +408,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </button>
 
               {/* Toggle switcher option */}
-              <div className="text-center pt-2 flex flex-col gap-2">
+              <div className="text-center pt-1.5 flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -418,7 +420,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     setErrorMessage('');
                     setSuccessMessage('');
                   }}
-                  className="text-xs text-brand hover:text-brand-hover tracking-wide underline transition-colors cursor-pointer"
+                  className="text-xs text-brand hover:text-brand-hover tracking-wide font-bold hover:underline transition-colors cursor-pointer"
                 >
                   {mode === 'forgot'
                     ? "Back to Sign In"
@@ -428,12 +430,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </button>
               </div>
 
-              <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-gray-800"></div>
-                <span className="flex-shrink mx-3 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">
+              <div className="relative flex items-center py-1">
+                <div className="flex-grow border-t border-slate-100"></div>
+                <span className="flex-shrink mx-3 text-[10px] text-slate-400 uppercase font-black tracking-widest font-mono">
                   Or
                 </span>
-                <div className="flex-grow border-t border-gray-800"></div>
+                <div className="flex-grow border-t border-slate-100"></div>
               </div>
 
               {/* Clean Google SSO Alternate trigger */}
@@ -441,7 +443,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isAuthorizing}
-                className="w-full bg-white hover:bg-gray-100 disabled:opacity-50 text-slate-800 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-3 transition-colors shadow-sm cursor-pointer"
+                className="w-full bg-white hover:bg-slate-50 border border-slate-200 disabled:opacity-50 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2.5 transition-all shadow-2xs cursor-pointer active:scale-98"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>

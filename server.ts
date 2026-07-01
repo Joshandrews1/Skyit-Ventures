@@ -440,7 +440,10 @@ app.get("/api/products", async (req, res) => {
     const snapshot = await getDocs(productsColRef);
     const firestoreProducts: any[] = [];
     snapshot.forEach((docSnap) => {
-      firestoreProducts.push(docSnap.data());
+      firestoreProducts.push({
+        id: docSnap.id,
+        ...docSnap.data()
+      });
     });
     
     // Merge with mockProducts to ensure all baseline products are present

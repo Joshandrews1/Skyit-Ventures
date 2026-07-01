@@ -56,6 +56,7 @@ export default function App() {
 
   const setActiveTab = (tab: 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact') => {
     _setActiveTab(tab);
+    setSelectedProduct(null); // Clear selected product modal on navigation
     localStorage.setItem('activeTab', tab);
     
     const params = new URLSearchParams(window.location.search);
@@ -425,6 +426,7 @@ export default function App() {
 
   // Catalog Filters State
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsRefreshTrigger, setProductsRefreshTrigger] = useState(0);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileSearchExpanded, setIsMobileSearchExpanded] = useState(false);
@@ -432,6 +434,48 @@ export default function App() {
   const [priceSort, setPriceSort] = useState<'low-high' | 'high-low' | 'default'>('default');
   const [discountFilter, setDiscountFilter] = useState('All');
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  // Real-time Reviews State for Dynamic Ratings
+  const [reviews, setReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'reviews'), (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach(docSnap => {
+        list.push(docSnap.data());
+      });
+      setReviews(list);
+    }, (error) => {
+      console.warn("Error listening to reviews:", error);
+    });
+    return () => unsub();
+  }, []);
+
+  // Dynamically compute the product rating and ratingCount from actual reviews
+  const productsWithRealRatings = React.useMemo(() => {
+    return products.map(prod => {
+      const prodReviews = reviews.filter(r => r.productId === prod.id);
+      if (prodReviews.length > 0) {
+        const sum = prodReviews.reduce((acc, r) => acc + r.rating, 0);
+        return {
+          ...prod,
+          rating: sum / prodReviews.length,
+          ratingCount: prodReviews.length
+        };
+      } else {
+        return {
+          ...prod,
+          rating: 0,
+          ratingCount: 0
+        };
+      }
+    });
+  }, [products, reviews]);
+
+  const selectedProductWithRealRating = React.useMemo(() => {
+    if (!selectedProduct) return null;
+    return productsWithRealRatings.find(p => p.id === selectedProduct.id) || selectedProduct;
+  }, [selectedProduct, productsWithRealRatings]);
 
   // Handle Browser Back Button for Full-Page Product View and Tabs
   useEffect(() => {
@@ -537,10 +581,10 @@ export default function App() {
 
   // Filter products for Highlights Carousel
   const highlightItems = React.useMemo(() => {
-    // Grab items that have a discount percent, or standard fallback
-    const discounted = products.filter(p => p.discountPercent > 0);
-    return discounted.length > 0 ? discounted : products.slice(0, 5);
-  }, [products]);
+    // Select 6 random products
+    const shuffled = [...productsWithRealRatings].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 6);
+  }, [productsWithRealRatings]);
 
   // Handle index boundaries when product list changes
   useEffect(() => {
@@ -562,11 +606,11 @@ export default function App() {
   const filteredSuggestions = React.useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
-    return products.filter(p => 
+    return productsWithRealRatings.filter(p => 
       p.name.toLowerCase().includes(q) || 
       p.category.toLowerCase().includes(q)
     ).slice(0, 5);
-  }, [products, searchQuery]);
+  }, [productsWithRealRatings, searchQuery]);
 
   // Load products dynamically from Firestore with fallback to REST API / static mockProducts
   useEffect(() => {
@@ -588,7 +632,10 @@ export default function App() {
         if (!active) return;
         const firestoreProducts: Product[] = [];
         snapshot.forEach((docSnap) => {
-          firestoreProducts.push(docSnap.data() as Product);
+          firestoreProducts.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as Product);
         });
 
         const merged = [...firestoreProducts];
@@ -621,10 +668,10 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [productsRefreshTrigger]);
 
   // Filter & Sort Logic
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = productsWithRealRatings.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (p.specs && Object.values(p.specs).some(v => String(v).toLowerCase().includes(searchQuery.toLowerCase())));
@@ -1275,13 +1322,15 @@ export default function App() {
       <main className={activeTab === 'ai' ? 'w-full flex-1 flex flex-col bg-[#0e0e10]' : (selectedProduct ? 'w-full flex-1 flex flex-col' : 'max-w-7xl mx-auto px-4 py-8 flex-1 w-full')}>
         
         {/* PRODUCT DETAIL PAGE (Takes over screen when active) */}
-        {selectedProduct && (
+        {selectedProductWithRealRating && (
           <ProductDetailModal 
-            product={selectedProduct}
-            allProducts={products}
+            product={selectedProductWithRealRating}
+            allProducts={productsWithRealRatings}
             onViewProduct={handleViewProduct}
             onClose={handleCloseProduct}
             onAddToCart={handleAddToCartWithQty}
+            isAdmin={isAdmin || isEditor}
+            onRefreshProducts={() => setProductsRefreshTrigger(prev => prev + 1)}
           />
         )}
 
@@ -1371,7 +1420,7 @@ export default function App() {
                 <span className="text-[9px] tracking-widest font-bold uppercase bg-brand text-white px-2 py-0.5 rounded-sm inline-block">
                   AI Engineering Expert
                 </span>
-                <h4 className="text-xs font-display font-bold leading-snug text-slate-800">Let Gemini design your optimal microgrid</h4>
+                <h4 className="text-xs font-display font-bold leading-snug text-slate-800">let our AI design your optimal microgrid</h4>
                 <p className="text-[10px] text-slate-500 leading-normal">
                   Describe your building shape, AC loads, and battery technology preference. Let the AI advisor write a professional hardware checklist instantly.
                 </p>
@@ -1538,7 +1587,7 @@ export default function App() {
             currentUser={currentUser}
             onOpenLogin={() => setIsLoginOpen(true)}
             onSelectProduct={(pId) => {
-              const matched = products.find(p => p.id === pId);
+              const matched = productsWithRealRatings.find(p => p.id === pId);
               if (matched) {
                 handleViewProduct(matched);
               }
@@ -1557,7 +1606,7 @@ export default function App() {
             isAdmin={isAdmin}
             isEditor={isEditor}
             onOpenCart={() => setIsCartOpen(true)}
-            products={products}
+            products={productsWithRealRatings}
             cart={cart}
             onOpenProfile={() => setIsProfileOpen(true)}
             onOpenLogin={() => setIsLoginOpen(true)}

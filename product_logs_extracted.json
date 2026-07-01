@@ -1,0 +1,442 @@
+[
+  {
+    "timestamp": "2026-06-19T21:42:40.481Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781905343823",
+    "targetType": "product",
+    "details": "Created new product element: Pro-Guard Dual-Lens PTZ Security Camera (Price: $110000)",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781905360481-24014",
+    "action": "CREATE_PRODUCT"
+  },
+  {
+    "id": "log-1781906571829-40164",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT",
+    "timestamp": "2026-06-19T22:02:51.829Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781906564131",
+    "targetType": "product",
+    "details": "Created new product element: Pro-Series PTZ Single Lens Security Camera (Price: $80000)"
+  },
+  {
+    "id": "log-1781907893437-21421",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT",
+    "targetType": "product",
+    "details": "Created new product element: Felicity 3KVA 24V Pure Sine Wave Inverter (Price: $400000)",
+    "timestamp": "2026-06-19T22:24:53.437Z",
+    "targetId": "custom-1781907892441",
+    "actorEmail": "jeemestore@gmail.com"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781908210894-54929",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781908210227",
+    "timestamp": "2026-06-19T22:30:10.894Z",
+    "details": "Created new product element: Felicity 5KVA 48V Pure Sine Wave Solar Inverter (Price: $500000)",
+    "targetType": "product"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781908649862-35587",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "details": "Created new product element: Blue Power 3.5kVA 24V Pure Sine Wave Inverter (Price: $380000)",
+    "targetType": "product",
+    "targetId": "custom-1781908648465",
+    "actorEmail": "jeemestore@gmail.com",
+    "timestamp": "2026-06-19T22:37:29.862Z"
+  },
+  {
+    "id": "log-1781908693727-6270",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "UPDATE_PRODUCT",
+    "targetType": "product",
+    "details": "Updated details and configuration for Blue Power 3.5kVA 24V Pure Sine Wave Inverter (Price: $380000)",
+    "timestamp": "2026-06-19T22:38:13.727Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781908648465"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781909124964-48972",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781909123673",
+    "timestamp": "2026-06-19T22:45:24.964Z",
+    "details": "Created new product element: Blue Power 5KVA 48V Pure Sine Wave Inverter (Price: $480000)",
+    "targetType": "product"
+  },
+  {
+    "details": "Created new product element: Lithion 3KVA 24V Pure Sine Wave Inverter (Price: $260000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781909560385",
+    "timestamp": "2026-06-19T22:52:44.335Z",
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781909564335-51616",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781909848422",
+    "timestamp": "2026-06-19T22:57:29.342Z",
+    "details": "Created new product element: Felicity Solar 120A MPPT Charge Controller (Price: $280000)",
+    "targetType": "product",
+    "action": "CREATE_PRODUCT",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781909849342-46604"
+  },
+  {
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781910086841-72401",
+    "action": "CREATE_PRODUCT",
+    "timestamp": "2026-06-19T23:01:26.841Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781910083570",
+    "targetType": "product",
+    "details": "Created new product element: Sachet 3000VA Pure Sine Wave Inverter (Price: $60000)"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781910401031-8387",
+    "details": "Created new product element: Qasa High-Performance Ceiling Fan 56 inches (Price: $55000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781910399300",
+    "timestamp": "2026-06-19T23:06:41.031Z"
+  },
+  {
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781910742855-16896",
+    "action": "CREATE_PRODUCT",
+    "timestamp": "2026-06-19T23:12:22.856Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781910740880",
+    "targetType": "product",
+    "details": "Created new product element: Syndian 3.5kVA 24V Pure Sine Wave Inverter (Price: $370000)"
+  },
+  {
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781910901128-18963",
+    "action": "CREATE_PRODUCT",
+    "targetType": "product",
+    "details": "Created new product element: Syndian 3.5kVA 48V Pure Sine Wave Inverter (Price: $370000)",
+    "timestamp": "2026-06-19T23:15:01.128Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781910899949"
+  },
+  {
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781911167795-98974",
+    "action": "CREATE_PRODUCT",
+    "targetType": "product",
+    "details": "Created new product element: Techfine 5KVA 48V Pure Sine Wave Inverter (Price: $480)",
+    "timestamp": "2026-06-19T23:19:27.795Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781911167149"
+  },
+  {
+    "id": "log-1781911733478-15264",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT",
+    "timestamp": "2026-06-19T23:28:53.478Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781911731698",
+    "targetType": "product",
+    "details": "Created new product element: Kartel 5KVA 48V Pure Sine Wave Inverter (Price: $480000)"
+  },
+  {
+    "targetId": "custom-1781911848459",
+    "actorEmail": "jeemestore@gmail.com",
+    "timestamp": "2026-06-19T23:30:49.113Z",
+    "details": "Created new product element: Kartel 5KVA 24V Pure Sine Wave Inverter (Price: $480000)",
+    "targetType": "product",
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781911849113-93962",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "id": "log-1781912079349-99301",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT",
+    "targetType": "product",
+    "details": "Created new product element: Prag 1.2kVA Pure Sine Wave Inverter (Price: $170000)",
+    "timestamp": "2026-06-19T23:34:39.349Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781912078725"
+  },
+  {
+    "id": "log-1781912462815-14769",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT",
+    "targetType": "product",
+    "details": "Created new product element: Infinity 3.5kVA 48V Hybrid Solar Inverter (Price: $450000)",
+    "timestamp": "2026-06-19T23:41:02.815Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781912462127"
+  },
+  {
+    "targetType": "product",
+    "details": "Created new product element: Infinity 3kVA 48V Pure Sine Wave Inverter (Price: $370000)",
+    "timestamp": "2026-06-20T00:46:33.694Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781916392948",
+    "id": "log-1781916393694-17383",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781916625379-58384",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781916624737",
+    "timestamp": "2026-06-20T00:50:25.379Z",
+    "details": "Created new product element: Kartel 4kVA 24V Pure Sine Wave Inverter (Price: $370000)",
+    "targetType": "product"
+  },
+  {
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781917259036",
+    "timestamp": "2026-06-20T01:00:59.677Z",
+    "details": "Created new product element: Eastman 220Ah 12V Tubular Gel Battery (Price: $270000)",
+    "targetType": "product",
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781917259677-57331",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "id": "log-1781917466526-49001",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT",
+    "targetType": "product",
+    "details": "Created new product element: Addo Lithium-Ion Deep Cycle Battery 220Ah (Price: $300000)",
+    "timestamp": "2026-06-20T01:04:26.526Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781917465875"
+  },
+  {
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781917702020",
+    "timestamp": "2026-06-20T01:08:22.601Z",
+    "details": "Created new product element: Lithion 220Ah Deep Cycle Lithium-Ion Battery (Price: $250000)",
+    "targetType": "product",
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781917702601-90905",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "details": "Created new product element: Prag 20kVA Servo Motor Voltage Stabilizer (Price: $600000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781918421139",
+    "timestamp": "2026-06-20T01:20:23.027Z",
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781918423027-70126",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "id": "log-1781918614989-37357",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT",
+    "timestamp": "2026-06-20T01:23:34.989Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781918613896",
+    "targetType": "product",
+    "details": "Created new product element: Prag 15kVA Servo Motor Voltage Stabilizer (Price: $500000)"
+  },
+  {
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781918976243",
+    "timestamp": "2026-06-20T01:29:37.492Z",
+    "details": "Created new product element: Prag 2kVA Servo Motor Voltage Stabilizer (Price: $150000)",
+    "targetType": "product",
+    "action": "CREATE_PRODUCT",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781918977492-15780"
+  },
+  {
+    "id": "log-1781919187526-66771",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "UPDATE_PRODUCT",
+    "targetType": "product",
+    "details": "Updated details and configuration for Prag 20kVA Servo Motor Voltage Stabilizer (Price: $600000)",
+    "timestamp": "2026-06-20T01:33:07.526Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781918421139"
+  },
+  {
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781919221556-64480",
+    "action": "UPDATE_PRODUCT",
+    "targetType": "product",
+    "details": "Updated details and configuration for Prag 15kVA Servo Motor Voltage Stabilizer (Price: $500000)",
+    "timestamp": "2026-06-20T01:33:41.556Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781918613896"
+  },
+  {
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781918976243",
+    "timestamp": "2026-06-20T01:34:05.879Z",
+    "details": "Updated details and configuration for Prag 2kVA Servo Motor Voltage Stabilizer (Price: $150000)",
+    "targetType": "product",
+    "action": "UPDATE_PRODUCT",
+    "id": "log-1781919245879-48717",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781919414144-57729",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "details": "Created new product element: Premium Distilled Water - 25 Liters (Price: $25000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781919413068",
+    "timestamp": "2026-06-20T01:36:54.144Z"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781919518505-4881",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "details": "Created new product element: Akt 300W Solar-Powered LED Flood Light (Price: $65000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781919517255",
+    "timestamp": "2026-06-20T01:38:38.505Z"
+  },
+  {
+    "details": "Created new product element: Akt 200W Solar-Powered LED Flood Light (Price: $55000)",
+    "targetType": "product",
+    "targetId": "custom-1781919647639",
+    "actorEmail": "jeemestore@gmail.com",
+    "timestamp": "2026-06-20T01:40:49.406Z",
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781919649406-40338",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "details": "Created new product element: Hikvision 4-Channel Digital Video Recorder (DVR) (Price: $50000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781919935579",
+    "timestamp": "2026-06-20T01:45:36.779Z",
+    "action": "CREATE_PRODUCT",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1781919936778-65397"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "id": "log-1781920315685-19698",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "details": "Created new product element: Hikvision 16-Channel Digital Video Recorder (DVR) (Price: $110000)",
+    "targetType": "product",
+    "targetId": "custom-1781920315029",
+    "actorEmail": "jeemestore@gmail.com",
+    "timestamp": "2026-06-20T01:51:55.685Z"
+  },
+  {
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1782071731341-75706",
+    "action": "UPDATE_PRODUCT",
+    "timestamp": "2026-06-21T19:55:31.341Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781917465875",
+    "targetType": "product",
+    "details": "Updated details and configuration for Addo Lithium-Ion Deep Cycle Battery 220Ah (Price: $300000)"
+  },
+  {
+    "targetId": "custom-1781917465875",
+    "actorEmail": "jeemestore@gmail.com",
+    "timestamp": "2026-06-21T20:00:05.331Z",
+    "details": "Updated details and configuration for Addo  Deep Cycle Battery 220Ah (Price: $300000)",
+    "targetType": "product",
+    "action": "UPDATE_PRODUCT",
+    "id": "log-1782072005331-71829",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "targetId": "custom-1781917702020",
+    "actorEmail": "jeemestore@gmail.com",
+    "timestamp": "2026-06-21T20:01:11.942Z",
+    "details": "Updated details and configuration for Lithion 220Ah Deep Cycle L Battery (Price: $250000)",
+    "targetType": "product",
+    "action": "UPDATE_PRODUCT",
+    "id": "log-1782072071942-39051",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "action": "UPDATE_PRODUCT",
+    "id": "log-1782079608096-46636",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "details": "Updated details and configuration for Addo 220Ah 12V Tubular Gel Battery (Price: $300000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781917465875",
+    "timestamp": "2026-06-21T22:06:48.096Z"
+  },
+  {
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1782079821935-44449",
+    "action": "UPDATE_PRODUCT",
+    "targetType": "product",
+    "details": "Updated details and configuration for Lithion 220Ah tubular Battery (Price: $250000)",
+    "timestamp": "2026-06-21T22:10:21.936Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781917702020"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1782141420161-68999",
+    "details": "Created new product element: Felicity 15kWh LiFePO4 Lithium Battery (Price: $2300000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1782141410865",
+    "timestamp": "2026-06-22T15:17:00.161Z"
+  },
+  {
+    "action": "CREATE_PRODUCT",
+    "id": "log-1782141804164-66005",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1782141801744",
+    "timestamp": "2026-06-22T15:23:24.164Z",
+    "details": "Created new product element: Cworth 15kWh Lithium-Ion Deep Cycle Battery (Price: $2000000)",
+    "targetType": "product"
+  },
+  {
+    "targetType": "product",
+    "details": "Created new product element: Cworth 5kWh Lithium-Ion Battery (Price: $1200000)",
+    "timestamp": "2026-06-22T15:28:15.660Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1782142093584",
+    "id": "log-1782142095660-90954",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "action": "CREATE_PRODUCT"
+  },
+  {
+    "details": "Created new product element: Felicity 10kWh LiFePO4 Lithium Battery (Price: $1850000)",
+    "targetType": "product",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1782142610505",
+    "timestamp": "2026-06-22T15:36:52.754Z",
+    "action": "CREATE_PRODUCT",
+    "id": "log-1782142612754-72510",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63"
+  },
+  {
+    "targetType": "product",
+    "details": "Direct inline edit: updated details and specifications for product ID: custom-1781905343823 (Pro-Guard Dual-Lens PTZ Security Camera)",
+    "timestamp": "2026-07-01T12:36:19.797Z",
+    "actorEmail": "jeemestore@gmail.com",
+    "targetId": "custom-1781905343823",
+    "actorUid": "Pr5hGdpIxMZR1narWjSn380Y0n63",
+    "id": "log-1782909379796-1467",
+    "action": "UPDATE_PRODUCT"
+  }
+]

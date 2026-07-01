@@ -9,12 +9,7 @@ interface ProductCardProps {
 }
 
 const getInitialReviewsStats = (product: Product) => {
-  const cat = product.category;
-  if (cat === "Solar Panels") return { count: 3, average: 4.7 };
-  if (cat === "Inverters") return { count: 3, average: 4.7 };
-  if (cat === "Batteries") return { count: 3, average: 5.0 };
-  if (cat === "Security Systems") return { count: 3, average: 4.7 };
-  return { count: 2, average: 5.0 };
+  return { count: 0, average: 0 };
 };
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onViewDetails }) => {

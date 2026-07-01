@@ -1,7 +1,11 @@
 import { trackEvent } from '../lib/analytics';
 import React, { useState } from 'react';
 import { CartItem, CustomerDetails, Order } from '../types';
-import { X, Lock, CreditCard, User, Landmark, ShieldCheck, Mail, Phone, MapPin, Loader2, ArrowRight, Truck } from 'lucide-react';
+import { 
+  X, Lock, CreditCard, User, Landmark, ShieldCheck, Mail, Phone, 
+  MapPin, Loader2, ArrowRight, Truck, ChevronLeft, ArrowLeft, 
+  ShoppingBag, CheckCircle2, Shield, Info, HelpCircle, Gift, MessageSquare
+} from 'lucide-react';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getOrCreateGuestUid, cacheOrderDetails } from '../lib/guestCache';
@@ -36,6 +40,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     city: "",
     address: ""
   });
+
+  const [card, setCard] = useState({
+    number: "4000 1234 5678 9010",
+    holder: "JOHN DOE",
+    expiry: "12/28",
+    cvv: "321"
+  });
+
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -98,23 +112,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   }, [isOpen]);
 
-  const [card, setCard] = useState({
-    number: "4000 1234 5678 9010",
-    holder: "JOHN DOE",
-    expiry: "12/28",
-    cvv: "321"
-  });
-
-  const [otpCode, setOtpCode] = useState('');
-  const [otpError, setOtpError] = useState('');
-
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
   const totalOriginal = cartItems.reduce((acc, item) => acc + (item.product.originalPrice * item.quantity), 0);
   const discount = totalOriginal - subtotal;
-  const deliveryFee = subtotal > 500000 ? 0 : 15000;
-  const grandTotal = subtotal + deliveryFee;
+  // Delivery fee is negotiated dynamically with 3rd party logistics post-purchase
+  const deliveryFee = 0;
+  const grandTotal = subtotal;
 
   const formatNaira = (val: number) => {
     return "₦" + Math.floor(val).toLocaleString();
@@ -363,131 +368,177 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-0 sm:p-4 animate-fade-in">
-      <div className="bg-[#0D0D0D] w-full h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl max-w-lg overflow-hidden shadow-2xl relative sm:border border-gray-805 flex flex-col text-gray-300">
-        
-        {/* Header toolbar */}
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-[#0F0F0F] text-white shrink-0">
-          <div className="flex items-center gap-2">
-            <Lock className="text-blue-400" size={15} />
-            <span className="font-serif italic font-medium text-sm">Secure Payment Gateway Checkout</span>
+    <div className="fixed inset-0 bg-slate-50 z-[999] overflow-y-auto flex flex-col font-sans text-slate-800 animate-fade-in" id="full-page-checkout">
+      
+      {/* 1. Immersive Sticky Header Bar */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          
+          {/* Logo Branding */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg border border-slate-100 flex items-center justify-center bg-white shadow-xs p-0.5">
+              <img 
+                src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
+                alt="SkyIT Logo" 
+                className="w-full h-full object-contain" 
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display font-black text-sm sm:text-base text-slate-900 tracking-tight leading-none">
+                SkyIT <span className="text-brand">Ventures</span>
+              </span>
+              <span className="text-[8px] uppercase tracking-widest font-black text-slate-400 mt-1">
+                Secure checkout
+              </span>
+            </div>
           </div>
+
+          {/* Secure SSL Connection Hub */}
+          <div className="hidden md:flex items-center gap-2 text-xs text-slate-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full font-medium">
+            <ShieldCheck className="text-emerald-600" size={15} />
+            <span>Encrypted 256-bit SSL Connection</span>
+          </div>
+
+          {/* Cancel/Exit button */}
           <button 
-            onClick={onClose} 
-            className="text-gray-400 hover:text-white transition-colors"
+            onClick={onClose}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 font-bold transition-colors bg-slate-100 hover:bg-slate-200/80 px-3.5 py-2 rounded-xl cursor-pointer"
           >
-            <X size={18} />
+            <X size={15} />
+            <span>Cancel & Exit</span>
           </button>
         </div>
+      </header>
 
-        {/* Info panel */}
-        <div className="p-3 bg-[#141414] text-blue-400 px-4 flex items-center justify-between text-xs font-semibold border-b border-gray-800 font-mono shrink-0">
-          <span>Order Grand Total:</span>
-          <span>{formatNaira(grandTotal)}</span>
-        </div>
-
-        {/* Scrollable Form Body */}
-        <div className="p-6 overflow-y-auto flex-1">
+      {/* 2. Responsive Multi-Column Full Page layout */}
+      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-200 bg-white">
+        
+        {/* Left Side: Active Checkout Step / Forms */}
+        <div className="flex-1 p-4 sm:p-8 md:p-12 space-y-6">
           
-          {/* STEP 1: CUSTOMER DETAILS */}
+          {/* Breadcrumb Navigation tracker */}
+          <nav className="flex items-center gap-2 text-[11px] font-bold text-slate-400 font-mono tracking-wider uppercase mb-2">
+            <span className="hover:text-slate-600 cursor-pointer" onClick={onClose}>Cart</span>
+            <ChevronLeft size={10} className="rotate-180 text-slate-300" />
+            <span className={step === 'details' ? 'text-brand font-black' : 'text-slate-400'}>Contact & Delivery</span>
+            {(step === 'payment' || step === 'otp') && (
+              <>
+                <ChevronLeft size={10} className="rotate-180 text-slate-300" />
+                <span className="text-brand font-black">Secure Payment</span>
+              </>
+            )}
+          </nav>
+
+          {/* CASE A: Guest Checkout is Deactivated Blockage */}
           {step === 'details' && !allowGuestCheckout && !auth.currentUser ? (
-            <div className="flex flex-col items-center justify-center py-10 px-4 text-center space-y-5 animate-fadeIn">
-              <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center border border-rose-500/20 shadow-lg">
-                <Lock size={32} />
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-6 max-w-md mx-auto">
+              <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center border border-rose-100 shadow-xs">
+                <Lock size={30} />
               </div>
               <div className="space-y-2">
-                <h4 className="text-base font-serif italic text-white font-medium">Guest Checkout is Deactivated</h4>
-                <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
-                  To secure your warranty tracking, customized design metrics, and receipt delivery, our administration requires guests to have an authenticated account before making purchases.
+                <h4 className="text-lg font-display font-black text-slate-900">Guest Checkout Disabled</h4>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  To secure your warranty tracking, professional design quotations, and invoice deliveries, our administration requires customers to sign in before finalizing purchases.
                 </p>
               </div>
 
-              <div className="pt-2 w-full max-w-xs mx-auto space-y-3">
+              <div className="pt-2 w-full space-y-3">
                 <button
                   type="button"
                   onClick={() => {
                     onClose();
                     if (onOpenLogin) onOpenLogin();
                   }}
-                  className="w-full bg-brand hover:bg-brand/95 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2"
+                  className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <span>Sign In or Register Now</span>
+                  <span>Sign In or Create Account</span>
                   <ArrowRight size={14} />
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full bg-[#161616] hover:bg-[#1C1C1C] text-gray-400 hover:text-white font-bold py-2.5 px-4 rounded-xl text-[10px] uppercase tracking-wider border border-gray-800 transition-all"
+                  className="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider border border-slate-200 transition-all cursor-pointer"
                 >
-                  Cancel & Return to Cart
+                  Return to Store
                 </button>
               </div>
             </div>
-          ) : step === 'details' && (
-            <form onSubmit={handleDetailsSubmit} className="space-y-4">
-              <h3 className="text-sm font-serif italic text-white font-medium tracking-wide mb-2">
-                1. Delivery & Contact Details
-              </h3>
+          ) : step === 'details' ? (
+            /* CASE B: Details Entry Form */
+            <form onSubmit={handleDetailsSubmit} className="space-y-6">
               
-              <div className="space-y-3">
+              {/* Header Title */}
+              <div>
+                <h2 className="text-xl font-display font-bold text-slate-900 tracking-tight">Delivery & Contact Details</h2>
+                <p className="text-xs text-slate-500 mt-1">Please provide accurate contact and shipping coordinates to secure your warranty coverage and Lagos/Abuja logistics dispatch.</p>
+              </div>
+
+              {/* Form Input fields */}
+              <div className="space-y-4">
+                
+                {/* Row 1: Full Name */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Full Name</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Full Name</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                    <User className="absolute left-3.5 top-3 text-slate-400" size={16} />
                     <input 
                       type="text" 
                       required
                       value={customer.name}
                       onChange={(e) => setCustomer({...customer, name: e.target.value})}
-                      className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 pl-10 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
+                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl p-3 pl-11 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all placeholder-slate-400 font-medium"
                       placeholder="e.g. John Doe"
                     />
                   </div>
                 </div>
 
+                {/* Row 2: Email Address */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Email Address</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Email Address</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                    <Mail className="absolute left-3.5 top-3 text-slate-400" size={16} />
                     <input 
                       type="email" 
                       required
                       value={customer.email}
                       onChange={(e) => setCustomer({...customer, email: e.target.value})}
-                      className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 pl-10 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
-                      placeholder="e.g. validuser@mail.com"
+                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl p-3 pl-11 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all placeholder-slate-400 font-medium"
+                      placeholder="e.g. john.doe@mail.com"
                     />
                   </div>
+                  <span className="text-[10px] text-slate-400 mt-1 block">Your e-receipt, design quotes, and order receipts are dispatched here.</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* Row 3: Grid - Phone & Delivery City */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">Phone Number</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Phone Number</label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                      <Phone className="absolute left-3.5 top-3 text-slate-400" size={16} />
                       <input 
                         type="text" 
                         required
                         value={customer.phone}
                         onChange={(e) => setCustomer({...customer, phone: e.target.value})}
-                        className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 pl-10 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
-                        placeholder="e.g. +234 803 123"
+                        className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl p-3 pl-11 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all placeholder-slate-400 font-medium"
+                        placeholder="e.g. +234 803 123 4567"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">Delivery City</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Delivery City</label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                      <MapPin className="absolute left-3.5 top-3.5 text-slate-400" size={16} />
                       <select 
                         required
                         value={customer.city}
                         onChange={(e) => setCustomer({...customer, city: e.target.value})}
-                        className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 pl-11 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
+                        className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl p-3 pl-11 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium cursor-pointer"
                       >
                         <option value="">Select City...</option>
-                        <option value="Lagos">Lagos</option>
+                        <option value="Lagos">Lagos (HQ Dispatch)</option>
                         <option value="Abuja">Abuja</option>
                         <option value="Port Harcourt">Port Harcourt</option>
                         <option value="Ibadan">Ibadan</option>
@@ -497,78 +548,85 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
                 </div>
 
+                {/* Row 4: Detailed Physical Address */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Detailed Physical Address</label>
-                  <input 
-                    type="text" 
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Detailed Shipping Address</label>
+                  <textarea 
                     required
+                    rows={3}
                     value={customer.address}
                     onChange={(e) => setCustomer({...customer, address: e.target.value})}
-                    className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-3 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
-                    placeholder="Street name, Building No, Apartment No..."
+                    className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl p-3.5 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all placeholder-slate-400 font-medium resize-none"
+                    placeholder="Street name, Building No, Apartment/Office suite, landmark..."
                   />
                 </div>
               </div>
-              {/* CHOOSE PAYMENT GATEWAY CHANNEL */}
-              <div className="pt-4 border-t border-gray-800/60 mt-4 space-y-2.5">
-                <label className="text-[11px] font-bold text-gray-400 block tracking-wider uppercase">Select Secure Checkout Method</label>
+
+              {/* Secure Checkout Channels Selection */}
+              <div className="pt-6 border-t border-slate-150 space-y-4">
+                <label className="text-[11px] font-black text-slate-500 block tracking-wider uppercase">Select Secure Checkout Method</label>
                 
-                {/* Visual warning message if COD is not allowed for some items */}
                 {(() => {
                   const isCodAvailable = cartItems.every(item => item.product.allowCOD !== false);
                   return (
-                    <div className="grid grid-cols-1 gap-2.5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        
+                        {/* Option 1: Flutterwave Pay */}
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('flutterwave')}
-                          className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all cursor-pointer ${
                             paymentMethod === 'flutterwave'
-                              ? 'border-blue-500 bg-blue-950/15 text-white shadow-[0_0_12px_rgba(59,130,246,0.12)]'
-                              : 'border-gray-805 bg-[#111] text-gray-400 hover:border-gray-700'
+                              ? 'border-brand bg-blue-50/20 text-slate-900 shadow-sm ring-1 ring-brand'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-350'
                           }`}
                         >
-                          <div className="flex items-center gap-1.5 font-bold text-xs text-white">
-                            <ShieldCheck size={14} className={paymentMethod === 'flutterwave' ? 'text-blue-400' : 'text-gray-500'} />
-                            <span>Flutterwave Pay</span>
+                          <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
+                            <ShieldCheck size={16} className={paymentMethod === 'flutterwave' ? 'text-brand' : 'text-slate-400'} />
+                            <span>Flutterwave Secure Pay</span>
                           </div>
-                          <span className="text-[9px] text-gray-500 mt-1.5 leading-tight">Secure production-ready checkout with cards, transfers, and USSD</span>
+                          <span className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                            Pay safely using local/international credit cards, instant bank transfers, and USSD dialcodes.
+                          </span>
                         </button>
 
+                        {/* Option 2: Cash On Delivery */}
                         <button
                           type="button"
                           disabled={!isCodAvailable}
                           onClick={() => {
                             if (isCodAvailable) setPaymentMethod('cod');
                           }}
-                          className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
+                          className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
                             !isCodAvailable 
-                              ? 'opacity-40 cursor-not-allowed border-gray-900 bg-[#070707]' 
+                              ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50' 
                               : 'cursor-pointer'
                           } ${
                             paymentMethod === 'cod' && isCodAvailable
-                              ? 'border-blue-500 bg-blue-950/15 text-white shadow-[0_0_12px_rgba(59,130,246,0.12)]'
-                              : 'border-gray-805 bg-[#111] text-gray-400 hover:border-gray-700'
+                              ? 'border-brand bg-blue-50/20 text-slate-900 shadow-sm ring-1 ring-brand'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-350'
                           }`}
                         >
-                          <div className="flex items-center gap-1.5 font-bold text-xs text-white">
-                            <Truck size={14} className={paymentMethod === 'cod' && isCodAvailable ? 'text-blue-400' : 'text-gray-500'} />
-                            <span>Cash On Delivery</span>
+                          <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
+                            <Truck size={16} className={paymentMethod === 'cod' && isCodAvailable ? 'text-brand' : 'text-slate-400'} />
+                            <span>Cash On Delivery (COD)</span>
                           </div>
-                          <span className="text-[9px] text-gray-500 mt-1.5 leading-tight">
+                          <span className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                             {!isCodAvailable 
-                              ? "Unavailable for specialized items in your cart" 
-                              : "Pay securely in Cash or Local Bank Transfer upon receiving equipment"
+                              ? "Unavailable: Cart contains high-value premium enterprise equipment requiring pre-order verification." 
+                              : "Verify your delivery and pay securely via cash or local POS transfer upon receiving system."
                             }
                           </span>
                         </button>
                       </div>
 
+                      {/* Warning notice if COD is disabled for cart contents */}
                       {!isCodAvailable && (
-                        <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-3 text-[10px] text-amber-300 leading-snug flex gap-2.5 mt-1">
-                          <span className="text-amber-500 font-bold shrink-0">⚠️ Notice:</span>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 leading-relaxed flex gap-3">
+                          <span className="text-amber-600 font-black shrink-0">⚠️ COD DISABLED:</span>
                           <span>
-                            Cash on Delivery (COD) is disabled. Your cart contains premium enterprise hardware (e.g., Heavy-Duty Inverters or Performance Lithium batteries) requiring secure prepayments.
+                            Your cart includes specialized solar setups or heavy-duty industrial lithium batteries. These require professional warehouse processing and secure pre-order checkout.
                           </span>
                         </div>
                       )}
@@ -577,10 +635,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 })()}
               </div>
 
-              <div className="pt-4">
+              {/* Form Submission Actions */}
+              <div className="pt-4 border-t border-slate-150">
                 <button
                   type="submit"
-                  className="w-full bg-brand hover:bg-brand-hover active:scale-98 transition-all text-white font-black uppercase tracking-widest py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 text-xs shadow-md cursor-pointer"
+                  className="w-full bg-brand hover:bg-brand-hover active:scale-98 transition-all text-white font-black uppercase tracking-wider py-4 px-6 rounded-xl flex items-center justify-center gap-2 text-xs shadow-md cursor-pointer"
                 >
                   <span>
                     {paymentMethod === 'flutterwave' 
@@ -588,222 +647,351 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       : 'Place Cash on Delivery Order'
                     }
                   </span>
-                  <ArrowRight size={14} strokeWidth={2.5} />
+                  <ArrowRight size={15} strokeWidth={2.5} />
                 </button>
+                <div className="flex justify-center items-center gap-1 text-[10px] text-slate-400 mt-3.5 font-mono">
+                  <Shield size={12} className="text-emerald-600" />
+                  <span>Verified PCI-DSS Compliant Secure Gateway Processing</span>
+                </div>
               </div>
             </form>
-          )}
-
-          {/* STEP 2: CREDIT CARD GATEWAY DETAILS */}
-          {step === 'payment' && (
-            <form onSubmit={handleChargeCard} className="space-y-4">
-              <div className="flex justify-between items-center mb-1">
-                <h3 className="text-sm font-serif italic text-white font-medium tracking-wide">
-                  2. Cards & Secure Gateway
-                </h3>
-                <span className="text-[10px] text-blue-400 uppercase font-bold bg-[#141414] px-2 py-0.5 rounded-sm flex items-center gap-1 border border-gray-800">
-                  <ShieldCheck size={12} />
-                  <span>SkyIT Pay Secure</span>
+          ) : step === 'payment' ? (
+            /* CASE C: Credit Card Portal (SkyIT Pay) */
+            <form onSubmit={handleChargeCard} className="space-y-6">
+              
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <div>
+                  <h2 className="text-xl font-display font-bold text-slate-900 tracking-tight">Credit Card Payment</h2>
+                  <p className="text-xs text-slate-500 mt-1">Directly authorize using our fallback encrypted SkyIT Pay pipeline.</p>
+                </div>
+                <span className="text-[10px] text-brand uppercase font-black bg-blue-50 px-3 py-1 rounded-full flex items-center gap-1.5 border border-blue-100 self-start sm:self-center">
+                  <ShieldCheck size={13} className="text-brand animate-pulse" />
+                  <span>SkyIT Direct Safe</span>
                 </span>
               </div>
 
               {/* Graphical Credit Card */}
-              <div className="bg-gradient-to-br from-[#003764]/20 via-[#0F0F0F] to-[#0A0A0A] p-5 rounded-2xl text-white shadow-lg space-y-6 relative overflow-hidden aspect-video max-w-[340px] mx-auto border border-gray-800">
+              <div className="bg-gradient-to-br from-[#003764] via-[#002544] to-[#011425] p-6 rounded-2xl text-white shadow-xl space-y-6 relative overflow-hidden aspect-video max-w-[350px] mx-auto border border-blue-900">
                 {/* Visual grid effects */}
-                <div className="absolute inset-0 bg-radial from-transparent to-black/30 pointer-events-none" />
+                <div className="absolute inset-0 bg-radial from-transparent to-black/40 pointer-events-none" />
                 
                 <div className="flex justify-between items-center relative">
-                  <span className="text-[10px] tracking-widest font-mono text-blue-400">SkyIT Pay Direct</span>
-                  <div className="w-8 h-5 bg-[#003764]/30 rounded-sm border border-[#003764]/50" /> {/* Card metallic chip */}
+                  <span className="text-[10px] tracking-widest font-mono text-blue-300 font-bold">SkyIT Pay Direct</span>
+                  <div className="w-9 h-6 bg-amber-400/20 rounded border border-amber-400/30" /> {/* Card metallic chip */}
                 </div>
 
-                <div className="text-base text-center tracking-[0.2em] font-mono leading-none relative my-3">
+                <div className="text-lg text-center tracking-[0.2em] font-mono leading-none relative my-4 font-bold text-blue-50">
                   {card.number || '•••• •••• •••• ••••'}
                 </div>
 
                 <div className="flex justify-between items-end relative">
                   <div>
-                    <span className="text-[8px] text-gray-500 font-medium block uppercase tracking-wider">Card Holder</span>
-                    <span className="text-xs font-serif font-semibold text-gray-300 uppercase truncate max-w-[170px] inline-block">{card.holder || 'YOUR NAME'}</span>
+                    <span className="text-[8px] text-blue-300 font-medium block uppercase tracking-widest">Card Holder</span>
+                    <span className="text-xs font-bold font-mono text-white uppercase truncate max-w-[180px] inline-block">
+                      {card.holder || 'YOUR FULL NAME'}
+                    </span>
                   </div>
                   <div className="flex gap-4">
                     <div>
-                      <span className="text-[8px] text-gray-500 font-medium block uppercase tracking-wider">Expires</span>
-                      <span className="text-xs font-bold font-mono text-gray-300 text-center">{card.expiry || 'MM/YY'}</span>
+                      <span className="text-[8px] text-blue-300 font-medium block uppercase tracking-widest font-mono">Expires</span>
+                      <span className="text-xs font-bold font-mono text-white text-center">
+                        {card.expiry || 'MM/YY'}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-[8px] text-gray-500 font-medium block uppercase tracking-wider">CVV</span>
-                      <span className="text-xs font-bold font-mono text-gray-300 text-center">{card.cvv || '•••'}</span>
+                      <span className="text-[8px] text-blue-300 font-medium block uppercase tracking-widest font-mono">CVV</span>
+                      <span className="text-xs font-bold font-mono text-white text-center">
+                        {card.cvv || '•••'}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Form entries */}
-              <div className="space-y-3 pt-3">
+              {/* Form input fields */}
+              <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Card Number</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Card Number</label>
                   <div className="relative">
-                    <CreditCard className="absolute left-3 top-2.5 text-gray-500" size={16} />
+                    <CreditCard className="absolute left-3.5 top-3 text-slate-400" size={16} />
                     <input 
                       type="text" 
                       required
                       value={card.number}
                       onChange={(e) => setCard({...card, number: e.target.value})}
-                      className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 pl-10 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden font-mono"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pl-11 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono"
                       placeholder="e.g. 4000 1234 5678 9010"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">Cardholder Name</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Cardholder Full Name</label>
                   <input 
                     type="text" 
                     required
                     value={card.holder}
                     onChange={(e) => setCard({...card, holder: e.target.value.toUpperCase()})}
-                    className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-bold uppercase"
                     placeholder="e.g. JOHN DOE"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">Expiration Date</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Expiration Date</label>
                     <input 
                       type="text" 
                       required
                       value={card.expiry}
                       onChange={(e) => setCard({...card, expiry: e.target.value})}
-                      className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden font-mono text-center"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono text-center"
                       placeholder="MM/YY"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1">CVV Code</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">CVV Security Code</label>
                     <input 
                       type="password" 
                       required
                       maxLength={3}
                       value={card.cvv}
                       onChange={(e) => setCard({...card, cvv: e.target.value})}
-                      className="w-full bg-[#161616] text-white border border-gray-800 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden font-mono text-center"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono text-center"
                       placeholder="3 digits"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Security info */}
-              <div className="bg-[#141414] p-3 text-[10px] text-gray-400 flex items-start gap-2 border border-gray-800/80 rounded-lg">
-                <Lock className="text-blue-400 shrink-0 mt-0.5" size={13} />
-                <span>Protected by AES-256 bank-level encryption. Your routing is secured by Verified by Visa & Mastercard Identity Check.</span>
+              {/* Bank security statement badge */}
+              <div className="bg-slate-50 p-4 text-xs text-slate-500 flex items-start gap-3 border border-slate-200 rounded-xl leading-relaxed">
+                <Lock className="text-brand shrink-0 mt-0.5" size={15} />
+                <span>All transactions are strictly protected by standard industry AES-256 bank-level hardware cryptology. Credit cards are secured by Verified by Visa and Mastercard Identity checks.</span>
               </div>
 
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-3 pt-3">
+              {/* Actions Grid */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-150">
                 <button
                   type="button"
                   onClick={() => setStep('details')}
-                  className="bg-[#1A1A1A] hover:bg-[#282828] transition-colors border border-gray-800 text-gray-300 py-3 rounded-xl font-bold text-xs"
+                  className="bg-slate-100 hover:bg-slate-200/80 transition-colors border border-slate-200 text-slate-600 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer"
                 >
                   Back to Delivery
                 </button>
                 <button
                   type="submit"
-                  className="bg-brand hover:bg-brand-hover transition-colors active:scale-98 text-white py-3 rounded-xl font-black uppercase tracking-widest text-xs"
+                  className="bg-brand hover:bg-brand-hover transition-colors active:scale-98 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-xs cursor-pointer shadow-sm"
                 >
-                  Authorize Payment - {formatNaira(grandTotal)}
+                  Authorize Payment
                 </button>
               </div>
             </form>
-          )}
-
-          {/* STEP 3: MOCK BANK SECURE AUTHORIZATION PIPELINE (LOADING HANDSHAKE) */}
-          {step === 'authenticating' && (
-            <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
-              <Loader2 className="animate-spin text-[#3B82F6]" size={40} />
-              <h4 className="text-base font-serif italic text-white">Payment Gateway Pipeline</h4>
-              <p className="text-xs text-gray-400 font-mono max-w-sm mt-1 bg-[#141414] p-3 rounded-lg border border-gray-800">
+          ) : step === 'authenticating' ? (
+            /* CASE D: Authenticating Pipeline Handshake */
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-6 max-w-sm mx-auto">
+              <Loader2 className="animate-spin text-brand" size={48} />
+              <div className="space-y-1.5">
+                <h4 className="text-lg font-display font-bold text-slate-900">Securing Gateway Pipeline</h4>
+                <p className="text-xs text-slate-400">Communicating with OIDC network hosts...</p>
+              </div>
+              <p className="text-xs text-slate-500 font-mono bg-slate-50 p-4 rounded-xl border border-slate-200/80 leading-relaxed w-full">
                 {authStage}
               </p>
             </div>
-          )}
-
-          {/* STEP 4: INTERACTIVE 3D SECURE INTERFACE (BANK COMPLIANT OTP POPUP) */}
-          {step === 'otp' && (
-            <div className="p-4 border border-gray-800 rounded-xl bg-[#0F0F0F] shadow-sm relative space-y-4 animate-scale-up text-gray-300">
+          ) : step === 'otp' ? (
+            /* CASE E: 3D Secure OTP verification */
+            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-md max-w-md mx-auto space-y-5 animate-scale-up text-slate-600">
               
               {/* Fake bank header branding */}
-              <div className="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">
-                <div className="flex items-center gap-1.5 text-[#3B82F6] font-bold text-xs font-mono">
-                  <Landmark size={14} />
-                  <span>SkyIT Pay (Direct Transfer 3D Secure)</span>
+              <div className="flex justify-between items-center border-b border-slate-150 pb-3">
+                <div className="flex items-center gap-1.5 text-brand font-bold text-xs font-mono">
+                  <Landmark size={15} />
+                  <span>SkyIT Pay (Direct 3D Secure)</span>
                 </div>
-                <span className="text-[10px] text-gray-500 font-sans">Issuer Code: SKY-LGS-77</span>
+                <span className="text-[10px] text-slate-400 font-semibold font-mono">LGS-SEC-77</span>
               </div>
 
-              <div className="text-xs text-gray-400 leading-relaxed text-center space-y-3">
-                <p>To authorize this transaction of <strong className="text-white">{formatNaira(grandTotal)}</strong>, please enter the temporary 6-digit verification code sent to your mobile device.</p>
+              <div className="text-xs text-slate-500 leading-relaxed space-y-3">
+                <p>To authorize this transaction of <strong className="text-slate-900 font-black">{formatNaira(grandTotal)}</strong>, please enter the 6-digit temporary verification security code dispatched to your registered phone number.</p>
                 
                 {/* Visual aid hint */}
-                <div className="mt-3 inline-block bg-blue-950/40 text-blue-300 border border-blue-800/60 text-[10px] font-semibold px-3 py-1.5 rounded-md leading-relaxed">
-                  🛡️ Simulated OTP Test Trigger: Use code <strong className="text-xs text-[#3B82F6] bg-[#161616] px-1.5 py-0.5 rounded border border-gray-800 font-mono font-black">482103</strong> to authorize successfully.
+                <div className="bg-blue-50 border border-blue-100 text-[10px] text-blue-800 font-bold px-3 py-2.5 rounded-xl leading-relaxed flex flex-col gap-1">
+                  <span>🛡️ SIMULATED AUTHENTICATION TRIGGER:</span>
+                  <span>Use code <strong className="text-xs font-black bg-white border border-blue-200 px-1.5 py-0.5 rounded font-mono text-brand">482103</strong> to finalize payment.</span>
                 </div>
               </div>
 
               {/* OTP Form entry */}
-              <div className="space-y-2 mt-4 max-w-[240px] mx-auto text-center">
+              <div className="space-y-3 max-w-[260px] mx-auto text-center pt-2">
                 <input 
                   type="text"
                   maxLength={6}
                   placeholder="------"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
-                  className="w-full tracking-widest text-lg font-bold font-mono text-center p-2.5 bg-[#161616] text-white border border-gray-800 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-[#3B82F6]"
+                  className="w-full tracking-[0.25em] text-xl font-black font-mono text-center p-3 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-brand"
                 />
 
                 {otpError && (
-                  <p className="text-[10px] text-red-500 font-semibold block">{otpError}</p>
+                  <p className="text-[10px] text-rose-600 font-bold block">{otpError}</p>
                 )}
 
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={verifyOtp}
-                    disabled={isSubmitting}
-                    className="w-full bg-[#3B82F6] hover:bg-[#60A5FA] text-black font-black uppercase tracking-widest py-2.5 rounded-lg text-xs leading-none transition-colors"
-                  >
-                    Authorize Card
-                  </button>
+                <button
+                  type="button"
+                  onClick={verifyOtp}
+                  disabled={isSubmitting}
+                  className="w-full bg-brand hover:bg-brand-hover text-white font-black uppercase tracking-wider py-3.5 rounded-xl text-xs transition-all shadow-sm cursor-pointer"
+                >
+                  Verify & Authorize
+                </button>
+              </div>
+
+              <div className="text-[10px] text-slate-400 text-center border-t border-slate-100 pt-3 font-medium">
+                Need help? Contact support or close checkout to choose another payment route.
+              </div>
+            </div>
+          ) : (
+            /* CASE F: Order Confirmation Success screen */
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-6 max-w-md mx-auto" id="checkout-success-screen">
+              <div className={`w-16 h-16 ${paymentMethod === 'cod' ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-brand/10 text-brand border-blue-100'} rounded-full flex items-center justify-center border shadow-xs animate-bounce`}>
+                <CheckCircle2 size={32} strokeWidth={2.5} />
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="text-xl font-display font-black text-slate-900">
+                  {paymentMethod === 'cod' ? 'Order Confirmed!' : 'Payment Approved!'}
+                </h4>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  {paymentMethod === 'cod'
+                    ? 'Your Cash on Delivery order has been successfully logged. Please check your email inbox (including spam) for your electronic sales receipt.'
+                    : 'Your electronic payment has been safely validated. Generating warranty tracking certificates...'
+                  }
+                </p>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Right Side: Sticky Order Summary & Cart Breakdown */}
+        <div className="w-full lg:w-[420px] bg-slate-50 p-4 sm:p-8 space-y-6 shrink-0 lg:h-[calc(100vh-68px)] lg:sticky lg:top-[68px] overflow-y-auto">
+          
+          {/* Section Header */}
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 font-mono">
+              <ShoppingBag size={14} className="text-slate-400" />
+              <span>Order Summary ({cartItems.reduce((acc, i) => acc + i.quantity, 0)} items)</span>
+            </h3>
+          </div>
+
+          {/* Checkout Item List */}
+          <div className="divide-y divide-slate-150 max-h-[280px] lg:max-h-[380px] overflow-y-auto pr-1">
+            {cartItems.map((item) => (
+              <div key={item.product.id} className="py-3 flex items-center gap-3.5 first:pt-0 last:pb-0">
+                
+                {/* Thumbnail Image */}
+                <div className="relative shrink-0 w-14 h-14 bg-white rounded-lg border border-slate-200/60 overflow-hidden shadow-2xs">
+                  <img 
+                    src={item.product.image} 
+                    alt={item.product.name} 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                  />
+                  <span className="absolute -top-1 -right-1 bg-slate-800 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center font-mono ring-2 ring-white">
+                    {item.quantity}
+                  </span>
+                </div>
+
+                {/* Details */}
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-800 truncate" title={item.product.name}>
+                    {item.product.name}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-semibold font-mono mt-0.5 uppercase tracking-wide">
+                    {item.product.category}
+                  </p>
+                </div>
+
+                {/* Pricing */}
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-slate-900 font-mono">
+                    {formatNaira(item.product.price * item.quantity)}
+                  </span>
                 </div>
               </div>
+            ))}
+          </div>
 
-              <div className="text-[10px] text-gray-500 text-center border-t border-gray-800 pt-3 leading-relaxed">
-                Need assistance? Click cancel to change details. SkyIT services Lagos/Abuja/PH.
+          {/* Pricing Ledger Calculator */}
+          <div className="border-t border-slate-200 pt-4 space-y-2.5 text-xs text-slate-600">
+            
+            {/* Subtotal */}
+            <div className="flex justify-between items-center font-medium">
+              <span>Subtotal</span>
+              <span className="font-mono text-slate-800">{formatNaira(subtotal)}</span>
+            </div>
+
+            {/* Original Total & Discount savings */}
+            {discount > 0 && (
+              <div className="flex justify-between items-center text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1.5 rounded-lg text-[11px]">
+                <span>Launch Promotion Discount</span>
+                <span className="font-mono">-{formatNaira(discount)}</span>
+              </div>
+            )}
+
+            {/* Logistics/Delivery Fee */}
+            <div className="flex justify-between items-start font-medium py-1">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-slate-700 font-bold">Shipping & Delivery</span>
+                <span className="text-[10px] text-slate-400 font-normal leading-normal max-w-[200px]">
+                  Negotiated after order placement based on weight & location
+                </span>
+              </div>
+              <span className="font-mono text-brand font-bold bg-blue-50 border border-blue-100 px-2 py-0.5 rounded text-[11px] uppercase tracking-wide">
+                Billed via Call
+              </span>
+            </div>
+
+            {/* Grand Total Display */}
+            <div className="border-t border-slate-200 pt-3.5 flex justify-between items-end">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Order Grand Total</span>
+                <span className="text-[9px] text-slate-400 italic">All custom clearance, logistics VAT inclusive</span>
+              </div>
+              <span className="text-xl sm:text-2xl font-display font-black text-brand tracking-tight font-mono leading-none">
+                {formatNaira(grandTotal)}
+              </span>
+            </div>
+          </div>
+
+          {/* Professional Context Alerts / Promotion banners */}
+          <div className="pt-4 border-t border-slate-200 space-y-3 text-[11px] text-slate-500 leading-relaxed">
+            
+            {/* Delivery Timeline Warning */}
+            <div className="flex gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+              <Truck size={15} className="text-brand shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-slate-800">Flexible 3rd-Party Logistics</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">To offer you the fairest rates, we partner with reliable logistics networks (e.g. GIG Logistics, DHL, and local haulage). Once your order is placed, our team will call you to confirm your location and negotiate the most cost-effective shipping option.</p>
               </div>
             </div>
-          )}
 
-          {/* STEP 5: COGNITIVE SUCCESS FEEDBACK */}
-          {step === 'success' && (
-            <div className="flex flex-col items-center justify-center p-12 text-center space-y-4" id="checkout-success-screen">
-              <div className={`w-14 h-14 ${paymentMethod === 'cod' ? 'bg-emerald-500' : 'bg-[#3B82F6]'} text-black rounded-full flex items-center justify-center shadow-lg animate-bounce`}>
-                <ShieldCheck size={36} strokeWidth={2.5} />
+            {/* Customer Trust support statement */}
+            <a 
+              href="https://wa.me/2349074444140?text=Hello%20SkyIT%20Ventures%20team,%20I've%20been%20checking%20out%20on%20your%20website%20and%20I'd%20like%20a%20technical%20consultation%20on%20solar%20solutions."
+              target="_blank"
+              rel="noreferrer"
+              className="flex gap-2 bg-emerald-50/40 hover:bg-emerald-50/80 transition-all p-3 rounded-xl border border-emerald-150 cursor-pointer group shadow-2xs"
+            >
+              <MessageSquare size={15} className="text-emerald-600 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+              <div>
+                <p className="font-bold text-emerald-800 group-hover:underline">Need Technical Consultation?</p>
+                <p className="text-[10px] text-emerald-600 mt-0.5">Have questions regarding capacity sizing, load calculations, or warranty plans? Click to chat directly with our engineering support team on WhatsApp.</p>
               </div>
-              <h4 className="text-lg font-serif italic text-white">
-                {paymentMethod === 'cod' ? 'Order Confirmed!' : 'Authentication Approved!'}
-              </h4>
-              <p className="text-xs text-gray-400">
-                {paymentMethod === 'cod'
-                  ? 'Your Cash on Delivery order has been successfully placed. Please check your email inbox/spam folder for your receipt and order details!'
-                  : 'Payment secured and verified successfully. Generating order timeline tracking data...'
-                }
-              </p>
-            </div>
-          )}
+            </a>
+          </div>
 
         </div>
 

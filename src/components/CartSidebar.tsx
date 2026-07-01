@@ -29,9 +29,9 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
   const totalOriginal = cartItems.reduce((acc, item) => acc + (item.product.originalPrice * item.quantity), 0);
   const totalDiscount = totalOriginal - subtotal;
   
-  // Custom Logistics rules: flat N15,000 for order < N500k, free delivery/installation above!
-  const deliveryFee = subtotal > 0 ? (subtotal >= 500000 ? 0 : 15000) : 0;
-  const grandTotal = subtotal + deliveryFee;
+  // Delivery fee is negotiated dynamically with 3rd party logistics post-purchase
+  const deliveryFee = 0;
+  const grandTotal = subtotal;
 
   const formatNaira = (val: number) => {
     return "₦" + Math.floor(val).toLocaleString();
@@ -164,15 +164,13 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
                 <span>Campaign Savings</span>
                 <span className="font-mono">-{formatNaira(totalDiscount)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Installation & Delivery Fee</span>
-                <span className="font-mono">{deliveryFee === 0 ? "FREE" : formatNaira(deliveryFee)}</span>
+              <div className="flex justify-between items-start py-0.5">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-semibold text-slate-700">Installation & Delivery Fee</span>
+                  <span className="text-[10px] text-slate-400 font-normal leading-tight max-w-[190px]">Negotiated post-purchase based on weight & location</span>
+                </div>
+                <span className="font-bold text-brand bg-blue-50 border border-blue-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wide">Billed via Call</span>
               </div>
-              {deliveryFee > 0 && (
-                <p className="text-[10px] text-brand font-bold text-right">
-                  Add {formatNaira(500000 - subtotal)} more for FREE System Deployment!
-                </p>
-              )}
               <div className="flex justify-between text-sm font-semibold text-slate-800 pt-2 border-t border-slate-200">
                 <span>Total Amount Due</span>
                 <span className="text-base font-bold font-mono text-slate-900">{formatNaira(grandTotal)}</span>
