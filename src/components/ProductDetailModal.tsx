@@ -1115,7 +1115,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   className="bg-white p-3 border border-slate-200 rounded-xl hover:border-brand hover:shadow-md transition-all cursor-pointer group flex flex-col gap-2"
                 >
                   <div className="aspect-square bg-slate-50 rounded-lg flex items-center justify-center p-2 mb-1 overflow-hidden relative">
-                    <img src={rp.image} alt={rp.name} className="object-contain w-full h-full max-h-24 mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
+                    <img src={rp.image} alt={rp.name} className="object-contain w-full h-full max-h-32 mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
                     {rp.discountPercent > 0 && (
                       <span className="absolute top-1 left-1 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-sm">
                         -{rp.discountPercent}%
@@ -1128,7 +1128,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1 items-end">
                         <span className="text-sm font-black font-mono text-slate-900 leading-none">
-                          ₦{Math.round(rp.price * (1 - rp.discountPercent / 100)).toLocaleString()}
+                          ₦{rp.price.toLocaleString()}
                         </span>
                       </div>
                     </div>

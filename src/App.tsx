@@ -1348,7 +1348,7 @@ export default function App() {
                 </div>
 
                 <div className="space-y-1">
-                  {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems'].map((cat) => (
+                  {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Accessories'].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
@@ -1476,7 +1476,7 @@ export default function App() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-1">
-                      {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems'].map((cat) => (
+                      {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Accessories'].map((cat) => (
                         <button
                           key={cat}
                           onClick={() => {
