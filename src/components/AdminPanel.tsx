@@ -180,6 +180,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
     
     // Set up a real-time snapshot listener so that changes sync instantly!
     const unsubscribe = onSnapshot(ordersColRef, (snapshot) => {
+      console.log("AdminPanel: onSnapshot triggered, order count:", snapshot.size);
       const ordersList: Order[] = [];
       snapshot.forEach((docSnap) => {
         ordersList.push(docSnap.data() as Order);
@@ -198,6 +199,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
   }, []);
 
   const fetchOrdersOnce = async () => {
+    setIsLoading(true);
     try {
       const querySnapshot = await getDocs(collection(db, 'orders'));
       const ordersList: Order[] = [];
@@ -1769,7 +1771,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
       ) : (
         <>
           {/* Control Filters Area */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-3xs grid sm:grid-cols-3 gap-4 items-center">
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-3xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
             
             {/* Search Input */}
             <div className="relative">
@@ -1799,6 +1801,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
                 <option value="out_for_delivery">Out For Delivery (Installing)</option>
                 <option value="delivered">Delivered (Live Handover)</option>
               </select>
+            </div>
+
+            {/* Manual Refresh / Sync Button */}
+            <div>
+              <button
+                type="button"
+                onClick={fetchOrdersOnce}
+                className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs transition-colors border border-slate-200 cursor-pointer"
+                id="btn-sync-orders"
+              >
+                <RefreshCw size={12} className={isLoading ? "animate-spin" : ""} />
+                <span>Sync Live Orders</span>
+              </button>
             </div>
 
             <div className="text-right text-[10px] font-mono text-slate-400">

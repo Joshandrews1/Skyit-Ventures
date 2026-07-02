@@ -156,7 +156,8 @@ service cloud.firestore {
     // Orders Collection: holds customer orders
     match /orders/{orderId} {
       allow get: if true; 
-      allow list: if isSignedIn() && (isEditor() || (resource != null && (!resource.data.keys().hasAny(['userId']) || resource.data.userId == request.auth.uid)));
+      allow list: if isSignedIn() && isEditor();
+      allow list: if isSignedIn() && (resource != null && (!resource.data.keys().hasAny(['userId']) || resource.data.userId == request.auth.uid));
       allow create: if (
         (isSignedIn() && (isEditor() || !incoming().keys().hasAny(['userId']) || incoming().userId == request.auth.uid)) ||
         (!isSignedIn() && (!incoming().keys().hasAny(['userId']) || (incoming().userId is string && incoming().userId.startsWith('guest-uid-'))))

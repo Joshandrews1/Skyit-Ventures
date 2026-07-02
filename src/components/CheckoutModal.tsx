@@ -181,7 +181,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             ...result.order,
             userId: currentUserId
           };
+          console.log("CheckoutModal: Writing order to Firestore:", result.order.id);
           await setDoc(orderDocRef, completeOrder);
+          console.log("CheckoutModal: Order written successfully.");
           cacheOrderDetails(completeOrder);
         } catch (fErr) {
           console.warn("Cloud Firestore order snapshot save noticed non-fatal reject: ", fErr);
