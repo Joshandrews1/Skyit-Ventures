@@ -571,7 +571,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
         },
         status: "processing",
         createdAt: new Date(baseNow.getTime() - 4 * 3600000).toISOString(),
-        paymentMethod: "SkyIT Pay Secure Transfer",
+        paymentMethod: "Bank Transfer/Direct Draft",
         trackingProgress: [
           { status: 'pending', label: 'Order Approved', timestamp: '10:14 AM', completed: true, desc: "Order approved. Layout drawings locked." },
           { status: 'confirmed', label: 'Engineering Audit Passed', timestamp: '10:17 AM', completed: true, desc: "Technical loads audit verified." },
@@ -616,7 +616,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
         },
         status: "confirmed",
         createdAt: new Date(baseNow.getTime() - 24 * 3600000).toISOString(),
-        paymentMethod: "SkyIT Pay Secure Transfer",
+        paymentMethod: "Flutterwave Redirect Secure",
         trackingProgress: [
           { status: 'pending', label: 'Order Approved', timestamp: '01:05 PM', completed: true, desc: "Order approved. Layout drawings locked." },
           { status: 'confirmed', label: 'Engineering Audit Passed', timestamp: '01:15 PM', completed: true, desc: "Technical loads audit verified." },

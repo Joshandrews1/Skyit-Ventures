@@ -28,7 +28,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [step, setStep] = useState<'details' | 'payment' | 'authenticating' | 'otp' | 'success'>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authStage, setAuthStage] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'flutterwave' | 'skyit_pay' | 'cod'>('flutterwave');
+  const [paymentMethod, setPaymentMethod] = useState<'flutterwave' | 'cod'>('flutterwave');
   const [allowGuestCheckout, setAllowGuestCheckout] = useState<boolean>(true);
   const [isSettingsLoading, setIsSettingsLoading] = useState<boolean>(true);
   
@@ -132,11 +132,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!customer.email || !emailRegex.test(customer.email.trim())) {
       alert("The email address provided is not valid. Please enter a valid email address to proceed with your order.");
-      return;
-    }
-
-    if (paymentMethod === 'skyit_pay') {
-      setStep('payment');
       return;
     }
 
@@ -329,7 +324,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           total: grandTotal,
           customerDetails: customer,
           userId: currentUserId,
-          paymentMethod: "SkyIT Pay Direct Transfer"
+          paymentMethod: "Credit Card Secure Payment"
         })
       });
 
