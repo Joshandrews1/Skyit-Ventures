@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, CartItem, Order } from './types';
 import { mockProducts } from './data/products';
@@ -18,6 +18,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { ProfileEditModal } from './components/ProfileEditModal';
 import { ContactSection } from './components/ContactSection';
 import { PolicyModal } from './components/PolicyModal';
+import { AiVisualSearchModal } from './components/AiVisualSearchModal';
 import { ClipboardList, LayoutDashboard } from 'lucide-react';
 import { 
   ShoppingBag, 
@@ -40,7 +41,8 @@ import {
   Store,
   ArrowUp,
   Check,
-  CheckCircle2
+  CheckCircle2,
+  Camera
 } from 'lucide-react';
 
 export default function App() {
@@ -435,6 +437,78 @@ export default function App() {
   const [discountFilter, setDiscountFilter] = useState('All');
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
+  // SkyIT AI Smart Vision State
+  const cameraFileInputRef = useRef<HTMLInputElement>(null);
+  const [isAiSearchModalOpen, setIsAiSearchModalOpen] = useState(false);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [aiSearchResult, setAiSearchResult] = useState<any | null>(null);
+  const [aiSearchError, setAiSearchError] = useState<string | null>(null);
+  const [scanImagePreview, setScanImagePreview] = useState<string | null>(null);
+
+  const triggerCameraSearch = () => {
+    if (cameraFileInputRef.current) {
+      cameraFileInputRef.current.click();
+    }
+  };
+
+  const handleCameraSearchUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setAiSearchError("Image is too large. Please upload an image under 10MB.");
+      setIsAiSearchModalOpen(true);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadstart = () => {
+      setIsAiSearching(true);
+      setAiSearchError(null);
+      setAiSearchResult(null);
+      setScanImagePreview(null);
+      setIsAiSearchModalOpen(true);
+    };
+
+    reader.onload = async () => {
+      const base64Image = reader.result as string;
+      setScanImagePreview(base64Image);
+      try {
+        const response = await fetch('/api/ai-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64Image,
+            products: productsWithRealRatings
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Failed to identify product.");
+        }
+
+        const data = await response.json();
+        setAiSearchResult({
+          ...data,
+          imagePreviewUrl: base64Image
+        });
+      } catch (err: any) {
+        setAiSearchError(err.message || "Something went wrong during product identification.");
+      } finally {
+        setIsAiSearching(false);
+      }
+    };
+
+    reader.onerror = () => {
+      setAiSearchError("Could not read the uploaded image file.");
+      setIsAiSearching(false);
+    };
+
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   // Real-time Reviews State for Dynamic Ratings
   const [reviews, setReviews] = useState<any[]>([]);
 
@@ -797,15 +871,23 @@ export default function App() {
 
           {/* Quick Search center header */}
           {activeTab === 'shop' && (
-            <div className="hidden md:flex flex-1 max-w-sm relative">
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+            <div className="hidden md:flex flex-1 max-w-sm relative items-center">
+              <Search className="absolute left-3 text-slate-400 pointer-events-none" size={14} />
               <input 
                 type="text" 
                 placeholder="Search panels, inverters, cameras..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-9 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-850 placeholder-slate-400"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-9 pr-8 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-850 placeholder-slate-400"
               />
+              <button 
+                type="button"
+                onClick={triggerCameraSearch}
+                title="Search with Smart Vision Camera"
+                className="absolute right-2.5 text-slate-400 hover:text-brand transition-colors cursor-pointer"
+              >
+                <Camera size={15} />
+              </button>
               {/* Autocomplete suggestions dropdown */}
               {filteredSuggestions.length > 0 && (
                 <div className="absolute top-[102%] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden divide-y divide-slate-100 max-h-[280px] overflow-y-auto">
@@ -939,16 +1021,26 @@ export default function App() {
         {/* Mobile Expanded Search Bar Container */}
         {isMobileSearchExpanded && activeTab === 'shop' && (
           <div className="md:hidden border-t border-slate-200 bg-slate-50 p-3 shadow-inner animate-fade-in relative z-50">
-            <div className="relative flex items-center gap-2">
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
-              <input
-                type="text"
-                autoFocus
-                placeholder="Search panels, inverters..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl p-2 pl-9 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-850 placeholder-slate-450"
-              />
+            <div className="relative flex items-center gap-2 w-full">
+              <div className="relative flex-1 flex items-center">
+                <Search className="absolute left-3 text-slate-400 pointer-events-none" size={14} />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Search panels, inverters..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl p-2 pl-9 pr-8 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-850 placeholder-slate-450"
+                />
+                <button 
+                  type="button"
+                  onClick={triggerCameraSearch}
+                  title="Search with Smart Vision Camera"
+                  className="absolute right-3 text-slate-400 hover:text-brand transition-colors cursor-pointer"
+                >
+                  <Camera size={15} />
+                </button>
+              </div>
               <button 
                 type="button"
                 onClick={() => {
@@ -1412,6 +1504,29 @@ export default function App() {
                     Clear Search Criteria
                   </button>
                 )}
+              </div>
+
+              {/* SkyIT AI Smart Vision box */}
+              <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-sm space-y-3 relative overflow-hidden border border-slate-800">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full blur-xl pointer-events-none" />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[8px] tracking-widest font-black uppercase bg-orange-500 text-white px-2 py-0.5 rounded-sm inline-block">
+                    SKYIT SMART VISION
+                  </span>
+                  <span className="text-[8px] font-mono text-slate-400">v1.2</span>
+                </div>
+                <h4 className="text-xs font-display font-bold leading-snug text-white uppercase tracking-wide">AI Visual Search Scanner</h4>
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  Upload or snap a photo of any hardware, solar label, inverter, or battery to instantly find its exact match or closest model in our catalog!
+                </p>
+                <button
+                  type="button"
+                  onClick={triggerCameraSearch}
+                  className="w-full bg-orange-500 hover:bg-orange-600 cursor-pointer text-white transition-all py-2 rounded-lg text-center font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(239,68,68,0.2)]"
+                >
+                  <Camera size={13} />
+                  Scan with Camera
+                </button>
               </div>
 
               {/* AI Support helper promo box */}
@@ -1978,6 +2093,28 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Hidden file input for SkyIT AI Vision Search */}
+      <input 
+        type="file" 
+        ref={cameraFileInputRef} 
+        onChange={handleCameraSearchUpload} 
+        accept="image/*" 
+        className="hidden" 
+      />
+
+      {/* SkyIT AI Smart Vision Search Modal */}
+      <AiVisualSearchModal
+        isOpen={isAiSearchModalOpen}
+        onClose={() => setIsAiSearchModalOpen(false)}
+        isSearching={isAiSearching}
+        result={aiSearchResult}
+        error={aiSearchError}
+        products={productsWithRealRatings}
+        onSelectProduct={handleViewProduct}
+        onRetry={triggerCameraSearch}
+        imagePreviewUrl={scanImagePreview}
+      />
 
       {/* Floating Scroll to Top Button */}
       <AnimatePresence>

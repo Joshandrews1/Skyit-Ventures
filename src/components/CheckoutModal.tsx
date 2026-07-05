@@ -468,7 +468,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {/* Header Title */}
               <div>
                 <h2 className="text-xl font-display font-bold text-slate-900 tracking-tight">Delivery & Contact Details</h2>
-                <p className="text-xs text-slate-500 mt-1">Please provide accurate contact and shipping coordinates to secure your warranty coverage and Lagos/Abuja logistics dispatch.</p>
+                <p className="text-xs text-slate-500 mt-1">Please provide accurate contact and shipping coordinates to secure your warranty coverage and Delta (HQ) / Lagos (Branch) logistics dispatch.</p>
               </div>
 
               {/* Form Input fields */}
@@ -525,7 +525,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Delivery City</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Delivery State</label>
                     <div className="relative">
                       <MapPin className="absolute left-3.5 top-3.5 text-slate-400" size={16} />
                       <select 
@@ -534,12 +534,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         onChange={(e) => setCustomer({...customer, city: e.target.value})}
                         className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl p-3 pl-11 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium cursor-pointer"
                       >
-                        <option value="">Select City...</option>
-                        <option value="Lagos">Lagos (HQ Dispatch)</option>
-                        <option value="Abuja">Abuja</option>
-                        <option value="Port Harcourt">Port Harcourt</option>
-                        <option value="Ibadan">Ibadan</option>
+                        <option value="">Select State...</option>
+                        <option value="Abia">Abia</option>
+                        <option value="Adamawa">Adamawa</option>
+                        <option value="Akwa Ibom">Akwa Ibom</option>
+                        <option value="Anambra">Anambra</option>
+                        <option value="Bauchi">Bauchi</option>
+                        <option value="Bayelsa">Bayelsa</option>
+                        <option value="Benue">Benue</option>
+                        <option value="Borno">Borno</option>
+                        <option value="Cross River">Cross River</option>
+                        <option value="Delta">Delta (HQ Office)</option>
+                        <option value="Ebonyi">Ebonyi</option>
+                        <option value="Edo">Edo</option>
+                        <option value="Ekiti">Ekiti</option>
+                        <option value="Enugu">Enugu</option>
+                        <option value="Gombe">Gombe</option>
+                        <option value="Imo">Imo</option>
+                        <option value="Jigawa">Jigawa</option>
+                        <option value="Kaduna">Kaduna</option>
                         <option value="Kano">Kano</option>
+                        <option value="Katsina">Katsina</option>
+                        <option value="Kebbi">Kebbi</option>
+                        <option value="Kogi">Kogi</option>
+                        <option value="Kwara">Kwara</option>
+                        <option value="Lagos">Lagos (Branch Office)</option>
+                        <option value="Nasarawa">Nasarawa</option>
+                        <option value="Niger">Niger</option>
+                        <option value="Ogun">Ogun</option>
+                        <option value="Ondo">Ondo</option>
+                        <option value="Osun">Osun</option>
+                        <option value="Oyo">Oyo</option>
+                        <option value="Plateau">Plateau</option>
+                        <option value="Rivers">Rivers</option>
+                        <option value="Sokoto">Sokoto</option>
+                        <option value="Taraba">Taraba</option>
+                        <option value="Yobe">Yobe</option>
+                        <option value="Zamfara">Zamfara</option>
+                        <option value="Abuja">Abuja (FCT)</option>
                       </select>
                     </div>
                   </div>

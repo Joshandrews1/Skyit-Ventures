@@ -1107,6 +1107,103 @@ app.get("/api/flutterwave/verify", async (req, res) => {
   }
 });
 
+// POST /api/ai-search
+// Processes an uploaded image against a catalog of items using Gemini-3.5-flash
+app.post("/api/ai-search", async (req, res) => {
+  const { image, products } = req.body;
+
+  if (!image) {
+    return res.status(400).json({ error: "An image data URL or base64 string is required." });
+  }
+
+  if (!ai) {
+    return res.status(503).json({ error: "AI visual search engine is offline. Please configure GEMINI_API_KEY." });
+  }
+
+  try {
+    // 1. Format catalog list into a scannable text representation for the model
+    const catalogBrief = (products || []).map((p: any) => {
+      return `- ID: ${p.id || p._id}, Name: ${p.name}, Category: ${p.category}, Description: ${p.description || "No description."}`;
+    }).join("\n");
+
+    // 2. Decode Data URL/Base64 Image
+    let base64Data = image;
+    let mimeType = "image/jpeg";
+    if (image.startsWith("data:")) {
+      const parts = image.split(",");
+      base64Data = parts[1];
+      const mimeMatch = parts[0].match(/data:(.*?);/);
+      if (mimeMatch) {
+        mimeType = mimeMatch[1];
+      }
+    }
+
+    const imagePart = {
+      inlineData: {
+        mimeType: mimeType,
+        data: base64Data,
+      },
+    };
+
+    // 3. Craft strict comparison instructions
+    const textPart = {
+      text: `Analyze the uploaded image and identify if it contains a product related to our catalog.
+      
+      Compare the visual details of the item in the image with our available product catalog below and determine if we have a matching or closely related product.
+      
+      Available catalog products:
+      ${catalogBrief || "No products in the catalog yet."}
+
+      Output your analysis strictly in JSON format as specified by the response schema. 
+      - If there is a matching product in our catalog, identify it and explain why it is a match. 
+      - If it is a related product category but not an exact item we sell, set "matchFound" to true, "matchedProductId" to the closest matching item in that category, and write an explanation explaining how it is related and suggesting our product. 
+      - If the image does not show any related system product, set "matchFound" to false and "matchedProductId" to null.`,
+    };
+
+    console.log("[AI Search] Dispatching image analysis to gemini-3.5-flash...");
+    
+    // 4. Request Structured JSON Output from Gemini
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts: [imagePart, textPart] },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            matchFound: { type: Type.BOOLEAN },
+            matchedProductId: { 
+              type: Type.STRING,
+              description: "The ID of the closest matching product in our catalog, or null if absolutely no match or category match is found."
+            },
+            confidence: { 
+              type: Type.NUMBER,
+              description: "Confidence rating of the match between 0.0 and 1.0."
+            },
+            explanation: { 
+              type: Type.STRING,
+              description: "A friendly, descriptive sentence identifying what is seen in the picture and why/how it relates to our recommended product."
+            }
+          },
+          required: ["matchFound", "explanation"]
+        }
+      }
+    });
+
+    const resultText = response.text;
+    if (!resultText) {
+      throw new Error("No response text returned from Gemini API.");
+    }
+
+    const result = JSON.parse(resultText.trim());
+    res.json(result);
+
+  } catch (error: any) {
+    console.error("[AI Search Error]:", error);
+    res.status(500).json({ error: error.message || "An error occurred during AI visual search analysis." });
+  }
+});
+
 // Alias Endpoints to follow reference integration specs
 app.post('/api/initialize-payment', (req, res) => {
   // Redirect to initiate handler to reuse setup

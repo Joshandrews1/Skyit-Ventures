@@ -611,7 +611,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           name: "Chinedu Okafor",
           email: "chinedu@okaforholding.com",
           phone: "+234 812 345 6789",
-          city: "Abuja",
+          city: "Delta",
           address: "House 4A, Crescent 17, Gwarinpa Estate"
         },
         status: "confirmed",
@@ -1037,7 +1037,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
             <textarea
               value={narrativeInput}
               onChange={(e) => setNarrativeInput(e.target.value)}
-              placeholder="Paste unstructured notes from lead engineer or clients here... (e.g., 'Sized a 5kva system for Chief Adenuga in Abuja, 1 fridge, 3 lighting fixtures, wants tubular cells, total is ₦1.9M...')"
+              placeholder="Paste unstructured notes from lead engineer or clients here... (e.g., 'Sized a 5kva system for Chief Adenuga in Delta, 1 fridge, 3 lighting fixtures, wants tubular cells, total is ₦1.9M...')"
               className="w-full h-32 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-800 placeholder-slate-400 resize-none font-sans"
               disabled={isGeneratingQuote}
             />
