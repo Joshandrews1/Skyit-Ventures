@@ -312,6 +312,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
       };
 
       await setDoc(doc(db, 'orders', orderId), customOrder);
+
+      // Securely dispatch an email notification to the admins with the quote details to verify accuracy
+      try {
+        fetch("/api/admin/notify-quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quote: quoteResult,
+            orderId: orderId
+          })
+        }).then(res => {
+          if (!res.ok) console.warn("Admin SMTP notification response was not ok");
+        }).catch(e => {
+          console.warn("Could not dispatch SMTP notify-quote:", e);
+        });
+      } catch (notifyErr) {
+        console.warn("Admin quotation notification call failed:", notifyErr);
+      }
+
       setFeedbackMsg(`Successfully logged solar contract ${orderId} in database!`);
       setTimeout(() => setFeedbackMsg(''), 4000);
       setAdminView('logistics'); // Switch back to see our brand new order live!
@@ -846,7 +865,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
     <div className="space-y-6" id="admin-panel-container">
       
       {/* Welcome Banner */}
-      <div className="bg-[#050505] p-6 rounded-3xl border border-gray-800 text-white relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-[#050505] p-6 rounded-3xl border border-gray-800 text-white relative overflow-hidden flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="absolute top-0 right-0 w-48 h-48 bg-brand/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="space-y-2">
@@ -866,10 +885,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full lg:w-auto">
           <button
             onClick={() => window.open('https://analytics.google.com/', '_blank')}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white transition-all text-xs font-black uppercase tracking-wider py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shrink-0 shadow-xs leading-none"
+            className="w-full lg:w-auto bg-emerald-600 hover:bg-emerald-700 text-white transition-all text-xs font-black uppercase tracking-wider py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shrink-0 shadow-xs leading-none cursor-pointer"
           >
             <TrendingUp size={13} />
             <span>Analytics Dashboard</span>

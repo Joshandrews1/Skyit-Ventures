@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '../types';
-import { Search, MapPin, Truck, HelpCircle, ArrowRight, RefreshCw, Calendar, PackageCheck, ClipboardList } from 'lucide-react';
+import { Search, MapPin, Truck, HelpCircle, ArrowRight, ArrowLeft, RefreshCw, Calendar, PackageCheck, ClipboardList } from 'lucide-react';
 import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getOrCreateGuestUid, getCachedOrders, getCachedOrderIds, cacheOrderDetails } from '../lib/guestCache';
@@ -27,6 +27,7 @@ export const TrackingDashboard: React.FC<TrackingDashboardProps> = ({
   // States for logged-in user order list history
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [userOrdersLoading, setUserOrdersLoading] = useState(false);
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
   // Real-time listener for current user orders from firestore
   useEffect(() => {
@@ -217,6 +218,139 @@ export const TrackingDashboard: React.FC<TrackingDashboardProps> = ({
     return "₦" + Math.floor(val).toLocaleString();
   };
 
+  if (showAllOrders) {
+    return (
+      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-xs max-w-4xl mx-auto text-slate-600 w-full overflow-hidden font-sans">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setShowAllOrders(false)}
+              type="button"
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors cursor-pointer"
+              title="Go Back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <div>
+              <h2 className="font-display font-bold text-lg sm:text-xl text-slate-800 flex items-center gap-2">
+                <span>All Orders & Deployments</span>
+              </h2>
+              <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">
+                Comprehensive directory of your physical solar deployments and technical services history.
+              </p>
+            </div>
+          </div>
+          <span className="bg-brand-light text-brand text-[10px] font-black uppercase px-3 py-1 rounded-full border border-brand/20">
+            {userOrders.length} {userOrders.length === 1 ? 'Record' : 'Records'}
+          </span>
+        </div>
+
+        {/* Content list / table */}
+        {userOrders.length === 0 ? (
+          <div className="text-center py-12 bg-slate-50 border border-slate-200/50 rounded-2xl">
+            <PackageCheck className="text-slate-300 mx-auto mb-3" size={48} />
+            <h3 className="text-sm font-semibold text-slate-700">No Orders Registered</h3>
+            <p className="text-xs text-slate-400 mt-2">
+              Browse our catalog or size custom systems to initiate your first solar deployment.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Table Header (Hidden on Mobile) */}
+            <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 bg-slate-100 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
+              <div className="col-span-2">Order ID</div>
+              <div className="col-span-2">Date</div>
+              <div className="col-span-3">Items / Sizing</div>
+              <div className="col-span-2">Total Price</div>
+              <div className="col-span-2">Status</div>
+              <div className="col-span-1 text-right">Action</div>
+            </div>
+
+            {/* List Rows */}
+            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1 no-scrollbar">
+              {userOrders.map((ord) => {
+                return (
+                  <div
+                    key={ord.id}
+                    className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center p-4 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50/80 transition-all shadow-xs"
+                  >
+                    {/* Order ID & Badge for status on mobile */}
+                    <div className="col-span-1 md:col-span-2 flex justify-between items-center md:block">
+                      <span className="font-mono text-xs font-black text-slate-900 block bg-slate-100 px-2 py-1 md:bg-transparent md:p-0 rounded-md">
+                        {ord.id}
+                      </span>
+                      <div className="md:hidden">
+                        <span className={`text-[8.5px] font-black uppercase px-2 py-1 rounded-full tracking-wider ${
+                          ord.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' :
+                          ord.status === 'cancelled' ? 'bg-rose-100 text-rose-700' :
+                          ord.status === 'out_for_delivery' ? 'bg-indigo-50 text-indigo-700' :
+                          ord.status === 'shipped' ? 'bg-blue-50 text-blue-700' :
+                          'bg-amber-50 text-amber-700'
+                        }`}>
+                          {ord.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Date */}
+                    <div className="col-span-1 md:col-span-2 text-[11px] text-slate-500 font-medium">
+                      <span className="md:hidden text-[9px] font-black text-slate-400 uppercase block mb-0.5">Date</span>
+                      {new Date(ord.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+
+                    {/* Items / Sizing description */}
+                    <div className="col-span-1 md:col-span-3 text-xs text-slate-600 font-medium">
+                      <span className="md:hidden text-[9px] font-black text-slate-400 uppercase block mb-0.5">Sizing / Items</span>
+                      <div className="truncate max-w-[280px]" title={ord.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}>
+                        {ord.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                      </div>
+                    </div>
+
+                    {/* Total Price */}
+                    <div className="col-span-1 md:col-span-2 font-mono text-xs font-black text-slate-900">
+                      <span className="md:hidden text-[9px] font-black text-slate-400 uppercase block mb-0.5">Total Amount</span>
+                      {formatNaira(ord.total)}
+                    </div>
+
+                    {/* Status Badge (Desktop only) */}
+                    <div className="hidden md:col-span-2 md:block">
+                      <span className={`text-[8.5px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider ${
+                        ord.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' :
+                        ord.status === 'cancelled' ? 'bg-rose-100 text-rose-700' :
+                        ord.status === 'out_for_delivery' ? 'bg-indigo-50 text-indigo-700' :
+                        ord.status === 'shipped' ? 'bg-blue-50 text-blue-700' :
+                        'bg-amber-50 text-amber-700'
+                      }`}>
+                        {ord.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="col-span-1 md:col-span-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchId(ord.id);
+                          setOrder(ord);
+                          setError('');
+                          setShowAllOrders(false);
+                        }}
+                        className="w-full md:w-auto bg-brand hover:bg-brand-hover text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-lg text-center transition-colors shadow-xs cursor-pointer"
+                      >
+                        Track
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl p-3 sm:p-6 border border-slate-200 shadow-xs max-w-4xl mx-auto text-slate-600 w-full overflow-hidden">
       
@@ -262,9 +396,20 @@ export const TrackingDashboard: React.FC<TrackingDashboardProps> = ({
                 {auth.currentUser ? "My Purchases & Deployments" : "Recent Orders on This Device (Guest)"}
               </h3>
             </div>
-            <span className="bg-brand-light text-brand text-[9px] font-black uppercase px-2 py-0.5 rounded border border-brand/20">
-              {userOrders.length} {userOrders.length === 1 ? 'Order' : 'Orders'} Found
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="bg-brand-light text-brand text-[9px] font-black uppercase px-2 py-0.5 rounded border border-brand/20 hidden sm:inline-block">
+                {userOrders.length} {userOrders.length === 1 ? 'Order' : 'Orders'} Found
+              </span>
+              {userOrders.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllOrders(true)}
+                  className="text-xs text-brand hover:text-brand-hover font-bold hover:underline cursor-pointer flex items-center gap-1 uppercase tracking-wider text-[10px]"
+                >
+                  See All <ArrowRight size={12} />
+                </button>
+              )}
+            </div>
           </div>
 
           {userOrdersLoading ? (

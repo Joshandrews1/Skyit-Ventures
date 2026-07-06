@@ -212,6 +212,7 @@ interface OrderMailingInput {
   phone: string;
   total: number;
   paymentMethod: string;
+  items?: any[];
 }
 
 async function processEmailInquiry(data: EmailInquiryInput) {
@@ -362,6 +363,34 @@ async function processOrderMailing(orderData: OrderMailingInput) {
                 <td style="padding: 8px 0; color: #64748b;">Processor:</td>
                 <td style="padding: 8px 0; font-weight: bold; color: #2563eb; text-transform: uppercase;">${orderData.paymentMethod}</td>
               </tr>
+            </table>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <h3 style="margin-top: 0; color: #1e293b; font-size: 15px; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px;">Purchased Items</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left;">
+                  <th style="padding: 8px; color: #475569;">Item Name</th>
+                  <th style="padding: 8px; color: #475569; text-align: center;">Qty</th>
+                  <th style="padding: 8px; color: #475569; text-align: right;">Unit Price</th>
+                  <th style="padding: 8px; color: #475569; text-align: right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${orderData.items && orderData.items.length > 0 ? orderData.items.map(item => `
+                  <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px 8px; color: #0f172a; font-weight: 500;">${item.product?.name || item.name}</td>
+                    <td style="padding: 10px 8px; color: #475569; text-align: center;">${item.quantity}</td>
+                    <td style="padding: 10px 8px; color: #475569; text-align: right;">₦${(item.product?.price || item.price || 0).toLocaleString()}</td>
+                    <td style="padding: 10px 8px; color: #0f172a; text-align: right; font-weight: bold;">₦${((item.product?.price || item.price || 0) * item.quantity).toLocaleString()}</td>
+                  </tr>
+                `).join('') : `
+                  <tr>
+                    <td colspan="4" style="padding: 10px 8px; text-align: center; color: #64748b;">No direct product breakdown supplied. Refer to order ID in workspace.</td>
+                  </tr>
+                `}
+              </tbody>
             </table>
           </div>
         </div>
@@ -567,7 +596,8 @@ app.post("/api/checkout", (req, res) => {
     customerEmail: customerDetails.email,
     phone: customerDetails.phone || "Not specified",
     total: total,
-    paymentMethod: newOrder.paymentMethod
+    paymentMethod: newOrder.paymentMethod,
+    items: newOrder.items
   }).catch(err => {
     console.warn("[MAIL_WARN] Background order invoice transmission failed:", err);
   });
@@ -999,6 +1029,130 @@ Please respond strictly in JSON format matching this schema:
   } catch (err) {
     console.error("AI Admin Quote Generation failed, using heuristics:", err);
     res.json(fallbackQuote);
+  }
+});
+
+// API: Notify Admin of Created/Saved Quotation via SMTP email
+app.post("/api/admin/notify-quote", async (req, res) => {
+  const { quote, orderId } = req.body;
+
+  if (!quote) {
+    return res.status(400).json({ error: "Quote payload is required" });
+  }
+
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  const adminRecipient = process.env.NOTIFICATION_EMAIL_RECIPIENT || "skyitventures01@gmail.com";
+
+  if (!user || !pass) {
+    console.warn("[MAIL_WARN] GMAIL_USER or GMAIL_APP_PASSWORD credentials absent. Quote notification processed offline.");
+    return res.json({ success: true, offline: true, message: "SMTP credentials not configured" });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
+
+    const adminMailOptions = {
+      from: `"SkyIT Quote Guard" <${user}>`,
+      to: adminRecipient,
+      subject: `🚨 [Action Required - Verify Quote]: REF-${orderId || "CUSTOM"}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 650px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #0f172a; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-top: 0;">New Quote Created & Saved</h2>
+          <p style="color: #475569; font-size: 14px; line-height: 1.5;">
+            An administrative or custom solar quotation has been logged to the database. <strong>Please double-check the sizing specifications below</strong> to ensure hardware availability, electrical ratings, and overall pricing metrics are correct.
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #1e293b; font-size: 15px; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px;">Client Profile</h3>
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 5px 0; color: #64748b; width: 130px;">Name:</td>
+                <td style="padding: 5px 0; font-weight: bold; color: #0f172a;">${quote.customerName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Email:</td>
+                <td style="padding: 5px 0; font-weight: bold; color: #2563eb;">${quote.customerEmail || "Not provided"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Phone:</td>
+                <td style="padding: 5px 0; font-weight: bold; color: #0f172a;">${quote.customerPhone || "Not provided"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Address:</td>
+                <td style="padding: 5px 0; color: #334155;">${quote.customerAddress || "Not provided"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Location:</td>
+                <td style="padding: 5px 0; color: #334155;">${quote.city}, ${quote.state}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 18px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #0369a1; font-size: 15px; border-bottom: 1px solid #7dd3fc; padding-bottom: 6px;">Sizing & Hardware Specs</h3>
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #0369a1; width: 130px; font-weight: 500;">Capacity:</td>
+                <td style="padding: 6px 0; font-weight: bold; color: #0f172a;">${quote.systemKva}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #0369a1; font-weight: 500;">Inverter:</td>
+                <td style="padding: 6px 0; color: #0f172a;">${quote.inverterInfo}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #0369a1; font-weight: 500;">Batteries:</td>
+                <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${quote.batteriesCount}x (${quote.batteryTech === "lithium" ? "Lithium" : "Tubular"}) - ${quote.batteryInfo}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #0369a1; font-weight: 500;">Solar Panels:</td>
+                <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${quote.panelsCount}x panels - ${quote.panelsInfo}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #0369a1; font-weight: 500;">Accessories:</td>
+                <td style="padding: 6px 0; color: #475569; font-size: 12px;">${quote.accessories && quote.accessories.length > 0 ? quote.accessories.join(', ') : "None"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #0369a1; font-weight: 500;">Appliances Matched:</td>
+                <td style="padding: 6px 0; color: #475569; font-size: 12px;">${quote.appliancesMatched && quote.appliancesMatched.length > 0 ? quote.appliancesMatched.join(', ') : "None"}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 18px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #991b1b; font-size: 15px; border-bottom: 1px solid #fca5a5; padding-bottom: 6px;">Pricing Breakdown</h3>
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 5px 0; color: #991b1b; width: 130px;">Installation Fee:</td>
+                <td style="padding: 5px 0; font-family: monospace; color: #334155;">₦${quote.serviceFee.toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #991b1b; font-weight: bold; font-size: 15px;">Total Contract Price:</td>
+                <td style="padding: 5px 0; font-family: monospace; font-weight: bold; color: #991b1b; font-size: 16px;">₦${quote.price.toLocaleString()}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="border-left: 4px solid #3b82f6; padding: 12px; background-color: #f8fafc; border-radius: 4px; margin: 20px 0;">
+            <p style="margin: 0 0 6px 0; font-weight: bold; color: #1d4ed8; font-size: 12px; text-transform: uppercase;">Technical Sizing Recommendation</p>
+            <p style="margin: 0; color: #334155; font-size: 13px; line-height: 1.5;">${quote.proposalText}</p>
+          </div>
+
+          <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 25px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+            This is an automated administrative notification dispatched securely from the SkyIT Ventures Engineering Board.
+          </p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(adminMailOptions);
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error("[MAIL_ERROR] Quote admin notification failed:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
