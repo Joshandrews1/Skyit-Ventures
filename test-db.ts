@@ -6,18 +6,27 @@ async function run() {
   const config = JSON.parse(fs.readFileSync('firebase-applet-config.json', 'utf8'));
   const app = initializeApp(config, 'temp-app');
   
-  // Try querying the (default) database
-  console.log("Querying the (default) database...");
-  const dbDefault = initializeFirestore(app, {});
-  const productsColDefault = collection(dbDefault, 'products');
+  console.log("Querying the database...");
+  const db = initializeFirestore(app, {}, config.firestoreDatabaseId);
+  const productsCol = collection(db, 'products');
   try {
-    const snapshotDefault = await getDocs(productsColDefault);
-    console.log(`Found ${snapshotDefault.size} products in (default) database.`);
-    snapshotDefault.forEach(doc => {
-      console.log(`- ID: ${doc.id}, Name: ${doc.data().name}`);
+    const snapshot = await getDocs(productsCol);
+    console.log(`Found ${snapshot.size} products in database.`);
+    
+    const productsList: any[] = [];
+    snapshot.forEach(doc => {
+      productsList.push({
+        id: doc.id,
+        ...doc.data()
+      });
     });
+
+    const fileContent = `import { Product } from '../types';\n\nexport const mockProducts: Product[] = ${JSON.stringify(productsList, null, 2)};\n\nexport const getProducts = () => mockProducts;\n`;
+    
+    fs.writeFileSync('src/data/products.ts', fileContent, 'utf8');
+    console.log("Successfully wrote database products to src/data/products.ts as offline fallback.");
   } catch (err: any) {
-    console.error("Error on (default) database:", err.message);
+    console.error("Error querying database:", err.message);
   }
 }
 

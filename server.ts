@@ -20,6 +20,7 @@ const app = express();
 
 // Initialize server-side firebase instance for proxying Firestore queries
 let serverDb: any = null;
+let serverProductsCache: any[] | null = null;
 try {
   const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
   if (fs.existsSync(configPath)) {
@@ -463,7 +464,7 @@ async function processOrderMailing(orderData: OrderMailingInput) {
 app.get("/api/products", async (req, res) => {
   try {
     if (!serverDb) {
-      return res.json(mockProducts);
+      return res.json(serverProductsCache || mockProducts);
     }
     const productsColRef = collection(serverDb, 'products');
     const snapshot = await getDocs(productsColRef);
@@ -483,10 +484,18 @@ app.get("/api/products", async (req, res) => {
       }
     });
     
+    // Update the server-side cache
+    serverProductsCache = merged;
+    
     res.json(merged);
   } catch (error) {
     console.error("[SERVER_PRODUCTS_ERROR] Failed to fetch products from Firestore server-side:", error);
-    res.json(mockProducts);
+    if (serverProductsCache) {
+      console.log("[SERVER_PRODUCTS_INFO] Serving products from in-memory cache fallback.");
+      res.json(serverProductsCache);
+    } else {
+      res.json(mockProducts);
+    }
   }
 });
 

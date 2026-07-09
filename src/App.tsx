@@ -718,20 +718,54 @@ export default function App() {
             merged.push(staticProd);
           }
         });
+
+        // Cache in browser local storage
+        try {
+          localStorage.setItem('skyit_products_cache', JSON.stringify(merged));
+        } catch (storageErr) {
+          console.warn("Could not save products to local storage cache:", storageErr);
+        }
+
         setProducts(merged);
         setIsProductsLoading(false);
       } catch (error) {
         console.warn("Firestore 'products' fetch notice/timeout, using rest query fallback:", error);
         if (!active) return;
+        
         fetch('/api/products')
-          .then(res => res.ok ? res.json() : mockProducts)
+          .then(res => res.ok ? res.json() : Promise.reject("REST API failed"))
           .then(data => {
             if (!active) return;
+            // Cache in local storage
+            try {
+              localStorage.setItem('skyit_products_cache', JSON.stringify(data));
+            } catch (storageErr) {
+              console.warn("Could not save products to local storage cache from API:", storageErr);
+            }
             setProducts(data);
             setIsProductsLoading(false);
           })
-          .catch(() => {
+          .catch((apiErr) => {
+            console.warn("REST API products fetch failed:", apiErr);
             if (!active) return;
+
+            // Try local storage cache fallback
+            const cached = localStorage.getItem('skyit_products_cache');
+            if (cached) {
+              try {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  console.log("Serving products from local storage cache fallback.");
+                  setProducts(parsed);
+                  setIsProductsLoading(false);
+                  return;
+                }
+              } catch (e) {
+                console.warn("Failed to parse cached local storage products:", e);
+              }
+            }
+
+            // Absolute fallback to pre-populated mockProducts
             setProducts(mockProducts);
             setIsProductsLoading(false);
           });
