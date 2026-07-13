@@ -19,7 +19,12 @@ import { ProfileEditModal } from './components/ProfileEditModal';
 import { ContactSection } from './components/ContactSection';
 import { PolicyModal } from './components/PolicyModal';
 import { AiVisualSearchModal } from './components/AiVisualSearchModal';
-import { ClipboardList, LayoutDashboard } from 'lucide-react';
+import { AboutSection } from './components/AboutSection';
+import { Breadcrumbs } from './components/Breadcrumbs';
+import { HomeSections } from './components/HomeSections';
+import { CategorySlider } from './components/CategorySlider';
+import { SolarPackages } from './components/SolarPackages';
+import { ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home } from 'lucide-react';
 import { 
   ShoppingBag, 
   Search, 
@@ -42,21 +47,22 @@ import {
   ArrowUp,
   Check,
   CheckCircle2,
-  Camera
+  Camera,
+  Package
 } from 'lucide-react';
 
 export default function App() {
   // Navigation State
-  const [activeTab, _setActiveTab] = useState<'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact'>(() => {
+  const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about'>(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab') as any;
-    if (['shop', 'quote', 'ai', 'tracker', 'admin', 'contact'].includes(tabParam)) {
+    if (['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about'].includes(tabParam)) {
       return tabParam;
     }
-    return (localStorage.getItem('activeTab') as 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact') || 'shop';
+    return (localStorage.getItem('activeTab') as any) || 'home';
   });
 
-  const setActiveTab = (tab: 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact') => {
+  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about') => {
     _setActiveTab(tab);
     setSelectedProduct(null); // Clear selected product modal on navigation
     localStorage.setItem('activeTab', tab);
@@ -64,14 +70,15 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') !== tab) {
       params.set('tab', tab);
-      if (tab !== 'shop') {
-        params.delete('product'); // Clear selected product when navigating away from shop
+      if (tab !== 'shop' && tab !== 'home') {
+        params.delete('product'); // Clear selected product when navigating away
       }
       window.history.pushState({ tab }, '', `?${params.toString()}`);
     }
   };
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(true);
   
   // Firebase Auth State
   const [currentUser, setCurrentUser] = useState<any | null>(null);
@@ -110,13 +117,13 @@ export default function App() {
   // Initialize URL sync
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (!params.get('tab') && activeTab !== 'shop') {
+    if (!params.get('tab') && activeTab !== 'home') {
       params.set('tab', activeTab);
       window.history.replaceState({ tab: activeTab }, '', `?${params.toString()}`);
     } else if (!params.get('tab')) {
-      // Set to shop explicitly so we have a clean history stack state
-      params.set('tab', 'shop');
-      window.history.replaceState({ tab: 'shop' }, '', `?${params.toString()}`);
+      // Set to home explicitly so we have a clean history stack state
+      params.set('tab', 'home');
+      window.history.replaceState({ tab: 'home' }, '', `?${params.toString()}`);
     }
   }, []);
 
@@ -867,7 +874,7 @@ export default function App() {
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className={`min-h-screen text-slate-600 font-sans flex flex-col justify-between transition-colors duration-300 ${
+    <div className={`min-h-screen text-slate-600 font-sans flex flex-col transition-colors duration-300 ${
       activeTab === 'ai' ? 'bg-[#0e0e10]' : 'bg-slate-50'
     }`}>
       
@@ -881,12 +888,18 @@ export default function App() {
 
       {/* Main Premium Navbar */}
       {activeTab !== 'ai' && (
-        <header className="bg-white text-slate-800 sticky top-0 z-40 border-b border-slate-200 shadow-sm">
+        <header className="bg-white text-slate-800 sticky top-0 border-b border-slate-200 shadow-sm transition-all duration-250 z-40">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Logo Branding */}
           <div 
-            onClick={() => { setActiveTab('shop'); setSearchQuery(''); handleCloseProduct(); }}
+            onClick={() => {
+              setSelectedCategory('All');
+              setActiveTab('home');
+              setSearchQuery('');
+              handleCloseProduct();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer shrink-0"
           >
             <div className="p-0.5 rounded-lg border border-slate-100 flex items-center justify-center bg-white shadow-xs overflow-hidden w-9 h-9">
@@ -1112,164 +1125,307 @@ export default function App() {
             )}
           </div>
         )}
-
-        {/* Universal Floating Dropdown Menu Panel (Desktop & Mobile) */}
-        {isMobileMenuOpen && (
-          <div className="absolute right-4 top-[102%] mt-1 max-w-[calc(100vw-32px)] w-[290px] bg-white shadow-2xl border border-slate-250/90 rounded-2xl z-50 animate-fade-in divide-y divide-slate-100 p-1">
-            <div className="p-3 space-y-3">
-              
-              <div className="flex flex-col gap-1.5 font-bold text-xs uppercase tracking-wider">
-                <button
-                  onClick={() => {
-                    setActiveTab('shop');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-lg transition-all flex items-center justify-between ${
-                    activeTab === 'shop' ? 'bg-brand text-white font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-850'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Store size={14} />
-                    <span>Shop Catalog</span>
-                  </div>
-                  <ChevronRight size={13} className={activeTab === 'shop' ? 'text-white' : 'text-slate-400'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('ai');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-lg transition-all flex items-center justify-between ${
-                    activeTab === 'ai' ? 'bg-brand text-white font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-850'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles size={14} fill={activeTab === 'ai' ? "currentColor" : "none"} strokeWidth={2} />
-                    <span>AI Advisor</span>
-                  </div>
-                  <ChevronRight size={13} className={activeTab === 'ai' ? 'text-white' : 'text-slate-400'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('tracker');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-lg transition-all flex items-center justify-between ${
-                    activeTab === 'tracker' ? 'bg-brand text-white font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-850'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Truck size={14} />
-                    <span>Track My Orders</span>
-                  </div>
-                  <ChevronRight size={13} className={activeTab === 'tracker' ? 'text-white' : 'text-slate-400'} />
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('contact');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-lg transition-all flex items-center justify-between ${
-                    activeTab === 'contact' ? 'bg-brand text-white font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-850'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>📞</span>
-                    <span>Contact Support</span>
-                  </div>
-                  <ChevronRight size={13} className={activeTab === 'contact' ? 'text-white' : 'text-slate-400'} />
-                </button>
-
-                {/* Conditional Mobile Admin Command Deck link */}
-                {(isAdmin || isEditor) ? (
-                  <button
-                    onClick={() => {
-                      setActiveTab('admin');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2.5 rounded-lg transition-all flex items-center justify-between font-bold text-rose-600 bg-rose-50/60 ${
-                      activeTab === 'admin' ? 'bg-rose-600 text-white font-bold' : 'hover:bg-rose-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <LayoutDashboard size={14} />
-                      <span>{isAdmin ? 'Admin' : 'Staff'} Control Deck</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'admin' ? 'text-white' : 'text-rose-450'} />
-                  </button>
-                ) : null}
-              </div>
-
-              {/* Mobile Auth Button HUD */}
-              <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-                {currentUser ? (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col gap-2.5">
-                    <div 
-                      onClick={() => {
-                        setIsProfileOpen(true);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-all"
-                      title="Edit user profile"
-                    >
-                      {currentUser.photoURL ? (
-                        <img src={currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-205 shrink-0" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase border border-slate-205 shrink-0">
-                          {(currentUser.displayName || currentUser.email || "?").charAt(0)}
-                        </div>
-                      )}
-                      <div className="flex flex-col text-left">
-                        <span className="text-[11px] font-black text-slate-855 leading-tight hover:text-brand transition-colors">
-                          {currentUser.displayName || currentUser.email}
-                        </span>
-                        {isAdmin ? (
-                          <span className="text-[8px] bg-rose-600 text-white font-bold w-fit px-1.5 py-0.5 rounded-sm tracking-widest leading-none mt-0.5 uppercase">
-                            Admin Active
-                          </span>
-                        ) : isEditor ? (
-                          <span className="text-[8px] bg-blue-600 text-white font-bold w-fit px-1.5 py-0.5 rounded-sm tracking-widest leading-none mt-0.5 uppercase">
-                            Editor Active
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleLogout();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full bg-red-50 hover:bg-red-100 text-red-650 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-center border border-red-200"
-                    >
-                      Sign Out Account
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsLoginOpen(true);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full bg-slate-900 hover:bg-brand text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 shadow-xs"
-                  >
-                    <Lock size={12} strokeWidth={2.5} />
-                    <span>Sign In</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </header>
     )}
 
-      {/* Hero Banner Grid (Visible on Shop Tab only) */}
-      {activeTab === 'shop' && !selectedProduct && (
+      {/* Universal Full Sheet Slideover Navigation Panel & Backdrop (Desktop & Mobile) */}
+      {isMobileMenuOpen && (
+        <>
+          {/* Dark blur backdrop */}
+            <div 
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[1000] transition-opacity duration-300 animate-fade-in"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+
+            {/* Slideover Drawer Sheet */}
+            <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-[1001] flex flex-col animate-slide-in overflow-hidden border-l border-slate-200">
+              
+              {/* Sheet Header with Logo and Close Button */}
+              <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <div className="p-0.5 rounded-lg border border-slate-200 flex items-center justify-center bg-white shadow-xs overflow-hidden w-8 h-8">
+                    <img 
+                      src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
+                      alt="SkyIT Logo" 
+                      className="w-full h-full object-contain" 
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-display font-black text-xs text-slate-900 tracking-tight leading-none">SkyIT <span className="text-brand">Ventures</span></span>
+                    <span className="text-[7px] uppercase tracking-widest font-black text-slate-400 mt-0.5">Control Menu</span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  title="Close navigation panel"
+                >
+                  <X size={15} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              {/* Scrollable Navigation List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
+                
+                <div className="space-y-1.5">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1 mb-2">Main Navigation</span>
+                  
+                  {/* Home Nav Button - takes to home tab */}
+                  <button
+                    onClick={() => {
+                      setActiveTab('home');
+                      handleCloseProduct();
+                      setIsMobileMenuOpen(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'home'
+                        ? 'bg-slate-900 text-white font-black'
+                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Home size={14} className={activeTab === 'home' ? 'text-white' : 'text-slate-550'} />
+                      <span>Home</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'home' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  {/* Shop Catalog Expandable Dropdown Container */}
+                  <div className="border border-slate-200/60 rounded-xl overflow-hidden bg-slate-50/50">
+                    <button
+                      onClick={() => {
+                        setIsShopDropdownOpen(!isShopDropdownOpen);
+                        setSelectedCategory('All');
+                        setActiveTab('shop');
+                        handleCloseProduct();
+                      }}
+                      className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                        activeTab === 'shop' ? 'bg-brand/5 text-brand font-extrabold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Store size={14} className="text-brand" />
+                        <span>Shop Catalog</span>
+                      </div>
+                      <ChevronDown size={13} className={`transition-transform duration-200 ${isShopDropdownOpen ? 'rotate-180 text-brand' : 'text-slate-450'}`} />
+                    </button>
+
+                    {/* Submenu Dropdown listing all categories */}
+                    {isShopDropdownOpen && (
+                      <div className="pl-3.5 pr-2 py-1.5 bg-white border-t border-slate-100 flex flex-col gap-1 animate-fade-in">
+                        {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Accessories'].map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => {
+                              setSelectedCategory(cat);
+                              setActiveTab('shop');
+                              handleCloseProduct();
+                              setIsMobileMenuOpen(false);
+                              setTimeout(() => {
+                                const el = document.getElementById('catalog-section');
+                                if (el) {
+                                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                } else {
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              }, 100);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all flex justify-between items-center ${
+                              activeTab === 'shop' && selectedCategory === cat
+                                ? 'bg-brand-light text-brand font-bold border-l-2 border-brand pl-2'
+                                : 'text-slate-550 hover:bg-slate-50 hover:text-slate-900'
+                            }`}
+                          >
+                            <span>{cat === 'All' ? 'All Catalog' : cat}</span>
+                            <ChevronRight size={11} className={activeTab === 'shop' && selectedCategory === cat ? 'text-brand' : 'text-slate-300'} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('ai');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'ai' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles size={14} fill={activeTab === 'ai' ? "currentColor" : "none"} strokeWidth={2} className="text-amber-550" />
+                      <span>AI Solar Advisor</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'ai' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('quote');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'quote' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Package size={14} className={activeTab === 'quote' ? 'text-white' : 'text-brand'} />
+                      <span>Solar Packages</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'quote' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('tracker');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'tracker' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Truck size={14} className="text-sky-500" />
+                      <span>Track My Orders</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'tracker' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('about');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'about' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Info size={14} className="text-indigo-500" />
+                      <span>About SkyIT</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'about' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('contact');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'contact' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Phone size={14} className="text-emerald-500" />
+                      <span>Contact Support</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'contact' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  {/* Conditional Mobile Admin Command Deck link */}
+                  {(isAdmin || isEditor) ? (
+                    <button
+                      onClick={() => {
+                        setActiveTab('admin');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider text-rose-600 bg-rose-50/60 ${
+                        activeTab === 'admin' ? 'bg-rose-600 text-white font-bold' : 'hover:bg-rose-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <LayoutDashboard size={14} />
+                        <span>{isAdmin ? 'Admin' : 'Staff'} Control Deck</span>
+                      </div>
+                      <ChevronRight size={13} className={activeTab === 'admin' ? 'text-white' : 'text-rose-450'} />
+                    </button>
+                  ) : null}
+                </div>
+
+                {/* Mobile Auth Button HUD */}
+                <div className="pt-4 border-t border-slate-200">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1 mb-3">Account Workspace</span>
+                  
+                  {currentUser ? (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col gap-2.5">
+                      <div 
+                        onClick={() => {
+                          setIsProfileOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-all"
+                        title="Edit user profile"
+                      >
+                        {currentUser.photoURL ? (
+                          <img src={currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-255 shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase border border-slate-255 shrink-0">
+                            {(currentUser.displayName || currentUser.email || "?").charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex flex-col text-left">
+                          <span className="text-[11px] font-black text-slate-855 leading-tight hover:text-brand transition-colors">
+                            {currentUser.displayName || currentUser.email}
+                          </span>
+                          {isAdmin ? (
+                            <span className="text-[8px] bg-rose-600 text-white font-bold w-fit px-1.5 py-0.5 rounded-sm tracking-widest leading-none mt-0.5 uppercase">
+                              Admin Active
+                            </span>
+                          ) : isEditor ? (
+                            <span className="text-[8px] bg-blue-600 text-white font-bold w-fit px-1.5 py-0.5 rounded-sm tracking-widest leading-none mt-0.5 uppercase">
+                              Editor Active
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleLogout();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full bg-red-50 hover:bg-red-100 text-red-650 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-center border border-red-200"
+                      >
+                        Sign Out Account
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLoginOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full bg-slate-900 hover:bg-brand text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <Lock size={12} strokeWidth={2.5} />
+                      <span>Sign In</span>
+                    </button>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Sheet Footer */}
+              <div className="p-4 border-t border-slate-200 bg-slate-50 text-[10px] text-center text-slate-400 font-mono flex items-center justify-between">
+                <span>SKYIT SECURE V4</span>
+                <span className="text-emerald-500 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  CONNECTED
+                </span>
+              </div>
+
+            </div>
+          </>
+        )}
+
+      {/* Hero Banner Grid (Visible on Home Tab only) */}
+      {activeTab === 'home' && !selectedProduct && (
         <section className="bg-gradient-to-b from-brand-light/70 via-white to-slate-50 py-10 px-4 sm:px-6 md:px-8 text-slate-700 relative overflow-hidden border-b border-slate-200">
           {/* Ambient visual glow circles representing clean solar energy */}
           <div className="absolute top-1/2 right-1/4 w-72 h-72 bg-brand/5 rounded-full blur-3xl pointer-events-none" />
@@ -1445,8 +1601,22 @@ export default function App() {
       )}
 
       {/* Core Body Container */}
-      <main className={activeTab === 'ai' ? 'w-full flex-1 flex flex-col bg-[#0e0e10]' : (selectedProduct ? 'w-full flex-1 flex flex-col' : 'max-w-7xl mx-auto px-4 py-8 flex-1 w-full')}>
+      <main className={activeTab === 'ai' ? 'w-full flex-1 flex flex-col bg-[#0e0e10]' : (selectedProduct ? 'w-full flex-1 flex flex-col' : 'max-w-7xl mx-auto px-4 pt-8 pb-2 flex-1 w-full')}>
         
+        {/* Dynamic Navigation Breadcrumbs */}
+        {activeTab !== 'ai' && (
+          <div className={selectedProduct ? "max-w-7xl mx-auto px-4 pt-6 w-full" : "w-full"}>
+            <Breadcrumbs 
+              activeTab={activeTab} 
+              selectedProduct={selectedProduct} 
+              selectedCategory={selectedCategory}
+              onNavigate={setActiveTab} 
+              onClearProduct={handleCloseProduct} 
+              onSelectCategory={setSelectedCategory}
+            />
+          </div>
+        )}
+
         {/* PRODUCT DETAIL PAGE (Takes over screen when active) */}
         {selectedProductWithRealRating && (
           <ProductDetailModal 
@@ -1460,9 +1630,40 @@ export default function App() {
           />
         )}
 
+        {/* VIEW 0: HOME TAB */}
+        {activeTab === 'home' && !selectedProduct && (
+          <div className="space-y-12 w-full animate-fade-in">
+            <HomeSections 
+              onSelectCategory={(category) => {
+                setSelectedCategory(category);
+                setActiveTab('shop');
+                setTimeout(() => {
+                  const el = document.getElementById('catalog-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }} 
+              onNavigate={setActiveTab} 
+            />
+          </div>
+        )}
+
         {/* VIEW 1: SHOP CATALOG TAB */}
         {activeTab === 'shop' && !selectedProduct && (
-          <div className="grid lg:grid-cols-4 gap-8">
+          <div className="space-y-6 w-full animate-fade-in">
+            <div className="mb-2 bg-white/70 backdrop-blur-xs p-6 rounded-2xl border border-slate-200/60 shadow-2xs">
+              <h1 className="font-display font-black text-2xl sm:text-3xl text-slate-900 uppercase tracking-tight">Our Product Catalog</h1>
+              <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                Explore our range of premium clean energy hardware, LFP battery storage modules, starlight PoE camera networks, and custom solar power kits.
+              </p>
+            </div>
+            
+            {/* Interactive Category quick-access slider */}
+            <CategorySlider 
+              selectedCategory={selectedCategory} 
+              onSelectCategory={setSelectedCategory} 
+            />
+            
+            <div id="catalog-section" className="grid lg:grid-cols-4 gap-8 scroll-mt-24 pt-2">
             
             {/* Left Column: Adaptive filter sidebar */}
             <aside className="hidden lg:block space-y-6">
@@ -1484,7 +1685,7 @@ export default function App() {
                           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                       }`}
                     >
-                      <span>{cat}</span>
+                      <span>{cat === 'All' ? 'All Catalog' : cat}</span>
                       <ChevronRight size={12} className={selectedCategory === cat ? 'text-brand' : 'text-slate-300'} />
                     </button>
                   ))}
@@ -1727,6 +1928,7 @@ export default function App() {
             </div>
 
           </div>
+          </div>
         )}
 
         {/* VIEW 3: ORDER TRACKING TAB */}
@@ -1772,11 +1974,24 @@ export default function App() {
           <ContactSection />
         )}
 
+        {/* VIEW 7: ABOUT SKYIT PANEL */}
+        {activeTab === 'about' && !selectedProduct && (
+          <AboutSection />
+        )}
+
+        {/* VIEW 8: TURNKEY SOLAR PACKAGES TAB */}
+        {activeTab === 'quote' && !selectedProduct && (
+          <SolarPackages 
+            onAddToCart={handleAddToCart} 
+            onOpenCart={() => setIsCartOpen(true)} 
+          />
+        )}
+
       </main>
 
       {/* Core Brand Trust Footer */}
       {activeTab !== 'ai' && !selectedProduct && (
-        <footer className="bg-slate-900 text-slate-450 py-10 mt-12 border-t border-slate-805">
+        <footer className="bg-slate-900 text-slate-450 py-10 mt-2 border-t border-slate-805">
         <div className="max-w-7xl mx-auto px-4 grid sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs leading-relaxed text-slate-400">
           
           <div className="space-y-4">
@@ -1918,6 +2133,14 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:pr-24 pt-6 mt-6 border-t border-slate-800 text-center text-[10px] text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
           <span>© 2026 SkyIT Ventures Limited. All rights reserved. Built with premium Vite & React.</span>
           <div className="flex gap-4 flex-wrap justify-center">
+            <button 
+              onClick={() => { setActiveTab('about'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
+              id="footer-about-btn"
+            >
+              About SkyIT
+            </button>
+            <span className="text-slate-700 hidden sm:inline">|</span>
             <button 
               onClick={() => { setPolicyTab('installation'); setIsPolicyOpen(true); }}
               className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"

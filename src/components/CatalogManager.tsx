@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { db, logAuditEvent } from '../firebase';
 import { mockProducts } from '../data/products';
-import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, updateDoc } from 'firebase/firestore';
+import { SolarPackage, SOLAR_PACKAGES } from '../data/quote-data';
 import { 
   Plus, 
   Trash2, 
@@ -21,7 +22,9 @@ import {
   Info,
   Edit,
   Download,
-  Search
+  Search,
+  Zap,
+  Edit2
 } from 'lucide-react';
 
 interface CatalogManagerProps {
@@ -34,6 +37,81 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
   const [loadingList, setLoadingList] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [listQuery, setListQuery] = useState('');
+
+  // Solar Packages price management states
+  const [packagesList, setPackagesList] = useState<SolarPackage[]>([]);
+  const [loadingPkgs, setLoadingPkgs] = useState(true);
+  const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
+  const [draftPkgPrice, setDraftPkgPrice] = useState<number>(0);
+  const [savingPkgId, setSavingPkgId] = useState<string | null>(null);
+  const [pkgSuccessMsg, setPkgSuccessMsg] = useState('');
+  const [pkgErrorMsg, setPkgErrorMsg] = useState('');
+
+  // Synchronize Solar Packages with real-time database listener
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'solar_packages'), (snapshot) => {
+      if (snapshot.empty) {
+        const allLocalPackages: SolarPackage[] = [
+          ...SOLAR_PACKAGES.tubular,
+          ...SOLAR_PACKAGES.lithium
+        ];
+        allLocalPackages.forEach((pkg) => {
+          setDoc(doc(db, 'solar_packages', pkg.id), pkg).catch(err => {
+            console.error("Failed to seed package on admin:", pkg.id, err);
+          });
+        });
+        setPackagesList(allLocalPackages);
+      } else {
+        const dbPackages: SolarPackage[] = [];
+        snapshot.forEach((d) => {
+          dbPackages.push(d.data() as SolarPackage);
+        });
+        // Sort alphabetically or kva to keep list structured
+        dbPackages.sort((a, b) => a.id.localeCompare(b.id));
+        setPackagesList(dbPackages);
+      }
+      setLoadingPkgs(false);
+    }, (error) => {
+      console.error("Admin packages sync error:", error);
+      setPackagesList([
+        ...SOLAR_PACKAGES.tubular,
+        ...SOLAR_PACKAGES.lithium
+      ]);
+      setLoadingPkgs(false);
+    });
+
+    return () => unsub();
+  }, []);
+
+  const handleSavePackagePrice = async (pkgId: string, pkgName: string) => {
+    if (draftPkgPrice <= 0) {
+      setPkgErrorMsg("Price must be greater than zero.");
+      return;
+    }
+    setSavingPkgId(pkgId);
+    setPkgErrorMsg('');
+    setPkgSuccessMsg('');
+    try {
+      await updateDoc(doc(db, 'solar_packages', pkgId), {
+        price: Number(draftPkgPrice)
+      });
+      
+      await logAuditEvent(
+        'UPDATE_PACKAGE_PRICE',
+        pkgId,
+        'quote',
+        `Adjusted live pricing for turnkey package ${pkgName} to ₦${Number(draftPkgPrice).toLocaleString()}`
+      );
+
+      setPkgSuccessMsg(`🎉 Successfully updated price for "${pkgName}"!`);
+      setEditingPkgId(null);
+    } catch (err: any) {
+      console.error("Failed to update package price:", err);
+      setPkgErrorMsg("Database error: " + (err.message || String(err)));
+    } finally {
+      setSavingPkgId(null);
+    }
+  };
 
   // Form states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -916,6 +994,119 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
             </button>
           </div>
         </form>
+
+        {/* SOLAR PACKAGES PRICE MANAGER */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-3xs space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+              <Zap size={16} className="text-brand fill-brand-light/30" />
+              <span>Solar Packages Price Manager</span>
+            </h3>
+            <p className="text-[11px] text-slate-450 mt-1 leading-relaxed">
+              Dynamically update pricing for pre-engineered turnkey hybrid packages. Changes propagate in real-time across the client catalog and calculators.
+            </p>
+          </div>
+
+          {pkgSuccessMsg && (
+            <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-2xl text-xs flex gap-2 items-center">
+              <Check size={14} className="shrink-0 bg-emerald-500 text-white rounded-full p-0.5" />
+              <span>{pkgSuccessMsg}</span>
+            </div>
+          )}
+
+          {pkgErrorMsg && (
+            <div className="p-3 bg-rose-50 text-rose-850 border border-rose-100 rounded-2xl text-xs">
+              ⚠️ {pkgErrorMsg}
+            </div>
+          )}
+
+          {loadingPkgs ? (
+            <div className="py-8 text-center text-slate-400 space-y-1.5">
+              <Loader2 size={16} className="animate-spin mx-auto text-brand" />
+              <span className="text-[10px] font-bold uppercase tracking-wider block">Syncing package registry...</span>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              {packagesList.map((pkg) => {
+                const isEditing = editingPkgId === pkg.id;
+                return (
+                  <div 
+                    key={pkg.id} 
+                    className="border border-slate-150 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-250 transition-all bg-slate-50/50"
+                  >
+                    <div className="min-w-0 flex-1 space-y-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded ${
+                          pkg.tech === 'lithium' ? 'bg-amber-100 text-amber-800' : 'bg-slate-150 text-slate-700'
+                        }`}>
+                          {pkg.tech}
+                        </span>
+                        <h4 className="font-bold text-xs text-slate-800 truncate">{pkg.name}</h4>
+                      </div>
+                      <p className="text-[10px] text-slate-450 leading-normal line-clamp-1">{pkg.description}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl p-1 shadow-3xs">
+                          <span className="text-xs font-bold text-slate-400 pl-1.5">₦</span>
+                          <input
+                            type="number"
+                            value={draftPkgPrice}
+                            onChange={(e) => setDraftPkgPrice(Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-24 bg-transparent border-0 text-xs font-mono font-bold text-slate-850 focus:ring-0 focus:outline-hidden p-0"
+                            placeholder="Price"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSavePackagePrice(pkg.id, pkg.name)}
+                            disabled={savingPkgId === pkg.id}
+                            className="p-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-all cursor-pointer"
+                            title="Save"
+                          >
+                            {savingPkgId === pkg.id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Check size={12} />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingPkgId(null)}
+                            className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all cursor-pointer"
+                            title="Cancel"
+                          >
+                            <span className="text-[10px] font-black px-1">✕</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs font-mono font-black text-slate-800">
+                            ₦{pkg.price.toLocaleString()}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingPkgId(pkg.id);
+                              setDraftPkgPrice(pkg.price);
+                              setPkgSuccessMsg('');
+                              setPkgErrorMsg('');
+                            }}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-brand/10 hover:text-brand text-slate-500 transition-all cursor-pointer"
+                            title="Edit price"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
       </div>
 
