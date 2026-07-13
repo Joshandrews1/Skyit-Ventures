@@ -2,14 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Bolt, Home as HomeIcon, Globe, Leaf, ArrowRight, MapPin, Cpu, Battery, Briefcase, ChevronRight, ChevronLeft, Sparkles, Tag, Percent, Sun, Shield, Layers, Activity } from 'lucide-react';
 
-// @ts-ignore
-import imgCatalog from '../assets/images/regenerated_image_1783933598495.png';
-// @ts-ignore
-import imgAdvisor from '../assets/images/regenerated_image_1783933629712.png';
-// @ts-ignore
-import imgTracker from '../assets/images/regenerated_image_1783933683627.png';
-// @ts-ignore
-import imgPackages from '../assets/images/regenerated_image_1783933714393.png';
+// Using high-quality, lightweight, and reliable Unsplash CDN images for the home sections bento grid.
+// This completely resolves Git sync size/existence issues and significantly accelerates page loading.
+const imgCatalog = 'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=800&q=80';
+const imgAdvisor = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+const imgTracker = 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80';
+const imgPackages = 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=800&q=80';
 
 interface HomeSectionsProps {
   onSelectCategory: (category: string) => void;
