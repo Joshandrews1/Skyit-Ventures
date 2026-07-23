@@ -80,7 +80,7 @@ export const OwnerSection: React.FC<OwnerSectionProps> = ({
               <div className="absolute -inset-1.5 bg-gradient-to-r from-brand to-amber-400 rounded-3xl blur-md opacity-75 group-hover:opacity-100 transition duration-500"></div>
               <div className="relative w-56 h-64 sm:w-64 sm:h-72 rounded-2xl overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80" 
+                  src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/web%20images%2FIMG-20260723-WA0001.jpg?alt=media&token=30e9afa5-8d9c-4334-b742-386e47910f2f" 
                   alt="Daniel Eweh - Managing Director, SkyIT Ventures" 
                   className="w-full h-full object-cover object-top hover:scale-105 transition duration-500"
                   referrerPolicy="no-referrer"
