@@ -142,6 +142,26 @@ service cloud.firestore {
              (!thread.keys().hasAny(['summary']) || thread.summary is string || thread.summary == null);
     }
 
+    function isValidBlogPost(post) {
+      return post.keys().hasAll(['id', 'title', 'slug', 'excerpt', 'content', 'category', 'authorName', 'createdAt', 'coverImage', 'published']) &&
+             post.id is string && post.id.size() <= 128 &&
+             post.title is string && post.title.size() <= 500 &&
+             post.slug is string && post.slug.size() <= 300 &&
+             post.excerpt is string && post.excerpt.size() <= 2000 &&
+             post.content is string && post.content.size() <= 100000 &&
+             post.category is string && post.category.size() <= 100 &&
+             post.authorName is string && post.authorName.size() <= 200 &&
+             post.createdAt is string && post.createdAt.size() <= 100 &&
+             post.coverImage is string && post.coverImage.size() <= 500000 &&
+             post.published is bool &&
+             (!post.keys().hasAny(['authorRole']) || (post.authorRole is string && post.authorRole.size() <= 200)) &&
+             (!post.keys().hasAny(['authorAvatar']) || (post.authorAvatar is string && post.authorAvatar.size() <= 500000)) &&
+             (!post.keys().hasAny(['updatedAt']) || (post.updatedAt is string && post.updatedAt.size() <= 100)) &&
+             (!post.keys().hasAny(['readTimeMinutes']) || (post.readTimeMinutes is number || post.readTimeMinutes is int)) &&
+             (!post.keys().hasAny(['tags']) || post.tags is list) &&
+             (!post.keys().hasAny(['featured']) || post.featured is bool);
+    }
+
     // Admins Collection: holds administrator references
     match /admins/{adminId} {
       allow get: if isSignedIn() && (request.auth.uid == adminId || isEditor());
@@ -225,6 +245,13 @@ service cloud.firestore {
                     isValidReview(incoming());
       allow delete: if isSignedIn() && 
                     (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Blog Posts Collection: technical publications and company articles
+    match /blog_posts/{postId} {
+      allow read, get, list: if true; // public reading
+      allow create, update: if isSignedIn() && isEditor() && isValidBlogPost(incoming());
+      allow delete: if isSignedIn() && isEditor();
     }
   }
 }

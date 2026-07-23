@@ -1367,6 +1367,189 @@ app.post("/api/ai-search", async (req, res) => {
   }
 });
 
+// ————————————————————————————————————————————————————————————————
+// AI AUTOMATED BLOG ARTICLE & NEWSLETTER GENERATOR AGENT
+// ————————————————————————————————————————————————————————————————
+app.post("/api/admin/generate-ai-blog", async (req, res) => {
+  const { niche, topic, authorName, authorRole, includeNewsletter } = req.body;
+
+  const targetCategory = niche || "Solar & Clean Energy";
+  const userTopic = topic || "Latest 2026 Solar Energy & Grid Tariff Developments in West Africa";
+  const author = authorName || "Daniel Eweh";
+  const role = authorRole || "Managing Director, SkyIT Ventures";
+
+  // Default fallback if AI instance unavailable
+  const fallbackArticle = {
+    title: `Navigating Clean Energy & Infrastructure Transitions in 2026: ${targetCategory}`,
+    slug: `clean-energy-transition-${Date.now()}`,
+    category: targetCategory,
+    excerpt: `An executive overview of recent technological advancements, solar microgrid tariffs, and power resilience strategies for commercial and residential facilities.`,
+    content: `## Executive Overview
+
+Energy independence and digital security remain top priorities for businesses and property owners across Nigeria and West Africa in 2026. As grid tariffs fluctuate and fuel costs rise, decentralizing power with intelligent hybrid solar microgrids and high-density LiFePO4 batteries is no longer optional—it is a core financial hedge.
+
+### Key Technological Trends
+1. **High-Density Lithium-Iron Phosphate (LiFePO4) Storage**: Modern 5KWH and 10KWH wall-mounted batteries provide over 6,000 charge cycles, delivering 10-15 years of uninterrupted service.
+2. **AI-Enabled Pure Sine Inverters**: Smart load-shedding and real-time remote telemetry allow automated power prioritization between heavy HVAC units and critical lighting circuits.
+3. **Integrated 4K Surveillance & Security**: Combining solar microgrids with starlight IP camera arrays ensures 24/7 security monitoring even during complete grid dropouts.
+
+### Financial Return on Investment (ROI)
+By reducing reliance on diesel generators, commercial sites typically achieve full capital payback within 18 to 24 months. SkyIT Ventures continues to engineer custom solar and security packages tailored to unique facility power footprints.
+
+### Technical Recommendations
+- Perform a thorough electrical audit before sizing inverter capacity.
+- Separate heavy inductive loads (water pumps, compressors) onto dedicated solar circuits.
+- Inspect battery bank state of charge (SoC) parameters regularly via cloud telemetry.`,
+    readTimeMinutes: 4,
+    tags: ["Solar", "Clean Energy", "SkyIT", "Lithium Storage", "Security"],
+    coverImage: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=1200&q=80",
+    trendingSources: [
+      "NERC 2026 Tariff Band adjustments & off-grid microgrid incentives",
+      "LiFePO4 cell cost efficiency improvements in commercial energy storage"
+    ],
+    newsletter: {
+      subject: `⚡ [SkyIT Energy Pulse] Insights: ${targetCategory} & Grid Resilience`,
+      html: `<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+        <div style="background-color: #0f172a; padding: 20px; border-radius: 8px; text-align: center; color: white;">
+          <h2 style="margin:0; font-size:20px; color:#38bdf8;">SkyIT Ventures Tech Bulletin</h2>
+          <p style="margin:5px 0 0 0; font-size:12px; color:#94a3b8;">Niche Focus: ${targetCategory}</p>
+        </div>
+        <div style="padding: 20px 0; color: #334155; line-height: 1.6; font-size: 14px;">
+          <p>Hello Subscriber,</p>
+          <p>Grid stability and rising fuel tariffs demand smarter power choices. In our latest technical release, Managing Director <strong>${author}</strong> breaks down essential strategies for optimizing solar microgrids and security infrastructure.</p>
+          <div style="background-color: #f8fafc; border-left: 4px solid #0284c7; padding: 15px; margin: 15px 0; border-radius: 4px;">
+            <strong style="color: #0f172a;">Key Takeaway:</strong> Commercial sites switching to LiFePO4 battery banks paired with Tier-1 Mono panels achieve complete diesel independence with payback in under 24 months.
+          </div>
+          <p>Read the full article and run your custom load sizing calculation on our portal today!</p>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="https://skyitventures.com" style="background-color: #0284c7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Explore SkyIT Knowledge Hub</a>
+        </div>
+      </div>`
+    }
+  };
+
+  if (!ai) {
+    console.warn("[AI_BLOG_AGENT] AI engine not configured. Returning fallback structured article.");
+    return res.json(fallbackArticle);
+  }
+
+  try {
+    const prompt = `You are an expert AI Technical Journalist, Energy Economist, and Content Strategist writing on behalf of ${author} (${role}) at SkyIT Ventures.
+
+Your goal is to perform real-time research and write a highly articulate, authoritative, data-backed technical blog post AND matching subscriber newsletter tailored to our corporate niche.
+
+CATEGORY/NICHE: ${targetCategory}
+TOPIC / PROMPT BRIEF: ${userTopic}
+
+REQUIREMENTS:
+1. TITLE: Create a catchy, high-impact headline suitable for industry leaders and corporate clients.
+2. EXCERPT: A 2-sentence crisp summary highlighting actionable value.
+3. CONTENT: Multi-section Markdown article containing:
+   - ## Executive Overview
+   - ### Real-Time Industry Trends & Data (Incorporate up-to-date facts about Nigerian/West African energy grid tariffs, solar panel efficiencies, lithium powerwall technologies, or smart CCTV AI features)
+   - ### Engineering & Financial Analysis (ROI metrics, operational cost savings)
+   - ### Actionable Recommendations for Facility Managers & Homeowners
+4. READ TIME: Reasonable read time estimate in minutes (e.g., 4 to 8).
+5. TAGS: 4 to 6 relevant searchable tags.
+6. COVER IMAGE: High resolution Unsplash image URL matching the theme (use a valid image URL like https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=1200&q=80 or https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80 or similar).
+7. TRENDING SOURCES: 2-3 real-time insight bullet points summarizing current market data points used in the post.
+8. NEWSLETTER:
+   - Subject: Catchy email subject line with emojis (e.g. "⚡ [SkyIT Insights] ...")
+   - HTML: Complete, beautiful, inline-styled email newsletter HTML layout with dark header (#0f172a), accent buttons (#0284c7), key highlight callout box, and author signature line.
+
+OUTPUT FORMAT: Respond strictly in JSON format matching the schema.`;
+
+    const response = await generateContentWithFallback(ai, {
+      model: "gemini-3.1-flash-lite",
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        temperature: 0.4,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            slug: { type: Type.STRING },
+            category: { type: Type.STRING },
+            excerpt: { type: Type.STRING },
+            content: { type: Type.STRING },
+            readTimeMinutes: { type: Type.INTEGER },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            coverImage: { type: Type.STRING },
+            trendingSources: { type: Type.ARRAY, items: { type: Type.STRING } },
+            newsletter: {
+              type: Type.OBJECT,
+              properties: {
+                subject: { type: Type.STRING },
+                html: { type: Type.STRING }
+              },
+              required: ["subject", "html"]
+            }
+          },
+          required: ["title", "slug", "category", "excerpt", "content", "readTimeMinutes", "tags", "coverImage", "trendingSources", "newsletter"]
+        }
+      }
+    });
+
+    const resultText = response.text;
+    if (!resultText) throw new Error("Empty response from AI Blog Agent.");
+
+    const parsed = JSON.parse(resultText.trim());
+    res.json(parsed);
+
+  } catch (err: any) {
+    console.error("[AI_BLOG_AGENT_ERROR]", err);
+    res.json(fallbackArticle);
+  }
+});
+
+// Endpoint: Dispatch Newsletter Email via SMTP
+app.post("/api/admin/dispatch-newsletter", async (req, res) => {
+  const { subject, htmlContent, recipientEmails } = req.body;
+
+  if (!subject || !htmlContent) {
+    return res.status(400).json({ error: "Subject and HTML content are required." });
+  }
+
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  const adminRecipient = process.env.NOTIFICATION_EMAIL_RECIPIENT || "skyitventures01@gmail.com";
+
+  const targets = (recipientEmails && Array.isArray(recipientEmails) && recipientEmails.length > 0) 
+    ? recipientEmails 
+    : [adminRecipient];
+
+  if (!user || !pass) {
+    console.warn("[MAIL_WARN] GMAIL_USER or GMAIL_APP_PASSWORD absent. Newsletter logged offline.");
+    return res.json({ 
+      success: true, 
+      offline: true, 
+      message: "SMTP credentials absent. Newsletter simulated successfully.",
+      recipientsCount: targets.length
+    });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
+
+    await transporter.sendMail({
+      from: `"SkyIT Ventures Newsletter" <${user}>`,
+      to: targets.join(", "),
+      subject: subject,
+      html: htmlContent
+    });
+
+    res.json({ success: true, recipientsCount: targets.length });
+  } catch (err: any) {
+    console.error("[NEWSLETTER_DISPATCH_ERROR]", err);
+    res.status(500).json({ error: err.message || "Failed to send newsletter email." });
+  }
+});
+
 // Alias Endpoints to follow reference integration specs
 app.post('/api/initialize-payment', (req, res) => {
   // Redirect to initiate handler to reuse setup

@@ -1,12 +1,12 @@
 import React from 'react';
-import { Home, ChevronRight, Store, Sparkles, Truck, Phone, Settings, ShieldAlert, Info, Package } from 'lucide-react';
+import { Home, ChevronRight, Store, Sparkles, Truck, Phone, Settings, ShieldAlert, Info, Package, BookOpen, UserCheck } from 'lucide-react';
 import { Product } from '../types';
 
 interface BreadcrumbsProps {
-  activeTab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about';
+  activeTab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner';
   selectedProduct: Product | null;
   selectedCategory: string;
-  onNavigate: (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about') => void;
+  onNavigate: (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner') => void;
   onClearProduct: () => void;
   onSelectCategory: (category: string) => void;
 }
@@ -43,6 +43,10 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
         return { label: 'Control Deck', icon: <Settings size={12} className="text-rose-500" /> };
       case 'about':
         return { label: 'About SkyIT', icon: <Info size={12} className="text-indigo-500" /> };
+      case 'blog':
+        return { label: 'Engineering Blog', icon: <BookOpen size={12} className="text-amber-600" /> };
+      case 'owner':
+        return { label: 'Managing Director', icon: <UserCheck size={12} className="text-sky-600" /> };
       default:
         return { label: 'Home', icon: <Home size={12} /> };
     }

@@ -66,6 +66,25 @@ export interface Review {
   isVerifiedPurchase: boolean;
 }
 
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  excerpt: string;
+  content: string;
+  coverImage: string;
+  authorName: string;
+  authorRole: string;
+  authorAvatar?: string;
+  published: boolean;
+  featured?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  readTimeMinutes?: number;
+  tags?: string[];
+}
+
 export interface ChatMessage {
   sender: 'user' | 'assistant';
   text: string;

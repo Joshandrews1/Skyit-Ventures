@@ -156,6 +156,79 @@
         }
       },
       "required": ["id", "productId", "userId", "userName", "userEmail", "rating", "comment", "createdAt", "isVerifiedPurchase"]
+    },
+    "BlogPost": {
+      "title": "BlogPost",
+      "description": "Clean energy, IT, and security engineering blog article",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique blog post identifier"
+        },
+        "title": {
+          "type": "string",
+          "description": "Article title"
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL slug"
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Short excerpt"
+        },
+        "content": {
+          "type": "string",
+          "description": "Full article markdown or text content"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category name"
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Author display name"
+        },
+        "authorRole": {
+          "type": "string",
+          "description": "Author job title"
+        },
+        "authorAvatar": {
+          "type": "string",
+          "description": "Author avatar image URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Formatted date string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Formatted updated date string"
+        },
+        "readTimeMinutes": {
+          "type": "number",
+          "description": "Estimated reading duration in minutes"
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "Cover photo URL"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords and tag tags"
+        },
+        "published": {
+          "type": "boolean",
+          "description": "Whether the article is live"
+        },
+        "featured": {
+          "type": "boolean",
+          "description": "Whether the article is featured"
+        }
+      },
+      "required": ["id", "title", "slug", "excerpt", "content", "category", "authorName", "createdAt", "coverImage", "published"]
     }
   },
   "firestore": {
@@ -174,6 +247,10 @@
     "/reviews/{reviewId}": {
       "schema": "Review",
       "description": "Customer feedback and star scores"
+    },
+    "/blog_posts/{postId}": {
+      "schema": "BlogPost",
+      "description": "Articles, news, and technical publications"
     }
   }
 }

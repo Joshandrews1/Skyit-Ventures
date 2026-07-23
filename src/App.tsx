@@ -20,11 +20,14 @@ import { ContactSection } from './components/ContactSection';
 import { PolicyModal } from './components/PolicyModal';
 import { AiVisualSearchModal } from './components/AiVisualSearchModal';
 import { AboutSection } from './components/AboutSection';
+import { OwnerSection } from './components/OwnerSection';
+import { BlogSection } from './components/BlogSection';
+import { defaultBlogPosts } from './data/blogPosts';
+import { BlogPost } from './types';
 import { Breadcrumbs } from './components/Breadcrumbs';
 import { HomeSections } from './components/HomeSections';
-import { CategorySlider } from './components/CategorySlider';
 import { SolarPackages } from './components/SolarPackages';
-import { ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home } from 'lucide-react';
+import { ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award } from 'lucide-react';
 import { 
   ShoppingBag, 
   Search, 
@@ -51,18 +54,35 @@ import {
   Package
 } from 'lucide-react';
 
+import { logSiteVisit } from './lib/visitorTracker';
+
 export default function App() {
   // Navigation State
-  const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about'>(() => {
+  const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner'>(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab') as any;
-    if (['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about'].includes(tabParam)) {
+    if (['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about', 'blog', 'owner'].includes(tabParam)) {
       return tabParam;
     }
     return (localStorage.getItem('activeTab') as any) || 'home';
   });
 
-  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about') => {
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(defaultBlogPosts);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'blog_posts'), (snapshot) => {
+      if (!snapshot.empty) {
+        const list: BlogPost[] = [];
+        snapshot.forEach(docSnap => list.push(docSnap.data() as BlogPost));
+        setBlogPosts(list);
+      }
+    }, (err) => {
+      console.warn("Blog posts Firestore sync notice:", err);
+    });
+    return () => unsub();
+  }, []);
+
+  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner') => {
     _setActiveTab(tab);
     setSelectedProduct(null); // Clear selected product modal on navigation
     localStorage.setItem('activeTab', tab);
@@ -114,7 +134,7 @@ export default function App() {
     message: string;
   }>({ status: 'idle', message: '' });
 
-  // Initialize URL sync
+  // Initialize URL sync & Log site visit
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.get('tab') && activeTab !== 'home') {
@@ -125,7 +145,10 @@ export default function App() {
       params.set('tab', 'home');
       window.history.replaceState({ tab: 'home' }, '', `?${params.toString()}`);
     }
-  }, []);
+
+    // Record site visit telemetry
+    logSiteVisit(activeTab);
+  }, [activeTab]);
 
   // Flutterwave callback receiver
   useEffect(() => {
@@ -1305,10 +1328,42 @@ export default function App() {
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Info size={14} className="text-indigo-500" />
+                      <Info size={14} className={activeTab === 'about' ? 'text-white' : 'text-indigo-500'} />
                       <span>About SkyIT</span>
                     </div>
                     <ChevronRight size={13} className={activeTab === 'about' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('owner');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'owner' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <UserCheck size={14} className={activeTab === 'owner' ? 'text-white' : 'text-sky-500'} />
+                      <span>Managing Director</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'owner' ? 'text-white' : 'text-slate-400'} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('blog');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
+                      activeTab === 'blog' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <BookOpen size={14} className={activeTab === 'blog' ? 'text-white' : 'text-amber-500'} />
+                      <span>Engineering Blog</span>
+                    </div>
+                    <ChevronRight size={13} className={activeTab === 'blog' ? 'text-white' : 'text-slate-400'} />
                   </button>
 
                   <button
@@ -1657,12 +1712,6 @@ export default function App() {
               </p>
             </div>
             
-            {/* Interactive Category quick-access slider */}
-            <CategorySlider 
-              selectedCategory={selectedCategory} 
-              onSelectCategory={setSelectedCategory} 
-            />
-            
             <div id="catalog-section" className="grid lg:grid-cols-4 gap-8 scroll-mt-24 pt-2">
             
             {/* Left Column: Adaptive filter sidebar */}
@@ -1979,6 +2028,16 @@ export default function App() {
           <AboutSection />
         )}
 
+        {/* VIEW 9: ABOUT MANAGING DIRECTOR PANEL */}
+        {activeTab === 'owner' && !selectedProduct && (
+          <OwnerSection onNavigate={setActiveTab} />
+        )}
+
+        {/* VIEW 10: ENGINEERING & CLEAN ENERGY BLOG PANEL */}
+        {activeTab === 'blog' && !selectedProduct && (
+          <BlogSection posts={blogPosts} onNavigate={setActiveTab} />
+        )}
+
         {/* VIEW 8: TURNKEY SOLAR PACKAGES TAB */}
         {activeTab === 'quote' && !selectedProduct && (
           <SolarPackages 
@@ -2139,6 +2198,22 @@ export default function App() {
               id="footer-about-btn"
             >
               About SkyIT
+            </button>
+            <span className="text-slate-700 hidden sm:inline">|</span>
+            <button 
+              onClick={() => { setActiveTab('owner'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
+              id="footer-owner-btn"
+            >
+              Leadership
+            </button>
+            <span className="text-slate-700 hidden sm:inline">|</span>
+            <button 
+              onClick={() => { setActiveTab('blog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
+              id="footer-blog-btn"
+            >
+              Blog & News
             </button>
             <span className="text-slate-700 hidden sm:inline">|</span>
             <button 

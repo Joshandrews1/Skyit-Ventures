@@ -17,6 +17,10 @@ import {
 } from 'firebase/firestore';
 import { CatalogManager } from './CatalogManager';
 import { RoleManager } from './RoleManager';
+import { AdminBlogPanel } from './AdminBlogPanel';
+import { AdminAnalyticsPanel } from './AdminAnalyticsPanel';
+import { defaultBlogPosts } from '../data/blogPosts';
+import { BlogPost } from '../types';
 import { auth } from '../firebase';
 import { 
   Database, 
@@ -50,7 +54,8 @@ import {
   X,
   XCircle,
   TrendingUp,
-  Users
+  Users,
+  BookOpen
 } from 'lucide-react';
 
 interface AIQuoteResult {
@@ -101,9 +106,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
   const [confirmingCancelOrderId, setConfirmingCancelOrderId] = useState<string | null>(null);
 
   // AI Quote Generation Workspace States
-  const [adminView, setAdminView] = useState<'logistics' | 'quote' | 'products' | 'roles'>(() => {
-    return (localStorage.getItem('adminView') as 'logistics' | 'quote' | 'products' | 'roles') || 'logistics';
+  const [adminView, setAdminView] = useState<'logistics' | 'analytics' | 'quote' | 'products' | 'blog' | 'roles'>(() => {
+    return (localStorage.getItem('adminView') as 'logistics' | 'analytics' | 'quote' | 'products' | 'blog' | 'roles') || 'logistics';
   });
+
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(defaultBlogPosts);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'blog_posts'), (snapshot) => {
+      if (!snapshot.empty) {
+        const list: BlogPost[] = [];
+        snapshot.forEach(docSnap => list.push(docSnap.data() as BlogPost));
+        setBlogPosts(list);
+      }
+    }, (err) => {
+      console.warn("Firestore blog posts sync notice:", err);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('adminView', adminView);
@@ -112,9 +132,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
   const [documentType, setDocumentType] = useState<'quotation' | 'receipt'>('quotation');
   const [docCode] = useState(() => Math.floor(10000 + Math.random() * 90000));
   const tabsRef = React.useRef<HTMLDivElement>(null);
-  const views: ('logistics' | 'quote' | 'products' | 'roles')[] = isUserAdmin 
-    ? ['logistics', 'quote', 'products', 'roles']
-    : ['logistics', 'quote', 'products'];
+  const views: ('logistics' | 'analytics' | 'quote' | 'products' | 'blog' | 'roles')[] = isUserAdmin 
+    ? ['logistics', 'analytics', 'quote', 'products', 'blog', 'roles']
+    : ['logistics', 'analytics', 'quote', 'products', 'blog'];
   
   const handleNavigateView = (direction: 'prev' | 'next') => {
     const currentIndex = views.indexOf(adminView);
@@ -884,16 +904,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
             Comprehensive hub for overseeing logistics, AI-powered document generation, and inventory management.
           </p>
         </div>
-
-        <div className="flex gap-2 w-full lg:w-auto">
-          <button
-            onClick={() => window.open('https://analytics.google.com/', '_blank')}
-            className="w-full lg:w-auto bg-emerald-600 hover:bg-emerald-700 text-white transition-all text-xs font-black uppercase tracking-wider py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shrink-0 shadow-xs leading-none cursor-pointer"
-          >
-            <TrendingUp size={13} />
-            <span>Analytics Dashboard</span>
-          </button>
-        </div>
       </div>
 
       {feedbackMsg && (
@@ -929,7 +939,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
         >
           <button
             onClick={() => setAdminView('logistics')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 ${
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'logistics' 
                 ? 'bg-brand text-white border-brand' 
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -938,10 +948,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
             <Truck size={14} />
             <span>📦 Deliveries</span>
           </button>
+
+          <button
+            onClick={() => setAdminView('analytics')}
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
+              adminView === 'analytics' 
+                ? 'bg-brand text-white border-brand' 
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <TrendingUp size={14} />
+            <span>📊 Analytics</span>
+          </button>
           
           <button
             onClick={() => setAdminView('quote')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 ${
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'quote' 
                 ? 'bg-brand text-white border-brand' 
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -953,7 +975,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           
           <button
             onClick={() => setAdminView('products')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 ${
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'products' 
                 ? 'bg-brand text-white border-brand' 
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -963,10 +985,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
             <span>🛍️ Catalog</span>
           </button>
 
+          <button
+            onClick={() => setAdminView('blog')}
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
+              adminView === 'blog' 
+                ? 'bg-brand text-white border-brand' 
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <BookOpen size={14} />
+            <span>📰 Blog Articles</span>
+          </button>
+
           {isUserAdmin && (
             <button
               onClick={() => setAdminView('roles')}
-              className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 ${
+              className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
                 adminView === 'roles' 
                   ? 'bg-brand text-white border-brand' 
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -995,11 +1029,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
 
       </div>
 
-      {adminView === 'roles' ? (
+      {adminView === 'analytics' ? (
+        <AdminAnalyticsPanel 
+          orders={orders} 
+          onNavigateTab={setAdminView} 
+        />
+      ) : adminView === 'roles' ? (
         <RoleManager 
           currentUserUid={auth.currentUser?.uid} 
           isUserAdmin={isUserAdmin}
           isUserEditor={isUserEditor}
+        />
+      ) : adminView === 'blog' ? (
+        <AdminBlogPanel 
+          posts={blogPosts} 
+          onPostsChange={setBlogPosts} 
         />
       ) : adminView === 'products' ? (
         <CatalogManager />
