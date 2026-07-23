@@ -31,21 +31,21 @@ try {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
     }),
-    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true,
   }, firebaseConfig.firestoreDatabaseId);
-  console.log("Firestore initialized successfully with multi-tab persistence and long-polling.");
+  console.log("Firestore initialized successfully with multi-tab persistence and auto-long-polling.");
 } catch (error) {
   console.warn("Firestore persistentLocalCache initialization failed, falling back to memoryLocalCache:", error);
   try {
     db = initializeFirestore(app, {
       localCache: memoryLocalCache(),
-      experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: true,
     }, firebaseConfig.firestoreDatabaseId);
   } catch (fallbackError) {
     console.error("Firestore critical initialization fallback failed:", fallbackError);
     // Last-resort fallback to standard initialization
     db = initializeFirestore(app, {
-      experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: true,
     }, firebaseConfig.firestoreDatabaseId);
   }
 }
