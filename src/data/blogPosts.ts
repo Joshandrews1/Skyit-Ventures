@@ -52,7 +52,7 @@ By coupling CCTV command systems directly to dedicated pure sine wave solar back
     coverImage: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=1200&q=80',
     authorName: 'Engineering Team',
     authorRole: 'SkyIT Security Architecture Dept.',
-    authorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+    authorAvatar: 'https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/web%20images%2FIMG-20260723-WA0001.jpg?alt=media&token=30e9afa5-8d9c-4334-b742-386e47910f2f',
     published: true,
     featured: false,
     createdAt: '2026-07-18T14:30:00.000Z',

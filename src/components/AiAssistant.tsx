@@ -904,7 +904,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
             <div className="h-full flex flex-col items-center justify-center max-w-2xl mx-auto text-center space-y-10 py-10 antialiased animate-fadeIn">
               
               <div className="max-w-xl">
-                <h2 className="font-display font-medium text-3xl md:text-5xl text-[#e5e1e4] tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-[#adc6ff] to-[#dab9ff]">
+                <h2 id="tour-ai-advisor-header" className="font-display font-medium text-3xl md:text-5xl text-[#e5e1e4] tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-[#adc6ff] to-[#dab9ff]">
                   {currentUser ? `The mic is yours, ${getUserFirstName()}` : 'The mic is yours'}
                 </h2>
                 <p className="text-slate-400 text-xs mt-3 max-w-md mx-auto leading-relaxed">

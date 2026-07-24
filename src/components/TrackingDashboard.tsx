@@ -366,7 +366,7 @@ export const TrackingDashboard: React.FC<TrackingDashboardProps> = ({
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto">
+        <form id="tour-tracking-input" onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto">
           <div className="relative flex-1 md:flex-initial">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
             <input 

@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { db, logAuditEvent } from '../firebase';
 import { collection, onSnapshot, doc, setDoc, updateDoc } from 'firebase/firestore';
-import { SOLAR_PACKAGES, SolarPackage, BatteryTech, APPLIANCES } from '../data/quote-data';
+import { 
+  SOLAR_PACKAGES, 
+  SolarPackage, 
+  BatteryTech, 
+  APPLIANCES, 
+  getRecommendedPackageByLoad, 
+  calculateTotalWatts 
+} from '../data/quote-data';
 import { Product } from '../types';
 import { 
   Zap, 
@@ -33,6 +40,18 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
   // Interactive appliance calculator state
   const [selectedAppliances, setSelectedAppliances] = useState<Record<string, number>>({});
   const [recommendedPackage, setRecommendedPackage] = useState<SolarPackage | null>(null);
+  const [showGuide, setShowGuide] = useState<boolean>(true);
+
+  // Quick preset loader helper
+  const applyPresetLoad = (preset: 'bulbsOnly' | 'standardHome' | 'heavyHome') => {
+    if (preset === 'bulbsOnly') {
+      setSelectedAppliances({ bulbs: 10 });
+    } else if (preset === 'standardHome') {
+      setSelectedAppliances({ bulbs: 8, fans: 4, tv: 1, laptop: 2, fridge: 1 });
+    } else if (preset === 'heavyHome') {
+      setSelectedAppliances({ bulbs: 12, fans: 6, tv: 2, fridge: 1, ac1: 1, pump: 1 });
+    }
+  };
 
   // Read / Write packages directly in Firestore
   useEffect(() => {
@@ -55,6 +74,19 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
         snapshot.forEach((d) => {
           dbPackages.push(d.data() as SolarPackage);
         });
+
+        // Ensure newly introduced default packages are seeded if missing
+        const existingIds = new Set(dbPackages.map(p => p.id));
+        const allDefaults = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
+        allDefaults.forEach((p) => {
+          if (!existingIds.has(p.id)) {
+            setDoc(doc(db, 'solar_packages', p.id), p).catch(err => {
+              console.error("Failed auto-seeding missing package:", p.id, err);
+            });
+            dbPackages.push(p);
+          }
+        });
+
         setPackages(dbPackages);
       }
       setLoading(false);
@@ -87,52 +119,8 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
 
   // Re-run recommendation logic when selected load or current list of packages changes
   useEffect(() => {
-    const hasSelections = Object.values(selectedAppliances).some(q => Number(q) > 0);
-    if (!hasSelections) {
-      setRecommendedPackage(null);
-      return;
-    }
-
-    // Determine load classification
-    let isHeavy = false;
-    let totalLoadPoints = 0;
-
-    Object.entries(selectedAppliances).forEach(([id, rawQty]) => {
-      const qty = Number(rawQty);
-      if (qty <= 0) return;
-      const app = APPLIANCES.find(a => a.id === id);
-      if (app) {
-        if (app.type === 'heavy') {
-          isHeavy = true;
-          totalLoadPoints += qty * 10;
-        } else if (app.type === 'medium') {
-          totalLoadPoints += qty * 4;
-        } else {
-          totalLoadPoints += qty * 1;
-        }
-      }
-    });
-
-    // Match recommendation
-    const techPackages = packages.filter(p => p.tech === selectedTech);
-    if (techPackages.length === 0) return;
-
-    let match: SolarPackage = techPackages[0];
-
-    if (isHeavy || totalLoadPoints >= 20) {
-      // Directs to high capacity packages (>= 5KVA or 6KVA)
-      const highCap = techPackages.find(p => parseFloat(p.kva) >= 5);
-      match = highCap || techPackages[techPackages.length - 1];
-    } else if (totalLoadPoints <= 5) {
-      // Smallest package
-      match = techPackages[0];
-    } else {
-      // Median capacity packages (3.5KVA tubular / 4.0KVA lithium)
-      const median = techPackages.find(p => parseFloat(p.kva) >= 3.5);
-      match = median || techPackages[Math.floor(techPackages.length / 2)];
-    }
-
-    setRecommendedPackage(match);
+    const rec = getRecommendedPackageByLoad(selectedAppliances, selectedTech, packages);
+    setRecommendedPackage(rec);
   }, [selectedAppliances, selectedTech, packages]);
 
   // Convert SolarPackage object to standard Product interface for checkout compatibility
@@ -180,13 +168,13 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-brand/15 to-indigo-900/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="space-y-4 max-w-xl text-left">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-light/10 text-brand text-xs font-black uppercase tracking-wider">
-            <Cpu size={12} className="animate-pulse" />
-            <span>Pre-Engineered Systems</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-300 text-xs font-black uppercase tracking-wider">
+            <Cpu size={12} className="text-sky-400 animate-pulse" />
+            <span className="text-sky-300">Pre-Engineered Systems</span>
           </div>
-          <h2 className="font-display font-extrabold text-2xl sm:text-4xl tracking-tight text-white leading-tight">
+          <h2 id="tour-solar-packages-header" className="font-display font-extrabold text-2xl sm:text-4xl tracking-tight text-white leading-tight">
             Premium Turnkey <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-sky-400">Solar Power Packages</span>
+            <span className="animate-text-gradient-rtl">Solar Power Packages</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
             Ready-to-deploy clean energy packages designed by SkyIT engineering specialists. Complete with high-density storage, optimized solar panel grids, robust electrical panels, cabling, and certified local commissioning services.
@@ -209,19 +197,190 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
 
       {/* Dynamic Sizing Appliance Load Calculator */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-3xs space-y-6">
-        <div className="border-b border-slate-100 pb-3">
-          <h3 className="font-display font-extrabold text-base text-slate-800 flex items-center gap-2">
-            <Zap size={18} className="text-amber-500 animate-bounce" />
-            <span>Interactive System Sizing Assistant</span>
-          </h3>
-          <p className="text-xs text-slate-450 mt-1 leading-relaxed">
-            Not sure which package fits your home or office? Select the appliances you expect to run simultaneously, and our heuristic sizing engine will recommend the perfect, pre-engineered hybrid package.
-          </p>
+        <div className="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display font-extrabold text-base text-slate-800 flex items-center gap-2">
+              <Zap size={18} className="text-amber-500 animate-bounce" />
+              <span>Interactive System Sizing Assistant</span>
+            </h3>
+            <p className="text-xs text-slate-450 mt-1 leading-relaxed">
+              Not sure which package fits your home or office? Select your battery technology and appliance loads below to get an instant, logical recommendation.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowGuide(!showGuide)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer"
+          >
+            <HelpCircle size={14} className="text-brand" />
+            <span>{showGuide ? 'Hide Guide' : 'How to Use This Assistant?'}</span>
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-          {/* Sizing inputs */}
-          <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* User Guide Box */}
+        {showGuide && (
+          <div className="bg-sky-50/80 border border-sky-200 rounded-2xl p-4 space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-1.5">
+                <Info size={15} className="text-sky-600" />
+                <span>Quick Guide: How System Sizing Works</span>
+              </h4>
+              <span className="text-[10px] text-sky-700 font-medium">4 Simple Steps</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
+                <div className="font-bold text-sky-900 flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">1</span>
+                  <span>Battery Type</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  Choose <strong>Lithium-ion</strong> (long 10yr life, fast charge) or <strong>Tubular</strong> (low upfront cost).
+                </p>
+              </div>
+
+              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
+                <div className="font-bold text-sky-900 flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">2</span>
+                  <span>Add Load Items</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  Click <strong>+ / -</strong> on appliances (bulbs, fans, TV, fridge, AC) to set quantities you run at once.
+                </p>
+              </div>
+
+              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
+                <div className="font-bold text-sky-900 flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">3</span>
+                  <span>Live Sizing</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  Watch total Watts and Inverter Capacity % adjust dynamically to pick the smallest safe package.
+                </p>
+              </div>
+
+              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
+                <div className="font-bold text-sky-900 flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">4</span>
+                  <span>Instant Order</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  Click <strong>Get Package</strong> to add the complete kit to cart or request installation.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Test Presets */}
+            <div className="pt-2 border-t border-sky-200/60 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-sky-900">Try Quick Presets:</span>
+              <button
+                type="button"
+                onClick={() => applyPresetLoad('bulbsOnly')}
+                className="bg-white hover:bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-sky-200 shadow-3xs transition-all cursor-pointer"
+              >
+                💡 10 LED Bulbs Only (Small Load)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetLoad('standardHome')}
+                className="bg-white hover:bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-sky-200 shadow-3xs transition-all cursor-pointer"
+              >
+                🏠 Standard Home (Bulbs, Fans, TV, Fridge)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetLoad('heavyHome')}
+                className="bg-white hover:bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-sky-200 shadow-3xs transition-all cursor-pointer"
+              >
+                ⚡ Heavy Load (AC + Pump + Home)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 1: Battery Technology Selection Switch */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-display font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <Battery size={15} className="text-brand" />
+              <span>1. Select Battery Storage Technology</span>
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono font-bold bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+              Active Mode: <span className="text-brand font-black uppercase">{selectedTech === 'lithium' ? 'Lithium-ion (LiFePO4)' : 'Tubular Deep Cycle'}</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedTech('lithium')}
+              className={`p-3.5 rounded-xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
+                selectedTech === 'lithium'
+                  ? 'border-brand bg-white shadow-sm ring-2 ring-brand/20'
+                  : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shrink-0 transition-colors ${
+                selectedTech === 'lithium' ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-slate-100 text-slate-400'
+              }`}>
+                <Zap size={18} className={selectedTech === 'lithium' ? 'fill-slate-950' : ''} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900">Lithium-ion Storage</h4>
+                  {selectedTech === 'lithium' && (
+                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                      Recommended
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                  LiFePO4 tech • 10+ year lifespan • Rapid 2-hour charge • 90%+ DoD
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedTech('tubular')}
+              className={`p-3.5 rounded-xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
+                selectedTech === 'tubular'
+                  ? 'border-slate-800 bg-white shadow-sm ring-2 ring-slate-800/20'
+                  : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shrink-0 transition-colors ${
+                selectedTech === 'tubular' ? 'bg-slate-900 text-white font-bold' : 'bg-slate-100 text-slate-400'
+              }`}>
+                <Battery size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900">Tubular Deep Cycle</h4>
+                  <span className="bg-slate-100 text-slate-600 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
+                    Budget Friendly
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                  Lead-Acid tech • Lower initial setup cost • Proven heavy duty performance
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* STEP 2: Appliance Load Selection */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-display font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <Zap size={15} className="text-amber-500" />
+              <span>2. Select Household / Office Appliances</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            {/* Sizing inputs */}
+          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {APPLIANCES.map((app) => {
               const qty = selectedAppliances[app.id] || 0;
               return (
@@ -235,13 +394,16 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                 >
                   <div className="min-w-0 pr-2">
                     <span className="text-xs font-bold text-slate-800 block truncate">{app.name}</span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                      app.type === 'heavy' ? 'text-rose-500' : app.type === 'medium' ? 'text-amber-600' : 'text-slate-400'
-                    }`}>
-                      {app.type} load
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                        app.type === 'heavy' ? 'text-rose-500' : app.type === 'medium' ? 'text-amber-600' : 'text-slate-400'
+                      }`}>
+                        {app.type}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-mono">({app.label || `${app.watts}W`})</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1">
+                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 shrink-0">
                     <button 
                       type="button"
                       onClick={() => handleQuantityChange(app.id, -1)}
@@ -265,60 +427,96 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
           </div>
 
           {/* Calculator Results Recommendation Card */}
-          <div className="md:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 sticky top-20">
+          <div className="lg:col-span-5 xl:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 lg:sticky lg:top-20">
             <h4 className="text-xs font-display font-bold text-slate-800 uppercase tracking-widest border-b border-slate-150 pb-2">
               Sizing Diagnostics
             </h4>
             
-            {recommendedPackage ? (
-              <div className="space-y-4 animate-scale-up">
-                <div className="bg-brand/10 border border-brand/20 p-4 rounded-xl text-center space-y-2">
-                  <div className="text-[10px] uppercase font-bold text-brand tracking-widest">Recommended Package</div>
-                  <h5 className="font-display font-black text-slate-850 text-base">{recommendedPackage.name}</h5>
-                  <div className="text-sm font-black text-slate-900 font-mono">₦{recommendedPackage.price.toLocaleString()}</div>
-                  <p className="text-[11px] text-slate-500 leading-normal">{recommendedPackage.description}</p>
-                </div>
+            {recommendedPackage ? (() => {
+              const totalWatts = calculateTotalWatts(selectedAppliances);
+              const parseKvaVal = (str: string) => {
+                const m = str.match(/[\d.]+/);
+                return m ? parseFloat(m[0]) : 1.5;
+              };
+              const ratedWatts = Math.round(parseKvaVal(recommendedPackage.kva) * 800);
+              const utilization = Math.min(100, Math.round((totalWatts / ratedWatts) * 100));
 
-                <div className="space-y-2 text-[11px] text-slate-600 bg-white p-3.5 rounded-xl border border-slate-200 shadow-3xs">
-                  <div className="flex justify-between items-center pb-1.5 border-b border-slate-100">
-                    <span className="font-medium text-slate-400">Battery Array</span>
-                    <span className="font-bold text-slate-800">{recommendedPackage.batteries}x {recommendedPackage.batteryInfo}</span>
+              return (
+                <div className="space-y-4 animate-scale-up">
+                  <div className="bg-brand/10 border border-brand/20 p-4 rounded-xl text-center space-y-2">
+                    <div className="text-[10px] uppercase font-bold text-brand tracking-widest">Recommended Package</div>
+                    <h5 className="font-display font-black text-slate-850 text-base">{recommendedPackage.name}</h5>
+                    <div className="text-sm font-black text-slate-900 font-mono">₦{recommendedPackage.price.toLocaleString()}</div>
+                    <p className="text-[11px] text-slate-500 leading-normal">{recommendedPackage.description}</p>
                   </div>
-                  <div className="flex justify-between items-center pb-1.5 border-b border-slate-100">
-                    <span className="font-medium text-slate-400">Solar PV Array</span>
-                    <span className="font-bold text-slate-800">{recommendedPackage.panels} Panels</span>
+
+                  <div className="space-y-2 text-[11px] text-slate-600 bg-white p-3.5 rounded-xl border border-slate-200 shadow-3xs">
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100">
+                      <span className="font-medium text-slate-400 shrink-0">Total Running Load</span>
+                      <span className="font-mono font-black text-brand text-xs text-right">{totalWatts} W ({(totalWatts/1000).toFixed(2)} kW)</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100">
+                      <span className="font-medium text-slate-400 shrink-0">Inverter Sizing</span>
+                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.kva} (~{ratedWatts}W)</span>
+                    </div>
+                    <div className="py-1 space-y-1 border-b border-slate-100">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-400 font-medium">Capacity Utilization</span>
+                        <span className={`font-mono font-bold ${utilization > 85 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                          {utilization}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            utilization > 85 ? 'bg-rose-500' : utilization > 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                          }`} 
+                          style={{ width: `${utilization}%` }} 
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100 pt-1">
+                      <span className="font-medium text-slate-400 shrink-0">Battery Array</span>
+                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.batteries}x {recommendedPackage.batteryInfo}</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100">
+                      <span className="font-medium text-slate-400 shrink-0">Solar PV Array</span>
+                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.panels} Panels</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-medium text-slate-400 shrink-0">AC Support</span>
+                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.acSupport}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-slate-400">AC Support</span>
-                    <span className="font-bold text-slate-800">{recommendedPackage.acSupport}</span>
+
+                  {recommendedPackage.tech === 'tubular' && (
+                    <div className="p-3 bg-amber-50 text-amber-800 border border-amber-100 rounded-xl text-[10px] flex gap-2 leading-relaxed">
+                      <AlertTriangle size={14} className="shrink-0 text-amber-600 mt-0.5" />
+                      <span><strong>Optimization Tip:</strong> Switch the battery storage technology above to <strong>Lithium-ion</strong> for high efficiency, faster charging times, and extended appliance life.</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => addPackageToCart(recommendedPackage)}
+                      className="flex-1 min-w-0 bg-brand hover:bg-brand-hover text-white px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm shadow-brand/10 transition-all cursor-pointer"
+                    >
+                      <ShoppingCart size={14} className="shrink-0" />
+                      <span className="whitespace-nowrap truncate">Get Package</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearCalculator}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                      title="Reset choices"
+                    >
+                      Reset
+                    </button>
                   </div>
                 </div>
-
-                {recommendedPackage.tech === 'tubular' && (
-                  <div className="p-3 bg-amber-50 text-amber-800 border border-amber-100 rounded-xl text-[10px] flex gap-2 leading-relaxed">
-                    <AlertTriangle size={14} className="shrink-0 text-amber-600 mt-0.5" />
-                    <span><strong>Optimization Tip:</strong> Switch the battery storage technology above to <strong>Lithium-ion</strong> for high efficiency, faster charging times, and extended appliance life.</span>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => addPackageToCart(recommendedPackage)}
-                    className="flex-1 bg-brand hover:bg-brand-hover text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm shadow-brand/10"
-                  >
-                    <ShoppingCart size={13} />
-                    <span>Get Package</span>
-                  </button>
-                  <button
-                    onClick={clearCalculator}
-                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 rounded-xl text-xs font-bold transition-all"
-                    title="Reset choices"
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <div className="py-12 text-center text-slate-400 space-y-2">
                 <legend className="text-3xl">🏠</legend>
                 <p className="text-xs">No active loads selected.</p>
@@ -328,6 +526,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
 

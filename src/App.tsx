@@ -27,7 +27,8 @@ import { BlogPost } from './types';
 import { Breadcrumbs } from './components/Breadcrumbs';
 import { HomeSections } from './components/HomeSections';
 import { SolarPackages } from './components/SolarPackages';
-import { ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award } from 'lucide-react';
+import { InteractiveTour } from './components/InteractiveTour';
+import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award } from 'lucide-react';
 import { 
   ShoppingBag, 
   Search, 
@@ -99,6 +100,19 @@ export default function App() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(true);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Check if user has completed interactive tour previously
+  useEffect(() => {
+    const hasCompleted = localStorage.getItem('hasCompletedSkyITInteractiveTour');
+    if (!hasCompleted) {
+      // Small delayed trigger so app loads smoothly
+      const timer = setTimeout(() => {
+        setIsOnboardingOpen(true);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, []);
   
   // Firebase Auth State
   const [currentUser, setCurrentUser] = useState<any | null>(null);
@@ -941,7 +955,7 @@ export default function App() {
 
           {/* Quick Search center header */}
           {activeTab === 'shop' && (
-            <div className="hidden md:flex flex-1 max-w-sm relative items-center">
+            <div id="tour-search-bar" className="hidden md:flex flex-1 max-w-sm relative items-center">
               <Search className="absolute left-3 text-slate-400 pointer-events-none" size={14} />
               <input 
                 type="text" 
@@ -987,9 +1001,9 @@ export default function App() {
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold">
             {/* Navigation links tucked in the hamburger menu on desktop so search is fully available */}
 
-            {/* Mobile Search Icon Toggle */}
             {activeTab === 'shop' && (
               <button
+                id="tour-search-bar-mobile-btn"
                 type="button"
                 onClick={() => {
                   setIsMobileSearchExpanded(!isMobileSearchExpanded);
@@ -1004,6 +1018,7 @@ export default function App() {
 
             {/* Shopping Cart Trigger (Always accessible) */}
             <button
+              id="tour-cart-btn"
               onClick={() => setIsCartOpen(true)}
               className="bg-slate-100 hover:bg-slate-200 transition-all border border-slate-200 p-2 px-3 sm:px-3.5 rounded-lg flex items-center gap-2 relative group text-slate-700 shrink-0"
             >
@@ -1092,7 +1107,7 @@ export default function App() {
         {isMobileSearchExpanded && activeTab === 'shop' && (
           <div className="md:hidden border-t border-slate-200 bg-slate-50 p-3 shadow-inner animate-fade-in relative z-50">
             <div className="relative flex items-center gap-2 w-full">
-              <div className="relative flex-1 flex items-center">
+              <div id="tour-search-bar-mobile" className="relative flex-1 flex items-center">
                 <Search className="absolute left-3 text-slate-400 pointer-events-none" size={14} />
                 <input
                   type="text"
@@ -1195,6 +1210,21 @@ export default function App() {
                 <div className="space-y-1.5">
                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1 mb-2">Main Navigation</span>
                   
+                  {/* Interactive App Tour Button */}
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsOnboardingOpen(true);
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 rounded-xl bg-brand-light hover:bg-brand/20 border border-brand/20 text-brand font-black text-xs uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer shadow-2xs mb-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Compass size={15} className="text-brand shrink-0 animate-pulse" />
+                      <span>Interactive App Guide</span>
+                    </div>
+                    <span className="text-[9px] bg-brand text-white px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">Start</span>
+                  </button>
+
                   {/* Home Nav Button - takes to home tab */}
                   <button
                     onClick={() => {
@@ -1271,6 +1301,7 @@ export default function App() {
                   </div>
 
                   <button
+                    id="tour-ai-advisor-btn"
                     onClick={() => {
                       setActiveTab('ai');
                       setIsMobileMenuOpen(false);
@@ -1287,6 +1318,7 @@ export default function App() {
                   </button>
 
                   <button
+                    id="tour-solar-packages-btn"
                     onClick={() => {
                       setActiveTab('quote');
                       setIsMobileMenuOpen(false);
@@ -1303,6 +1335,7 @@ export default function App() {
                   </button>
 
                   <button
+                    id="tour-tracker-btn"
                     onClick={() => {
                       setActiveTab('tracker');
                       setIsMobileMenuOpen(false);
@@ -1525,11 +1558,20 @@ export default function App() {
                 <div className="flex items-center justify-between mb-3 border-b border-slate-100/80 pb-2">
                   <h3 className="text-[10px] font-bold uppercase text-brand tracking-widest flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse"></span>
-                    SkyIT Flash Highlights
+                    Flash Highlights
                   </h3>
-                  <span className="text-[9px] font-mono font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
-                    {highlightItems.length > 0 ? `${highlightIndex + 1} / ${highlightItems.length}` : '0 / 0'}
-                  </span>
+                  <button
+                    onClick={() => {
+                      setSelectedCategory('All');
+                      setActiveTab('shop');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-[9px] font-bold uppercase tracking-wider text-brand hover:text-brand-hover bg-brand/10 hover:bg-brand/20 px-2 py-0.5 rounded-md transition-all flex items-center gap-0.5 cursor-pointer"
+                    title="View All Products Catalog"
+                  >
+                    <span>ALL</span>
+                    <ChevronRight size={11} />
+                  </button>
                 </div>
                 
                 {isProductsLoading ? (
@@ -1705,7 +1747,7 @@ export default function App() {
         {/* VIEW 1: SHOP CATALOG TAB */}
         {activeTab === 'shop' && !selectedProduct && (
           <div className="space-y-6 w-full animate-fade-in">
-            <div className="mb-2 bg-white/70 backdrop-blur-xs p-6 rounded-2xl border border-slate-200/60 shadow-2xs">
+            <div id="tour-search-bar-mobile" className="mb-2 bg-white/70 backdrop-blur-xs p-6 rounded-2xl border border-slate-200/60 shadow-2xs">
               <h1 className="font-display font-black text-2xl sm:text-3xl text-slate-900 uppercase tracking-tight">Our Product Catalog</h1>
               <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
                 Explore our range of premium clean energy hardware, LFP battery storage modules, starlight PoE camera networks, and custom solar power kits.
@@ -1982,35 +2024,39 @@ export default function App() {
 
         {/* VIEW 3: ORDER TRACKING TAB */}
         {activeTab === 'tracker' && !selectedProduct && (
-          <TrackingDashboard 
-            initialOrderId={trackedOrderId} 
-            currentUser={currentUser}
-            onOpenLogin={() => setIsLoginOpen(true)}
-            onSelectProduct={(pId) => {
-              const matched = productsWithRealRatings.find(p => p.id === pId);
-              if (matched) {
-                handleViewProduct(matched);
-              }
-            }}
-          />
+          <div id="tour-tracker-target" className="w-full">
+            <TrackingDashboard 
+              initialOrderId={trackedOrderId} 
+              currentUser={currentUser}
+              onOpenLogin={() => setIsLoginOpen(true)}
+              onSelectProduct={(pId) => {
+                const matched = productsWithRealRatings.find(p => p.id === pId);
+                if (matched) {
+                  handleViewProduct(matched);
+                }
+              }}
+            />
+          </div>
         )}
 
         {/* VIEW 4: GEMINI AI PERSONAL SHOPPER ASSISTANT TAB */}
         {activeTab === 'ai' && !selectedProduct && (
-          <AiAssistant 
-            onAddToCart={handleAddToCart}
-            onViewProduct={(p) => handleViewProduct(p)}
-            currentUser={currentUser}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            isAdmin={isAdmin}
-            isEditor={isEditor}
-            onOpenCart={() => setIsCartOpen(true)}
-            products={productsWithRealRatings}
-            cart={cart}
-            onOpenProfile={() => setIsProfileOpen(true)}
-            onOpenLogin={() => setIsLoginOpen(true)}
-          />
+          <div id="tour-ai-advisor-target" className="w-full">
+            <AiAssistant 
+              onAddToCart={handleAddToCart}
+              onViewProduct={(p) => handleViewProduct(p)}
+              currentUser={currentUser}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              isAdmin={isAdmin}
+              isEditor={isEditor}
+              onOpenCart={() => setIsCartOpen(true)}
+              products={productsWithRealRatings}
+              cart={cart}
+              onOpenProfile={() => setIsProfileOpen(true)}
+              onOpenLogin={() => setIsLoginOpen(true)}
+            />
+          </div>
         )}
 
         {/* VIEW 5: ADMIN LOGISTICS CONTROL TERMINAL */}
@@ -2030,7 +2076,7 @@ export default function App() {
 
         {/* VIEW 9: ABOUT MANAGING DIRECTOR PANEL */}
         {activeTab === 'owner' && !selectedProduct && (
-          <OwnerSection onNavigate={setActiveTab} />
+          <OwnerSection onNavigate={setActiveTab} currentUser={currentUser} />
         )}
 
         {/* VIEW 10: ENGINEERING & CLEAN ENERGY BLOG PANEL */}
@@ -2040,10 +2086,12 @@ export default function App() {
 
         {/* VIEW 8: TURNKEY SOLAR PACKAGES TAB */}
         {activeTab === 'quote' && !selectedProduct && (
-          <SolarPackages 
-            onAddToCart={handleAddToCart} 
-            onOpenCart={() => setIsCartOpen(true)} 
-          />
+          <div id="tour-solar-packages-target" className="w-full">
+            <SolarPackages 
+              onAddToCart={handleAddToCart} 
+              onOpenCart={() => setIsCartOpen(true)} 
+            />
+          </div>
         )}
 
       </main>
@@ -2358,6 +2406,14 @@ export default function App() {
         isOpen={isPolicyOpen}
         onClose={() => setIsPolicyOpen(false)}
         initialTab={policyTab}
+      />
+
+      {/* Interactive App Guide & Feature Onboarding Tour */}
+      <InteractiveTour
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onNavigateTab={setActiveTab}
+        onExpandMobileSearch={() => setIsMobileSearchExpanded(true)}
       />
 
       {/* Dynamic green Toast notification for "Added to Cart" */}

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { BlogPost } from '../types';
+import { FormattedBlogContent } from './FormattedBlogContent';
 import { 
   Search, 
   Calendar, 
@@ -23,6 +24,15 @@ interface BlogSectionProps {
   selectedPost?: BlogPost | null;
   onClearSelectedPost?: () => void;
 }
+
+const OFFICIAL_EXECUTIVE_PORTRAIT = "https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/web%20images%2FIMG-20260723-WA0001.jpg?alt=media&token=30e9afa5-8d9c-4334-b742-386e47910f2f";
+
+const resolveAuthorAvatar = (authorName?: string, authorAvatar?: string) => {
+  if (!authorAvatar || authorAvatar.includes('unsplash.com') || !authorAvatar.startsWith('http')) {
+    return OFFICIAL_EXECUTIVE_PORTRAIT;
+  }
+  return authorAvatar;
+};
 
 export const BlogSection: React.FC<BlogSectionProps> = ({
   posts,
@@ -135,17 +145,12 @@ export const BlogSection: React.FC<BlogSectionProps> = ({
             {/* Author Meta Bar */}
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
               <div className="flex items-center gap-2">
-                {currentPost.authorAvatar ? (
-                  <img 
-                    src={currentPost.authorAvatar} 
-                    alt={currentPost.authorName} 
-                    className="w-7 h-7 rounded-full object-cover border border-slate-200"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600">
-                    <User size={14} />
-                  </div>
-                )}
+                <img 
+                  src={resolveAuthorAvatar(currentPost.authorName, currentPost.authorAvatar)} 
+                  alt={currentPost.authorName} 
+                  className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                  referrerPolicy="no-referrer"
+                />
                 <div>
                   <span className="font-bold text-slate-850 block leading-none">{currentPost.authorName}</span>
                   <span className="text-[10px] text-slate-400">{currentPost.authorRole || 'SkyIT Engineering'}</span>
@@ -189,9 +194,7 @@ export const BlogSection: React.FC<BlogSectionProps> = ({
           </p>
 
           {/* Article Full Body */}
-          <div className="prose prose-slate max-w-none text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line space-y-4 pt-2">
-            {currentPost.content}
-          </div>
+          <FormattedBlogContent content={currentPost.content} className="pt-2 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-4" />
 
           {/* Tags */}
           {currentPost.tags && currentPost.tags.length > 0 && (
@@ -343,9 +346,12 @@ export const BlogSection: React.FC<BlogSectionProps> = ({
 
               <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pt-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-sky-500/30 border border-sky-400/50 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                    {featuredPost.authorName.charAt(0)}
-                  </div>
+                  <img 
+                    src={resolveAuthorAvatar(featuredPost.authorName, featuredPost.authorAvatar)} 
+                    alt={featuredPost.authorName} 
+                    className="w-8 h-8 rounded-full object-cover border border-sky-400/50 shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-white block truncate">{featuredPost.authorName}</span>
                     <span className="text-[10px] text-slate-200 font-medium block truncate max-w-[200px] sm:max-w-xs">{featuredPost.authorRole}</span>
@@ -456,9 +462,17 @@ export const BlogSection: React.FC<BlogSectionProps> = ({
 
                 {/* Card Footer Meta */}
                 <div className="px-5 pb-5 pt-2 border-t border-slate-100/80 flex items-center justify-between gap-2 text-xs">
-                  <span className="font-semibold text-slate-700 text-[11px] truncate min-w-0">
-                    {post.authorName}
-                  </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img 
+                      src={resolveAuthorAvatar(post.authorName, post.authorAvatar)} 
+                      alt={post.authorName} 
+                      className="w-5.5 h-5.5 rounded-full object-cover border border-slate-200 shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="font-semibold text-slate-700 text-[11px] truncate">
+                      {post.authorName}
+                    </span>
+                  </div>
                   <span className="text-brand font-bold text-[11px] flex items-center gap-0.5 group-hover:translate-x-1 transition-transform whitespace-nowrap shrink-0">
                     Read Article <ChevronRight size={12} className="shrink-0" />
                   </span>

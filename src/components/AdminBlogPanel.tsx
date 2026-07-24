@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BlogPost } from '../types';
+import { FormattedBlogContent } from './FormattedBlogContent';
 import { 
   Plus, 
   Edit3, 
@@ -756,8 +757,8 @@ export const AdminBlogPanel: React.FC<AdminBlogPanelProps> = ({
                   )}
 
                   {/* Article Content Display */}
-                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 sm:p-6 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line font-sans space-y-4">
-                    {aiResult.content}
+                  <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 sm:p-6 font-sans">
+                    <FormattedBlogContent content={aiResult.content} />
                   </div>
 
                   {/* Tags */}

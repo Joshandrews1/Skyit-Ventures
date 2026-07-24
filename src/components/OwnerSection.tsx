@@ -22,14 +22,18 @@ interface OwnerSectionProps {
   onNavigateToContact?: () => void;
   onNavigateToQuote?: () => void;
   onNavigateToBlog?: () => void;
+  currentUser?: any;
 }
 
 export const OwnerSection: React.FC<OwnerSectionProps> = ({
   onNavigate,
   onNavigateToContact,
   onNavigateToQuote,
-  onNavigateToBlog
+  onNavigateToBlog,
+  currentUser
 }) => {
+  const defaultImage = "https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/web%20images%2FIMG-20260723-WA0001.jpg?alt=media&token=30e9afa5-8d9c-4334-b742-386e47910f2f";
+  const mdAvatarImage = defaultImage;
   const handleContact = () => {
     if (onNavigate) {
       onNavigate('contact');
@@ -80,12 +84,12 @@ export const OwnerSection: React.FC<OwnerSectionProps> = ({
               <div className="absolute -inset-1.5 bg-gradient-to-r from-brand to-amber-400 rounded-3xl blur-md opacity-75 group-hover:opacity-100 transition duration-500"></div>
               <div className="relative w-56 h-64 sm:w-64 sm:h-72 rounded-2xl overflow-hidden border-2 border-slate-700 bg-slate-800 shadow-2xl">
                 <img 
-                  src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/web%20images%2FIMG-20260723-WA0001.jpg?alt=media&token=30e9afa5-8d9c-4334-b742-386e47910f2f" 
+                  src={mdAvatarImage} 
                   alt="Daniel Eweh - Managing Director, SkyIT Ventures" 
                   className="w-full h-full object-cover object-top hover:scale-105 transition duration-500"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none"></div>
                 <div className="absolute bottom-3 left-3 right-3 text-center">
                   <span className="inline-block bg-brand/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-brand-light/30">
                     Managing Director &amp; MD
