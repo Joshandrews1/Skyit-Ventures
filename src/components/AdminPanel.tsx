@@ -19,6 +19,7 @@ import { CatalogManager } from './CatalogManager';
 import { RoleManager } from './RoleManager';
 import { AdminBlogPanel } from './AdminBlogPanel';
 import { AdminAnalyticsPanel } from './AdminAnalyticsPanel';
+import { AdminSolarPackages } from './AdminSolarPackages';
 import { defaultBlogPosts } from '../data/blogPosts';
 import { BlogPost } from '../types';
 import { auth } from '../firebase';
@@ -33,6 +34,7 @@ import {
   Settings, 
   ShieldAlert, 
   Sparkles,
+  Zap,
   ArrowRight,
   ClipboardList,
   Filter,
@@ -106,8 +108,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
   const [confirmingCancelOrderId, setConfirmingCancelOrderId] = useState<string | null>(null);
 
   // AI Quote Generation Workspace States
-  const [adminView, setAdminView] = useState<'logistics' | 'analytics' | 'quote' | 'products' | 'blog' | 'roles'>(() => {
-    return (localStorage.getItem('adminView') as 'logistics' | 'analytics' | 'quote' | 'products' | 'blog' | 'roles') || 'logistics';
+  const [adminView, setAdminView] = useState<'logistics' | 'analytics' | 'quote' | 'packages' | 'products' | 'blog' | 'roles'>(() => {
+    return (localStorage.getItem('adminView') as 'logistics' | 'analytics' | 'quote' | 'packages' | 'products' | 'blog' | 'roles') || 'logistics';
   });
 
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(defaultBlogPosts);
@@ -132,9 +134,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
   const [documentType, setDocumentType] = useState<'quotation' | 'receipt'>('quotation');
   const [docCode] = useState(() => Math.floor(10000 + Math.random() * 90000));
   const tabsRef = React.useRef<HTMLDivElement>(null);
-  const views: ('logistics' | 'analytics' | 'quote' | 'products' | 'blog' | 'roles')[] = isUserAdmin 
-    ? ['logistics', 'analytics', 'quote', 'products', 'blog', 'roles']
-    : ['logistics', 'analytics', 'quote', 'products', 'blog'];
+  const views: ('logistics' | 'analytics' | 'quote' | 'packages' | 'products' | 'blog' | 'roles')[] = isUserAdmin 
+    ? ['logistics', 'analytics', 'quote', 'packages', 'products', 'blog', 'roles']
+    : ['logistics', 'analytics', 'quote', 'packages', 'products', 'blog'];
   
   const handleNavigateView = (direction: 'prev' | 'next') => {
     const currentIndex = views.indexOf(adminView);
@@ -974,6 +976,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           </button>
           
           <button
+            onClick={() => setAdminView('packages')}
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
+              adminView === 'packages' 
+                ? 'bg-brand text-white border-brand' 
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <Zap size={14} className={adminView === 'packages' ? 'text-white' : 'text-amber-500'} />
+            <span>⚡ Solar Packages</span>
+          </button>
+
+          <button
             onClick={() => setAdminView('products')}
             className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'products' 
@@ -1045,6 +1059,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           posts={blogPosts} 
           onPostsChange={setBlogPosts} 
         />
+      ) : adminView === 'packages' ? (
+        <AdminSolarPackages />
       ) : adminView === 'products' ? (
         <CatalogManager />
       ) : adminView === 'quote' ? (

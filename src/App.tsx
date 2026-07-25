@@ -2099,7 +2099,7 @@ export default function App() {
       {/* Core Brand Trust Footer */}
       {activeTab !== 'ai' && !selectedProduct && (
         <footer className="bg-slate-900 text-slate-450 py-10 mt-2 border-t border-slate-805">
-        <div className="max-w-7xl mx-auto px-4 grid sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs leading-relaxed text-slate-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-xs leading-relaxed text-slate-400">
           
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -2237,9 +2237,9 @@ export default function App() {
 
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:pr-24 pt-6 mt-6 border-t border-slate-800 text-center text-[10px] text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>© 2026 SkyIT Ventures Limited. All rights reserved. Built with premium Vite & React.</span>
-          <div className="flex gap-4 flex-wrap justify-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 mt-6 border-t border-slate-800 text-center text-xs text-slate-400 flex flex-col md:flex-row justify-between items-center gap-4">
+          <span className="text-slate-400 font-medium text-[11px] sm:text-xs">© 2026 SkyIT Ventures Limited. All rights reserved. Built with premium Vite & React.</span>
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-3 gap-y-2 text-[11px] font-medium text-slate-400">
             <button 
               onClick={() => { setActiveTab('about'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
@@ -2247,7 +2247,7 @@ export default function App() {
             >
               About SkyIT
             </button>
-            <span className="text-slate-700 hidden sm:inline">|</span>
+            <span className="text-slate-700 select-none">|</span>
             <button 
               onClick={() => { setActiveTab('owner'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
@@ -2255,7 +2255,7 @@ export default function App() {
             >
               Leadership
             </button>
-            <span className="text-slate-700 hidden sm:inline">|</span>
+            <span className="text-slate-700 select-none">|</span>
             <button 
               onClick={() => { setActiveTab('blog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
@@ -2263,7 +2263,7 @@ export default function App() {
             >
               Blog & News
             </button>
-            <span className="text-slate-700 hidden sm:inline">|</span>
+            <span className="text-slate-700 select-none">|</span>
             <button 
               onClick={() => { setPolicyTab('installation'); setIsPolicyOpen(true); }}
               className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
@@ -2271,7 +2271,7 @@ export default function App() {
             >
               Terms of Installation
             </button>
-            <span className="text-slate-700 hidden sm:inline">|</span>
+            <span className="text-slate-700 select-none">|</span>
             <button 
               onClick={() => { setPolicyTab('engineering'); setIsPolicyOpen(true); }}
               className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
@@ -2279,7 +2279,7 @@ export default function App() {
             >
               Engineering Policies
             </button>
-            <span className="text-slate-700 hidden sm:inline">|</span>
+            <span className="text-slate-700 select-none">|</span>
             <button 
               onClick={() => { setPolicyTab('return'); setIsPolicyOpen(true); }}
               className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"

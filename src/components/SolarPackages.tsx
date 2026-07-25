@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, logAuditEvent } from '../firebase';
-import { collection, onSnapshot, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { 
   SOLAR_PACKAGES, 
   SolarPackage, 
@@ -24,7 +24,13 @@ import {
   AlertTriangle,
   Cpu,
   Info,
-  Loader2
+  Loader2,
+  ArrowUpDown,
+  Filter,
+  Search,
+  X,
+  SlidersHorizontal,
+  MessageSquare
 } from 'lucide-react';
 
 interface SolarPackagesProps {
@@ -37,10 +43,62 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
   const [loading, setLoading] = useState(true);
   const [selectedTech, setSelectedTech] = useState<BatteryTech>('lithium');
   
+  // Catalog view filtering & sorting state
+  const [techFilter, setTechFilter] = useState<'all' | BatteryTech>('all');
+  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'kva-asc'>('price-asc');
+  const [kvaFilter, setKvaFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  
   // Interactive appliance calculator state
   const [selectedAppliances, setSelectedAppliances] = useState<Record<string, number>>({});
   const [recommendedPackage, setRecommendedPackage] = useState<SolarPackage | null>(null);
   const [showGuide, setShowGuide] = useState<boolean>(true);
+  const [autoSwitchNotice, setAutoSwitchNotice] = useState<string | null>(null);
+
+  // Helper to parse numerical KVA value
+  const parseKvaVal = (str: string | undefined): number => {
+    if (!str) return 1.5;
+    const m = str.match(/[\d.]+/);
+    return m ? parseFloat(m[0]) : 1.5;
+  };
+
+  // Determine max capacities dynamically from current catalog
+  const tubularPackages = packages.filter(p => p.tech === 'tubular');
+  const maxTubularKva = tubularPackages.length > 0 
+    ? Math.max(...tubularPackages.map(p => parseKvaVal(p.kva)))
+    : 5.0;
+
+  const lithiumPackages = packages.filter(p => p.tech === 'lithium');
+  const maxLithiumKva = lithiumPackages.length > 0 
+    ? Math.max(...lithiumPackages.map(p => parseKvaVal(p.kva)))
+    : 12.0;
+
+  const totalWatts = calculateTotalWatts(selectedAppliances);
+
+  // Compute required system capacity KVA
+  const numACs = (selectedAppliances['ac1'] || 0) + (selectedAppliances['ac15'] || 0);
+  const hasPump = (selectedAppliances['pump'] || 0) > 0;
+  const hasFreezerOrMicrowave = (selectedAppliances['freezer'] || 0) > 0 || (selectedAppliances['microwave'] || 0) > 0;
+
+  let calculatedRequiredKva = (totalWatts * 1.25) / 800;
+  if (totalWatts > 0) {
+    if (numACs >= 3 || totalWatts > 5000) {
+      calculatedRequiredKva = Math.max(calculatedRequiredKva, 10.0);
+    } else if (numACs >= 2 || totalWatts > 3200) {
+      calculatedRequiredKva = Math.max(calculatedRequiredKva, 6.0);
+    } else if (numACs >= 1) {
+      calculatedRequiredKva = Math.max(calculatedRequiredKva, 4.0);
+    } else if (hasPump || hasFreezerOrMicrowave || totalWatts > 1800) {
+      calculatedRequiredKva = Math.max(calculatedRequiredKva, 3.5);
+    } else if (totalWatts > 800) {
+      calculatedRequiredKva = Math.max(calculatedRequiredKva, 2.5);
+    } else {
+      calculatedRequiredKva = 1.0;
+    }
+  }
+
+  const isBiggerThanTubular = totalWatts > 0 && calculatedRequiredKva > maxTubularKva;
+  const isBiggerThanLithium = totalWatts > 0 && calculatedRequiredKva > maxLithiumKva;
 
   // Quick preset loader helper
   const applyPresetLoad = (preset: 'bulbsOnly' | 'standardHome' | 'heavyHome') => {
@@ -53,37 +111,51 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
     }
   };
 
-  // Read / Write packages directly in Firestore
+  // Read / Write packages directly in Firestore with auto-healing sync
   useEffect(() => {
+    const defaultList = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
+    const obsoleteIds = new Set(['li-1.5', 'li-2.5']); // Deprecated packages to purge
+
     const unsub = onSnapshot(collection(db, 'solar_packages'), (snapshot) => {
       if (snapshot.empty) {
         // If Firestore is empty, initialize it with local quote-data defaults
-        const allLocalPackages: SolarPackage[] = [
-          ...SOLAR_PACKAGES.tubular,
-          ...SOLAR_PACKAGES.lithium
-        ];
-        
-        allLocalPackages.forEach((pkg) => {
+        defaultList.forEach((pkg) => {
           setDoc(doc(db, 'solar_packages', pkg.id), pkg).catch(err => {
             console.error("Failed to seed package:", pkg.id, err);
           });
         });
-        setPackages(allLocalPackages);
+        setPackages(defaultList);
       } else {
         const dbPackages: SolarPackage[] = [];
         snapshot.forEach((d) => {
-          dbPackages.push(d.data() as SolarPackage);
+          const data = d.data() as SolarPackage;
+          // Delete obsolete default packages from Firestore if found
+          if (obsoleteIds.has(d.id)) {
+            deleteDoc(doc(db, 'solar_packages', d.id)).catch(console.error);
+          } else {
+            dbPackages.push(data);
+          }
         });
 
-        // Ensure newly introduced default packages are seeded if missing
-        const existingIds = new Set(dbPackages.map(p => p.id));
-        const allDefaults = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
-        allDefaults.forEach((p) => {
-          if (!existingIds.has(p.id)) {
-            setDoc(doc(db, 'solar_packages', p.id), p).catch(err => {
-              console.error("Failed auto-seeding missing package:", p.id, err);
-            });
-            dbPackages.push(p);
+        // Ensure all current default packages exist in Firestore with up-to-date specs
+        defaultList.forEach((defaultPkg) => {
+          const existingIdx = dbPackages.findIndex(p => p.id === defaultPkg.id);
+          if (existingIdx === -1) {
+            setDoc(doc(db, 'solar_packages', defaultPkg.id), defaultPkg).catch(console.error);
+            dbPackages.push(defaultPkg);
+          } else {
+            // Update if name, batteryInfo, cableSize or acSupport from quote-data differs from old Firestore doc
+            const currentInDb = dbPackages[existingIdx];
+            if (
+              currentInDb.name !== defaultPkg.name ||
+              currentInDb.batteryInfo !== defaultPkg.batteryInfo ||
+              currentInDb.cableSize !== defaultPkg.cableSize ||
+              currentInDb.acSupport !== defaultPkg.acSupport
+            ) {
+              const updatedPkg = { ...currentInDb, ...defaultPkg, price: currentInDb.price || defaultPkg.price };
+              setDoc(doc(db, 'solar_packages', defaultPkg.id), updatedPkg).catch(console.error);
+              dbPackages[existingIdx] = updatedPkg;
+            }
           }
         });
 
@@ -93,10 +165,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
     }, (error) => {
       console.error("Error subscribing to solar packages:", error);
       // Fallback to local data if firestore fails
-      setPackages([
-        ...SOLAR_PACKAGES.tubular,
-        ...SOLAR_PACKAGES.lithium
-      ]);
+      setPackages(defaultList);
       setLoading(false);
     });
 
@@ -115,13 +184,31 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
   const clearCalculator = () => {
     setSelectedAppliances({});
     setRecommendedPackage(null);
+    setAutoSwitchNotice(null);
   };
 
   // Re-run recommendation logic when selected load or current list of packages changes
   useEffect(() => {
-    const rec = getRecommendedPackageByLoad(selectedAppliances, selectedTech, packages);
+    if (totalWatts === 0) {
+      setRecommendedPackage(null);
+      setAutoSwitchNotice(null);
+      return;
+    }
+
+    let activeTech = selectedTech;
+
+    // Rule 1: If load is bigger than tubular capacity, auto switch to lithium & notify user
+    if (isBiggerThanTubular && selectedTech === 'tubular') {
+      activeTech = 'lithium';
+      setSelectedTech('lithium');
+      setAutoSwitchNotice(
+        `Your selected appliance load (${totalWatts}W / ~${calculatedRequiredKva.toFixed(1)} KVA) exceeds the maximum Tubular package capacity (${maxTubularKva} KVA). We have automatically upgraded your recommendation to Lithium-ion Packages for higher power density and heavy load support.`
+      );
+    }
+
+    const rec = getRecommendedPackageByLoad(selectedAppliances, activeTech, packages);
     setRecommendedPackage(rec);
-  }, [selectedAppliances, selectedTech, packages]);
+  }, [selectedAppliances, selectedTech, packages, isBiggerThanTubular, maxTubularKva, totalWatts, calculatedRequiredKva]);
 
   // Convert SolarPackage object to standard Product interface for checkout compatibility
   const addPackageToCart = (pkg: SolarPackage) => {
@@ -158,7 +245,52 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
     onOpenCart();
   };
 
-  const filteredPackages = packages.filter(p => p.tech === selectedTech);
+  // Unique available KVA capacity list for filter options
+  const availableKvas = Array.from(new Set(packages.map(p => p.kva))).sort((a: string, b: string) => {
+    const numA = parseFloat(a.replace(/[^0-9.]/g, '')) || 0;
+    const numB = parseFloat(b.replace(/[^0-9.]/g, '')) || 0;
+    return numA - numB;
+  });
+
+  const filteredPackages = packages
+    .filter(p => {
+      // Tech / Series filter
+      if (techFilter !== 'all' && p.tech !== techFilter) return false;
+
+      // KVA capacity filter
+      if (kvaFilter !== 'all' && p.kva !== kvaFilter) return false;
+
+      // Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = p.name.toLowerCase().includes(q);
+        const matchKva = p.kva.toLowerCase().includes(q);
+        const matchDesc = (p.description || '').toLowerCase().includes(q);
+        const matchBattery = (p.batteryInfo || '').toLowerCase().includes(q);
+        const matchLoads = (p.loadSummary || []).some(l => l.toLowerCase().includes(q));
+        if (!matchName && !matchKva && !matchDesc && !matchBattery && !matchLoads) return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'price-asc') {
+        return a.price - b.price; // Lowest to Highest price
+      }
+      if (sortBy === 'price-desc') {
+        return b.price - a.price; // Highest to Lowest price
+      }
+      if (sortBy === 'kva-asc') {
+        const parseKvaNum = (s: string) => {
+          const m = s.match(/[\d.]+/);
+          return m ? parseFloat(m[0]) : 0;
+        };
+        const kvaDiff = parseKvaNum(a.kva) - parseKvaNum(b.kva);
+        if (kvaDiff !== 0) return kvaDiff;
+        return a.price - b.price;
+      }
+      return 0;
+    });
 
   return (
     <div className="space-y-12 animate-fade-in">
@@ -298,6 +430,31 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
           </div>
         )}
 
+        {/* Auto-Switch Notification Banner */}
+        {autoSwitchNotice && (
+          <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-start justify-between gap-3 animate-fade-in text-xs text-amber-900">
+            <div className="flex items-start gap-2.5">
+              <Zap size={18} className="text-amber-600 fill-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-800 block">
+                  Switched to Premium Lithium-ion
+                </span>
+                <p className="text-[11px] font-medium leading-relaxed mt-0.5">
+                  {autoSwitchNotice}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAutoSwitchNotice(null)}
+              className="text-amber-700 hover:text-amber-950 p-1 rounded-lg shrink-0 cursor-pointer"
+              title="Dismiss notification"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {/* STEP 1: Battery Technology Selection Switch */}
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -342,12 +499,21 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
 
             <button
               type="button"
-              onClick={() => setSelectedTech('tubular')}
+              onClick={() => {
+                if (isBiggerThanTubular) {
+                  setAutoSwitchNotice(
+                    `Your current load (${totalWatts}W / ~${calculatedRequiredKva.toFixed(1)} KVA) exceeds maximum Tubular capacity (${maxTubularKva} KVA). High-density Lithium storage is required.`
+                  );
+                  setSelectedTech('lithium');
+                } else {
+                  setSelectedTech('tubular');
+                }
+              }}
               className={`p-3.5 rounded-xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
                 selectedTech === 'tubular'
                   ? 'border-slate-800 bg-white shadow-sm ring-2 ring-slate-800/20'
                   : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300'
-              }`}
+              } ${isBiggerThanTubular ? 'opacity-70' : ''}`}
             >
               <div className={`p-2 rounded-lg shrink-0 transition-colors ${
                 selectedTech === 'tubular' ? 'bg-slate-900 text-white font-bold' : 'bg-slate-100 text-slate-400'
@@ -357,12 +523,21 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-slate-900">Tubular Deep Cycle</h4>
-                  <span className="bg-slate-100 text-slate-600 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
-                    Budget Friendly
-                  </span>
+                  {isBiggerThanTubular ? (
+                    <span className="bg-rose-100 text-rose-800 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
+                      Exceeds Capacity
+                    </span>
+                  ) : (
+                    <span className="bg-slate-100 text-slate-600 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
+                      Budget Friendly
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                  Lead-Acid tech • Lower initial setup cost • Proven heavy duty performance
+                  {isBiggerThanTubular 
+                    ? `Max ${maxTubularKva} KVA capacity. Your load requires Lithium.`
+                    : 'Lead-Acid tech • Lower initial setup cost • Proven heavy duty performance'
+                  }
                 </p>
               </div>
             </button>
@@ -432,7 +607,57 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
               Sizing Diagnostics
             </h4>
             
-            {recommendedPackage ? (() => {
+            {isBiggerThanLithium ? (
+              <div className="bg-amber-50/90 border-2 border-amber-400 p-5 rounded-2xl space-y-4 animate-scale-up text-center">
+                <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto shadow-2xs">
+                  <MessageSquare size={24} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider bg-amber-200/80 px-2.5 py-0.5 rounded-full inline-block">
+                    Custom Commercial Solution Required
+                  </span>
+                  <h5 className="font-display font-black text-slate-900 text-base">
+                    Load Exceeds Standard Packages
+                  </h5>
+                  <p className="text-xs text-slate-600 leading-relaxed max-w-xs mx-auto">
+                    Your calculated total load of <strong className="text-slate-900 font-mono font-bold">{totalWatts}W ({(totalWatts/1000).toFixed(2)} kW)</strong> exceeds our maximum standard Lithium package ({maxLithiumKva} KVA).
+                  </p>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200 text-left text-[11px] text-slate-600 space-y-1.5">
+                  <div className="flex justify-between font-bold text-slate-800">
+                    <span>Total Running Load:</span>
+                    <span className="text-brand font-mono">{totalWatts} Watts</span>
+                  </div>
+                  <div className="flex justify-between font-medium text-slate-500">
+                    <span>Est. Minimum System:</span>
+                    <span className="font-bold text-slate-900">{calculatedRequiredKva.toFixed(1)} KVA System</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 pt-1.5 border-t border-slate-100">
+                    We build custom 3-Phase commercial inverter systems, industrial high-voltage lithium battery banks, and high-capacity solar arrays.
+                  </p>
+                </div>
+
+                <a
+                  href={`https://wa.me/2349074444140?text=${encodeURIComponent(`Hello SkyIT Ventures team, I ran your online system calculator. My calculated load is ${totalWatts}W (${(totalWatts/1000).toFixed(2)}kW / est. ${calculatedRequiredKva.toFixed(1)}KVA), which exceeds standard pre-packaged kits. Please provide a custom commercial solar plan.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <MessageSquare size={16} />
+                  <span>Contact Us on WhatsApp for Proper Plan</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={clearCalculator}
+                  className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Reset Calculator
+                </button>
+              </div>
+            ) : recommendedPackage ? (() => {
               const totalWatts = calculateTotalWatts(selectedAppliances);
               const parseKvaVal = (str: string) => {
                 const m = str.match(/[\d.]+/);
@@ -533,40 +758,118 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
       {/* Main Catalog View Filterable Grid */}
       <div className="space-y-6">
         
-        {/* Toggle Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-          <div>
-            <h3 className="font-display font-extrabold text-base text-slate-800">
-              Explore Active Packages
-            </h3>
-            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-              Available configurations: {filteredPackages.length} engineered solutions
-            </p>
+        {/* Toggle Controls & Filters Bar */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-2xs space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-display font-extrabold text-base sm:text-lg text-slate-900">
+                  Explore Active Packages
+                </h3>
+                <span className="bg-brand/10 text-brand text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                  {filteredPackages.length} Available
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Sorted from lowest price to highest price by default. Filter by capacity, series, or keyword.
+              </p>
+            </div>
+
+            {/* Battery Storage Series Toggle */}
+            <div className="inline-flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80 self-start md:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setTechFilter('all')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  techFilter === 'all' 
+                    ? 'bg-slate-900 text-white shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All Series
+              </button>
+              <button
+                type="button"
+                onClick={() => setTechFilter('lithium')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  techFilter === 'lithium' 
+                    ? 'bg-slate-900 text-white shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Zap size={12} className={techFilter === 'lithium' ? "text-amber-400 fill-amber-400" : ""} />
+                <span>Lithium LFP</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTechFilter('tubular')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  techFilter === 'tubular' 
+                    ? 'bg-slate-900 text-white shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Battery size={12} />
+                <span>Tubular Power</span>
+              </button>
+            </div>
           </div>
 
-          <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
-            <button
-              onClick={() => setSelectedTech('lithium')}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
-                selectedTech === 'lithium' 
-                  ? 'bg-slate-900 text-white shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Zap size={12} className={selectedTech === 'lithium' ? "text-amber-400 fill-amber-400" : ""} />
-              <span>Premium Lithium</span>
-            </button>
-            <button
-              onClick={() => setSelectedTech('tubular')}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
-                selectedTech === 'tubular' 
-                  ? 'bg-slate-900 text-white shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Battery size={12} />
-              <span>Tubular Power</span>
-            </button>
+          {/* Secondary Controls: Sorting, Capacity Filter, Search */}
+          <div className="pt-3 border-t border-slate-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Sort Order */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                <ArrowUpDown size={13} className="text-slate-400 shrink-0" />
+                <span className="font-bold text-slate-500 text-[11px]">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent border-0 font-bold text-slate-800 text-xs focus:ring-0 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="price-asc">Lowest to Highest Price (₦)</option>
+                  <option value="price-desc">Highest to Lowest Price (₦)</option>
+                  <option value="kva-asc">KVA Capacity (Small to Large)</option>
+                </select>
+              </div>
+
+              {/* KVA Capacity Filter */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                <Filter size={13} className="text-slate-400 shrink-0" />
+                <span className="font-bold text-slate-500 text-[11px]">Capacity:</span>
+                <select
+                  value={kvaFilter}
+                  onChange={(e) => setKvaFilter(e.target.value)}
+                  className="bg-transparent border-0 font-bold text-slate-800 text-xs focus:ring-0 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="all">All System Sizes</option>
+                  {availableKvas.map(kva => (
+                    <option key={kva} value={kva}>{kva} Packages</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Keyword / Appliance Search */}
+            <div className="relative w-full sm:w-64">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter load e.g. AC, TV, Fridge..."
+                className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-brand/20 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -575,6 +878,26 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
           <div className="py-24 text-center text-slate-450 space-y-1.5">
             <Loader2 size={24} className="animate-spin mx-auto text-brand" />
             <span className="text-xs uppercase tracking-wider block font-bold">Synchronizing Pricing Lists...</span>
+          </div>
+        ) : filteredPackages.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-3">
+            <SlidersHorizontal size={32} className="text-slate-300 mx-auto" />
+            <h4 className="font-bold text-slate-800 text-sm">No packages match your active filters</h4>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Try adjusting your capacity size, battery tech filter, or clear your search term.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setTechFilter('all');
+                setKvaFilter('all');
+                setSearchQuery('');
+                setSortBy('price-asc');
+              }}
+              className="px-4 py-2 bg-slate-900 hover:bg-brand text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+            >
+              Reset Filters
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -623,7 +946,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-150 space-y-2.5 text-[11px] text-slate-600">
                     <div className="flex items-center gap-2">
                       <Battery size={13} className="text-slate-400 shrink-0" />
-                      <span><strong>Batteries:</strong> {pkg.batteries}x {pkg.batteryInfo}</span>
+                      <span><strong>Batteries:</strong> {pkg.batteryInfo}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Sun size={13} className="text-slate-400 shrink-0" />

@@ -49,34 +49,43 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
 
   // Synchronize Solar Packages with real-time database listener
   useEffect(() => {
+    const defaultList = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
+    const obsoleteIds = new Set(['li-1.5', 'li-2.5']);
+
     const unsub = onSnapshot(collection(db, 'solar_packages'), (snapshot) => {
       if (snapshot.empty) {
-        const allLocalPackages: SolarPackage[] = [
-          ...SOLAR_PACKAGES.tubular,
-          ...SOLAR_PACKAGES.lithium
-        ];
-        allLocalPackages.forEach((pkg) => {
+        defaultList.forEach((pkg) => {
           setDoc(doc(db, 'solar_packages', pkg.id), pkg).catch(err => {
             console.error("Failed to seed package on admin:", pkg.id, err);
           });
         });
-        setPackagesList(allLocalPackages);
+        setPackagesList(defaultList);
       } else {
         const dbPackages: SolarPackage[] = [];
         snapshot.forEach((d) => {
-          dbPackages.push(d.data() as SolarPackage);
+          if (obsoleteIds.has(d.id)) {
+            deleteDoc(doc(db, 'solar_packages', d.id)).catch(console.error);
+          } else {
+            dbPackages.push(d.data() as SolarPackage);
+          }
         });
-        // Sort alphabetically or kva to keep list structured
+
+        // Ensure current default packages exist
+        defaultList.forEach((defaultPkg) => {
+          const existingIdx = dbPackages.findIndex(p => p.id === defaultPkg.id);
+          if (existingIdx === -1) {
+            setDoc(doc(db, 'solar_packages', defaultPkg.id), defaultPkg).catch(console.error);
+            dbPackages.push(defaultPkg);
+          }
+        });
+
         dbPackages.sort((a, b) => a.id.localeCompare(b.id));
         setPackagesList(dbPackages);
       }
       setLoadingPkgs(false);
     }, (error) => {
       console.error("Admin packages sync error:", error);
-      setPackagesList([
-        ...SOLAR_PACKAGES.tubular,
-        ...SOLAR_PACKAGES.lithium
-      ]);
+      setPackagesList(defaultList);
       setLoadingPkgs(false);
     });
 
