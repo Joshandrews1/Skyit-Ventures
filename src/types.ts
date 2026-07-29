@@ -90,5 +90,6 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   suggestedProducts?: Product[];
+  suggestedPackages?: any[];
   images?: string[];
 }

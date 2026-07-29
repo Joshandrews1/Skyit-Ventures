@@ -10,6 +10,7 @@ import {
   calculateTotalWatts 
 } from '../data/quote-data';
 import { Product } from '../types';
+import { PackageUsageModeSelector } from './PackageUsageModeSelector';
 import { 
   Zap, 
   Battery, 
@@ -30,15 +31,17 @@ import {
   Search,
   X,
   SlidersHorizontal,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 
 interface SolarPackagesProps {
   onAddToCart: (product: Product) => void;
   onOpenCart: () => void;
+  onConsultPackage?: (pkg: SolarPackage) => void;
 }
 
-export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpenCart }) => {
+export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpenCart, onConsultPackage }) => {
   const [packages, setPackages] = useState<SolarPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTech, setSelectedTech] = useState<BatteryTech>('lithium');
@@ -962,32 +965,32 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                     </div>
                   </div>
 
-                  {/* Loads summary badges */}
-                  <div className="space-y-1.5">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Recommended Appliance Load</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {pkg.loadSummary.map((load, idx) => (
-                        <span 
-                          key={idx} 
-                          className="bg-slate-100 text-slate-600 text-[9px] font-bold px-2 py-0.5 rounded"
-                        >
-                          {load}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Usage Profile Modes Switcher (Max, Average, Daytime Solar, Night Battery) */}
+                  <PackageUsageModeSelector pkg={pkg} theme="light" />
 
                 </div>
 
-                {/* Purchase Button */}
-                <button
-                  type="button"
-                  onClick={() => addPackageToCart(pkg)}
-                  className="w-full mt-6 bg-slate-900 hover:bg-brand text-white group-hover:bg-slate-900 hover:scale-[1.01] transition-all py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer border border-transparent shadow-xs hover:shadow-md"
-                >
-                  <ShoppingCart size={13} />
-                  <span>Order System Package</span>
-                </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => addPackageToCart(pkg)}
+                    className="flex-1 bg-slate-900 hover:bg-brand text-white hover:scale-[1.01] transition-all py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow-md"
+                  >
+                    <ShoppingCart size={13} />
+                    <span>Order Package</span>
+                  </button>
+                  {onConsultPackage && (
+                    <button
+                      type="button"
+                      onClick={() => onConsultPackage(pkg)}
+                      className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-xs font-bold p-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                      title="Ask AI Advisor to explain this package"
+                    >
+                      <Sparkles size={16} className="text-amber-500 fill-amber-400/30" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

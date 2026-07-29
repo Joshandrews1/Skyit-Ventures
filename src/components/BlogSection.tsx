@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { BlogPost } from '../types';
 import { FormattedBlogContent } from './FormattedBlogContent';
 import { 
@@ -47,6 +47,70 @@ export const BlogSection: React.FC<BlogSectionProps> = ({
 
   // Synchronize prop state if provided
   const currentPost = selectedPost !== undefined ? selectedPost : activePostLocal;
+
+  // Dynamic SEO & Schema.org JSON-LD structured data engine
+  useEffect(() => {
+    if (currentPost) {
+      document.title = `${currentPost.title} | SkyIT Insights`;
+
+      // Meta Description
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', currentPost.excerpt || currentPost.title);
+      }
+
+      // Open Graph Tags
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', `${currentPost.title} | SkyIT Ventures`);
+
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content', currentPost.excerpt || currentPost.title);
+
+      const ogImage = document.querySelector('meta[property="og:image"]');
+      if (ogImage && currentPost.coverImage) ogImage.setAttribute('content', currentPost.coverImage);
+
+      // Inject Schema.org BlogPosting JSON-LD for Search Engine Rich Snippets
+      let script = document.getElementById('json-ld-blog-article');
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'json-ld-blog-article';
+        script.setAttribute('type', 'application/ld+json');
+        document.head.appendChild(script);
+      }
+
+      const schemaData = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": currentPost.title,
+        "description": currentPost.excerpt,
+        "image": currentPost.coverImage ? [currentPost.coverImage] : [],
+        "datePublished": currentPost.createdAt,
+        "author": {
+          "@type": "Person",
+          "name": currentPost.authorName || "Daniel Eweh",
+          "jobTitle": currentPost.authorRole || "Managing Director, SkyIT Ventures"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "SkyIT Ventures",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae"
+          }
+        },
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": `${window.location.origin}/?tab=blog&post=${encodeURIComponent(currentPost.slug || currentPost.id)}`
+        }
+      };
+
+      script.textContent = JSON.stringify(schemaData);
+    } else {
+      document.title = "Engineering & Clean Energy Blog | SkyIT Ventures";
+      const script = document.getElementById('json-ld-blog-article');
+      if (script) script.remove();
+    }
+  }, [currentPost]);
 
   const categories = ['All', 'Solar & Clean Energy', 'Security & Surveillance', 'IT & Digital Transformation', 'Industry Insights'];
 

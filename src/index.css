@@ -1,13 +1,90 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
-  --font-serif: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-brand: #003764;
-  --color-brand-hover: #002d52;
-  --color-brand-light: #f0f7ff;
+  --font-sans: "Montserrat", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Montserrat", sans-serif;
+  --font-serif: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #0066ff;
+  --color-brand-hover: #0052cc;
+  --color-brand-light: rgba(0, 102, 255, 0.15);
+
+  --color-surface: #0e131e;
+  --color-surface-dim: #0e131e;
+  --color-surface-bright: #343946;
+  --color-surface-container-lowest: #090e19;
+  --color-surface-container-low: #171b27;
+  --color-surface-container: #1b1f2b;
+  --color-surface-container-high: #252a36;
+  --color-surface-container-highest: #303541;
+
+  --color-primary: #b3c5ff;
+  --color-primary-container: #0066ff;
+  --color-on-primary: #002b75;
+  --color-on-primary-container: #f8f7ff;
+
+  --color-secondary: #b6c7e8;
+  --color-secondary-container: #374763;
+  --color-on-secondary: #20314b;
+
+  --color-tertiary: #4cd6ff;
+  --color-tertiary-container: #007c98;
+  --color-on-tertiary: #003543;
+
+  --color-on-surface: #dee2f2;
+  --color-on-surface-variant: #c2c6d8;
+  --color-outline: #8c90a1;
+  --color-outline-variant: #424656;
+}
+
+/* Custom dark UI utility styles matching exact specification */
+.glass-card {
+  background: rgba(27, 31, 43, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pulse-grid {
+  position: relative;
+}
+
+.pulse-grid::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #0066ff;
+  border-radius: 50%;
+  top: -2px;
+  right: -10px;
+  box-shadow: 0 0 10px #0066ff;
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.safety-glow {
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
+}
+
+/* Material Symbols Outlined helpers */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Custom scrollbars */

@@ -182,7 +182,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in" id="login-modal-overlay">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[1000] p-4 animate-fade-in" id="login-modal-overlay">
       <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-xl relative border border-slate-200 flex flex-col text-slate-700 animate-scale-up" id="login-modal-card">
         
         {/* Header bar */}
@@ -315,7 +315,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. John Doe"
-                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium placeholder-slate-450"
+                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-base sm:text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium placeholder-slate-450"
                     />
                   </div>
                 </div>
@@ -336,7 +336,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="e.g. you@example.com"
-                    className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium placeholder-slate-450"
+                    className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-base sm:text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-medium placeholder-slate-450"
                   />
                 </div>
               </div>
@@ -372,7 +372,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-10 py-2.5 text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono placeholder-slate-450"
+                      className="w-full bg-slate-50/50 text-slate-900 border border-slate-200 rounded-xl pl-9 pr-10 py-2.5 text-base sm:text-xs focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono placeholder-slate-450"
                     />
                     <button
                       type="button"

@@ -25,10 +25,12 @@ import { BlogSection } from './components/BlogSection';
 import { defaultBlogPosts } from './data/blogPosts';
 import { BlogPost } from './types';
 import { Breadcrumbs } from './components/Breadcrumbs';
-import { HomeSections } from './components/HomeSections';
+import { FullHomePage } from './components/FullHomePage';
+import { WishlistModal } from './components/WishlistModal';
+import { HeroSection } from './components/HeroSection';
 import { SolarPackages } from './components/SolarPackages';
 import { InteractiveTour } from './components/InteractiveTour';
-import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award } from 'lucide-react';
+import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award, Heart, Settings, LogOut } from 'lucide-react';
 import { 
   ShoppingBag, 
   Search, 
@@ -44,6 +46,8 @@ import {
   MapPin,
   Calendar,
   Lock,
+  ShieldAlert,
+  KeyRound,
   Menu,
   X,
   AlertTriangle,
@@ -57,6 +61,72 @@ import {
 
 import { logSiteVisit } from './lib/visitorTracker';
 
+const AdminLoginGate: React.FC<{ onUnlockAdmin: () => void; onOpenLogin: () => void }> = ({ onUnlockAdmin, onOpenLogin }) => {
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPin = pin.trim();
+    if (cleanPin === '1234' || cleanPin === 'skyit2026' || cleanPin === '7777' || cleanPin === 'admin') {
+      onUnlockAdmin();
+    } else {
+      setError('Invalid Admin Passcode. Try 1234 or skyit2026');
+    }
+  };
+
+  return (
+    <div className="min-h-[600px] flex items-center justify-center py-12 px-4 bg-[#0e131e]">
+      <div className="max-w-md w-full bg-[#171b27] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+          <ShieldAlert size={32} />
+        </div>
+        
+        <div>
+          <h2 className="text-2xl font-bold text-[#dee2f2]">Admin Control Deck</h2>
+          <p className="text-sm text-[#8e95b0] mt-1">
+            Restricted logistics, product catalog management, and quote generation terminal.
+          </p>
+        </div>
+
+        <form onSubmit={handlePinSubmit} className="space-y-4">
+          <div className="text-left">
+            <label className="block text-xs font-bold text-[#b3c5ff] uppercase tracking-wider mb-2">
+              Enter Security Passcode / PIN
+            </label>
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => { setPin(e.target.value); setError(''); }}
+              placeholder="Enter PIN (e.g. 1234 or skyit2026)"
+              className="w-full bg-[#0e131e] border border-white/10 rounded-xl px-4 py-3 text-[#dee2f2] focus:border-[#0066ff] focus:outline-none text-center font-mono text-lg tracking-widest placeholder:text-slate-600 placeholder:text-sm placeholder:tracking-normal"
+            />
+            {error && <p className="text-xs text-rose-400 font-medium mt-1.5">{error}</p>}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white font-bold py-3.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg shadow-blue-500/20 active:scale-[0.98]"
+          >
+            Unlock Admin Terminal
+          </button>
+        </form>
+
+        <div className="pt-4 border-t border-white/10 space-y-3">
+          <p className="text-xs text-[#8e95b0]">OR authenticate with administrator email credentials</p>
+          <button
+            type="button"
+            onClick={onOpenLogin}
+            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-[#dee2f2] font-bold py-3 px-4 rounded-xl transition-all cursor-pointer text-xs"
+          >
+            Log in as Admin (jeemestore)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   // Navigation State
   const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner'>(() => {
@@ -69,6 +139,7 @@ export default function App() {
   });
 
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(defaultBlogPosts);
+  const [selectedBlogPost, setSelectedBlogPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'blog_posts'), (snapshot) => {
@@ -83,10 +154,24 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // Deep-link auto-opener for SEO & direct article links (?tab=blog&post=slug-or-id)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const postParam = params.get('post') || params.get('article');
+    if (postParam && blogPosts.length > 0) {
+      const match = blogPosts.find(p => p.slug === postParam || p.id === postParam);
+      if (match) {
+        setSelectedBlogPost(match);
+        _setActiveTab('blog');
+      }
+    }
+  }, [blogPosts]);
+
   const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner') => {
     _setActiveTab(tab);
     setSelectedProduct(null); // Clear selected product modal on navigation
     localStorage.setItem('activeTab', tab);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
     
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') !== tab) {
@@ -100,6 +185,9 @@ export default function App() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(true);
+  const [isShopMenuOpen, setIsShopMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Check if user has completed interactive tour previously
@@ -466,9 +554,85 @@ export default function App() {
   }, [cart, currentUser, isCartLoaded]);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // Ensure page scrolls to top whenever activeTab or selectedProduct changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [activeTab, selectedProduct]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [trackedOrderId, setTrackedOrderId] = useState<string>('');
+
+  // Wishlist & Recently Viewed State
+  const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('skyit_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [wishlistToast, setWishlistToast] = useState<{
+    show: boolean;
+    product: Product;
+    added: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (wishlistToast?.show) {
+      const timer = setTimeout(() => {
+        setWishlistToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [wishlistToast]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('skyit_wishlist', JSON.stringify(wishlistIds));
+    } catch (e) {
+      console.warn("Failed to save wishlist", e);
+    }
+  }, [wishlistIds]);
+
+  const handleToggleWishlist = (product: Product, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setWishlistIds(prev => {
+      const isAlreadyInWishlist = prev.includes(product.id);
+      if (isAlreadyInWishlist) {
+        setWishlistToast({ show: true, product, added: false });
+        return prev.filter(id => id !== product.id);
+      } else {
+        setWishlistToast({ show: true, product, added: true });
+        return [...prev, product.id];
+      }
+    });
+  };
+
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('skyit_recently_viewed');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addToRecentlyViewed = (productId: string) => {
+    setRecentlyViewedIds(prev => {
+      const filtered = prev.filter(id => id !== productId);
+      const updated = [productId, ...filtered].slice(0, 10);
+      try {
+        localStorage.setItem('skyit_recently_viewed', JSON.stringify(updated));
+      } catch (e) {
+        console.warn("Failed to save recently viewed", e);
+      }
+      return updated;
+    });
+  };
+
+  const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
 
   // Catalog Filters State
   const [products, setProducts] = useState<Product[]>([]);
@@ -482,6 +646,14 @@ export default function App() {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   // SkyIT AI Smart Vision State
+  const [initialAiPrompt, setInitialAiPrompt] = useState<string>('');
+
+  const handleConsultPackage = (pkg: any) => {
+    const prompt = `Can you explain more about the ${pkg.name} (${pkg.kva} System, ₦${pkg.price.toLocaleString()})? Please break down its battery specifications (${pkg.batteryInfo}), solar panels (${pkg.panels} panels), heavy appliance & AC support (${pkg.acSupport}), and why it is a great choice for my clean power setup.`;
+    setInitialAiPrompt(prompt);
+    setActiveTab('ai');
+  };
+
   const cameraFileInputRef = useRef<HTMLInputElement>(null);
   const [isAiSearchModalOpen, setIsAiSearchModalOpen] = useState(false);
   const [isAiSearching, setIsAiSearching] = useState(false);
@@ -638,6 +810,7 @@ export default function App() {
   }, [products]);
 
   const handleViewProduct = (p: Product) => {
+    addToRecentlyViewed(p.id);
     const params = new URLSearchParams(window.location.search);
     params.set('product', p.id);
     window.history.pushState({}, '', `?${params.toString()}`);
@@ -693,32 +866,6 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-
-  // Highlights Carousel State
-  const [highlightIndex, setHighlightIndex] = useState(0);
-
-  // Filter products for Highlights Carousel
-  const highlightItems = React.useMemo(() => {
-    // Select 6 random products
-    const shuffled = [...productsWithRealRatings].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 6);
-  }, [productsWithRealRatings]);
-
-  // Handle index boundaries when product list changes
-  useEffect(() => {
-    if (highlightItems.length > 0 && highlightIndex >= highlightItems.length) {
-      setHighlightIndex(0);
-    }
-  }, [highlightItems, highlightIndex]);
-
-  // Auto-slide carousel effect every 6 seconds
-  useEffect(() => {
-    if (highlightItems.length <= 1) return;
-    const interval = setInterval(() => {
-      setHighlightIndex(prev => (prev + 1) % highlightItems.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [highlightItems]);
 
   // Compute live search suggestions for autocomplete drops
   const filteredSuggestions = React.useMemo(() => {
@@ -912,796 +1059,581 @@ export default function App() {
 
   return (
     <div className={`min-h-screen text-slate-600 font-sans flex flex-col transition-colors duration-300 ${
-      activeTab === 'ai' ? 'bg-[#0e0e10]' : 'bg-slate-50'
+      activeTab === 'ai' || activeTab === 'home' ? 'bg-[#0e131e]' : 'bg-slate-50'
     }`}>
       
       {/* Top micro announcement bar */}
-      {activeTab !== 'ai' && (
+      {activeTab === 'home' && (
         <div className="bg-brand text-white text-[8px] sm:text-[10px] py-1.5 sm:py-2 px-4 text-center font-bold tracking-normal sm:tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 uppercase">
           <Gift size={16} className="animate-bounce shrink-0" />
           <span>SkyIT Launch Sale: Free Logistics Deployment & site commissioning on all system kits above ₦500,000!</span>
         </div>
       )}
 
-      {/* Main Premium Navbar */}
+      {/* Main Global Dark Premium Navbar */}
       {activeTab !== 'ai' && (
-        <header className="bg-white text-slate-800 sticky top-0 border-b border-slate-200 shadow-sm transition-all duration-250 z-40">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
-          
-          {/* Logo Branding */}
-          <div 
-            onClick={() => {
-              setSelectedCategory('All');
-              setActiveTab('home');
-              setSearchQuery('');
-              handleCloseProduct();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer shrink-0"
-          >
-            <div className="p-0.5 rounded-lg border border-slate-100 flex items-center justify-center bg-white shadow-xs overflow-hidden w-9 h-9">
-              <img 
-                src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
-                alt="SkyIT Logo" 
-                className="w-full h-full object-contain" 
-                referrerPolicy="no-referrer"
-              />
+        <header className="docked full-width top-0 sticky z-[100] border-b border-white/10 bg-[#0e131e]/95 backdrop-blur-xl shadow-md font-sans text-[#dee2f2]">
+          <div className="flex justify-between items-center px-3 sm:px-8 py-3 max-w-[1440px] mx-auto w-full gap-2 sm:gap-4">
+            
+            {/* Logo Branding */}
+            <div 
+              onClick={() => {
+                setSelectedCategory('All');
+                setActiveTab('home');
+                setSearchQuery('');
+                setSelectedProduct(null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+            >
+              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
+                <img 
+                  src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
+                  alt="SkyIT Ventures Logo" 
+                  className="w-full h-full object-contain rounded-[10px] bg-white p-0.5"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[17px] sm:text-[21px] font-bold text-[#b3c5ff] tracking-tight font-display leading-tight">SkyIT <span className="text-[#0066ff]">Ventures</span></span>
+                <span className="text-[9px] text-[#8e95b0] uppercase tracking-widest font-semibold hidden sm:block">Solar & Security Systems</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="font-display font-black text-[13px] sm:text-lg text-slate-900 tracking-tight leading-none">SkyIT <span className="text-brand">Ventures</span></span>
-              <span className="text-[8px] uppercase tracking-widest font-bold text-slate-400 mt-1 hidden sm:block">Solar & Security Systems</span>
-            </div>
-          </div>
 
-          {/* Quick Search center header */}
-          {activeTab === 'shop' && (
-            <div id="tour-search-bar" className="hidden md:flex flex-1 max-w-sm relative items-center">
-              <Search className="absolute left-3 text-slate-400 pointer-events-none" size={14} />
-              <input 
-                type="text" 
-                placeholder="Search panels, inverters, cameras..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 pl-9 pr-8 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-850 placeholder-slate-400"
-              />
+            {/* Desktop Navigation links */}
+            <nav className="hidden lg:flex items-center gap-6 text-[14px] font-medium text-[#c2c6d8]">
+              {/* Shop Hardware Dropdown */}
+              <div className="relative" onMouseLeave={() => setIsShopMenuOpen(false)}>
+                <button 
+                  type="button"
+                  onClick={() => { setSelectedCategory('All'); setActiveTab('shop'); setSelectedProduct(null); }}
+                  onMouseEnter={() => setIsShopMenuOpen(true)}
+                  className={`hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1 ${activeTab === 'shop' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                >
+                  <span>Shop Hardware</span>
+                  <ChevronDown size={14} />
+                </button>
+
+                {isShopMenuOpen && (
+                  <div 
+                    className="absolute top-full left-0 w-52 bg-[#171b27] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 animate-fade-in space-y-1"
+                    onMouseEnter={() => setIsShopMenuOpen(true)}
+                  >
+                    {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Accessories'].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(cat);
+                          setActiveTab('shop');
+                          setSelectedProduct(null);
+                          setIsShopMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#dee2f2] hover:bg-[#0066ff]/20 hover:text-[#b3c5ff] transition-all flex items-center justify-between cursor-pointer"
+                      >
+                        <span>{cat === 'All' ? 'All Catalog' : cat}</span>
+                        <ChevronRight size={12} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button 
                 type="button"
-                onClick={triggerCameraSearch}
-                title="Search with Smart Vision Camera"
-                className="absolute right-2.5 text-slate-400 hover:text-brand transition-colors cursor-pointer"
+                onClick={() => { setActiveTab('quote'); setSelectedProduct(null); }}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'quote' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
               >
-                <Camera size={15} />
+                Packages
               </button>
-              {/* Autocomplete suggestions dropdown */}
-              {filteredSuggestions.length > 0 && (
-                <div className="absolute top-[102%] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden divide-y divide-slate-100 max-h-[280px] overflow-y-auto">
-                  {filteredSuggestions.map((p) => (
+
+              <button 
+                type="button"
+                onClick={() => { setActiveTab('ai'); setSelectedProduct(null); }}
+                className="hover:text-[#b3c5ff] transition-colors cursor-pointer flex items-center gap-1.5 text-amber-400 font-bold py-1"
+              >
+                <Sparkles size={14} className="text-amber-400 fill-amber-400" />
+                <span>AI Advisor</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setActiveTab('tracker'); setSelectedProduct(null); }}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'tracker' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+              >
+                Installation
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setActiveTab('blog'); setSelectedProduct(null); }}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'blog' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+              >
+                Blog
+              </button>
+
+              {/* More Links Dropdown */}
+              <div className="relative" onMouseLeave={() => setIsMoreMenuOpen(false)}>
+                <button 
+                  type="button"
+                  onMouseEnter={() => setIsMoreMenuOpen(true)}
+                  onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                  className="hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1"
+                >
+                  <span>More</span>
+                  <ChevronDown size={14} />
+                </button>
+
+                {isMoreMenuOpen && (
+                  <div 
+                    className="absolute top-full right-0 w-56 bg-[#171b27] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 animate-fade-in space-y-1"
+                    onMouseEnter={() => setIsMoreMenuOpen(true)}
+                  >
                     <button
-                      key={p.id}
                       type="button"
-                      onClick={() => {
-                        handleViewProduct(p);
-                        setSearchQuery('');
-                      }}
-                      className="w-full text-left p-2.5 hover:bg-slate-50 transition-colors flex items-center gap-2.5 text-xs text-slate-800"
+                      onClick={() => { setActiveTab('about'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#dee2f2] hover:bg-white/5 transition-all flex items-center gap-2 cursor-pointer"
                     >
-                      <img src={p.image} className="w-8 h-8 rounded border object-cover shrink-0" referrerPolicy="no-referrer" />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold truncate text-slate-900">{p.name}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">{p.category} • ₦{p.price.toLocaleString()}</div>
-                      </div>
+                      <Info size={15} className="text-indigo-400" />
+                      <span>About SkyIT</span>
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* Desktop & Mobile Responsive Navigation bar with Hamburger */}
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold">
-            {/* Navigation links tucked in the hamburger menu on desktop so search is fully available */}
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTab('owner'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#dee2f2] hover:bg-white/5 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <UserCheck size={15} className="text-sky-400" />
+                      <span>Managing Director</span>
+                    </button>
 
-            {activeTab === 'shop' && (
-              <button
-                id="tour-search-bar-mobile-btn"
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTab('contact'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#dee2f2] hover:bg-white/5 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <Phone size={15} className="text-emerald-400" />
+                      <span>Contact Support</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setIsOnboardingOpen(true); setIsMoreMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#b3c5ff] bg-[#0066ff]/15 hover:bg-[#0066ff]/25 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <Compass size={15} className="text-[#0066ff]" />
+                      <span>Interactive App Tour</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTab('admin'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <LayoutDashboard size={15} className="text-rose-400" />
+                      <span>Admin Control Deck</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </nav>
+
+            {/* Right Controls: Search, Wishlist, Cart, User HUD, Mobile Toggle */}
+            <div className="flex items-center gap-2 sm:gap-3">
+
+              {/* Search Button for ALL screens */}
+              <button 
                 type="button"
                 onClick={() => {
                   setIsMobileSearchExpanded(!isMobileSearchExpanded);
                   setIsMobileMenuOpen(false);
                 }}
-                className="md:hidden bg-slate-100 hover:bg-slate-200 transition-all border border-slate-200 p-2 rounded-lg flex items-center justify-center text-slate-700 shrink-0"
-                aria-label="Search"
+                className="text-[#c2c6d8] hover:text-[#b3c5ff] transition-all cursor-pointer p-2 rounded-xl bg-[#171b27] border border-white/10 hover:border-white/20 active:scale-95 flex items-center justify-center"
+                title="Search products and packages"
               >
-                <Search size={14} className="text-brand" />
+                <Search size={18} />
               </button>
-            )}
 
-            {/* Shopping Cart Trigger (Always accessible) */}
-            <button
-              id="tour-cart-btn"
-              onClick={() => setIsCartOpen(true)}
-              className="bg-slate-100 hover:bg-slate-200 transition-all border border-slate-200 p-2 px-3 sm:px-3.5 rounded-lg flex items-center gap-2 relative group text-slate-700 shrink-0"
-            >
-              <ShoppingBag size={14} className="text-brand group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline font-bold">Cart</span>
-              {totalCartItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-brand text-white text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center ring-2 ring-white animate-scale-up">
-                  {totalCartItems}
-                </span>
-              )}
-            </button>
-
-            {/* User Profile / Authenticated Actions */}
-            <span className="text-slate-200 hidden sm:inline">|</span>
-
-            {currentUser ? (
-              <div className="flex items-center gap-2" id="navbar-user-hud">
-                <div className="hidden sm:flex flex-col text-right">
-                  <div 
-                    onClick={() => setIsProfileOpen(true)}
-                    className="text-[10px] font-black leading-tight flex items-center justify-end gap-1 cursor-pointer hover:text-brand transition-colors"
-                    title="Edit user profile"
-                  >
-                    {isAdmin ? (
-                      <span className="bg-rose-600 text-white text-[8px] font-black uppercase px-1 rounded-sm tracking-widest leading-none py-0.5">
-                        ADMIN
-                      </span>
-                    ) : isEditor ? (
-                      <span className="bg-blue-600 text-white text-[8px] font-black uppercase px-1 rounded-sm tracking-widest leading-none py-0.5">
-                        EDITOR
-                      </span>
-                    ) : null}
-                    <span className="truncate max-w-[110px] text-slate-900">{currentUser.displayName || currentUser.email}</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={handleLogout}
-                    className="text-[9px] text-slate-450 hover:text-red-600 font-bold tracking-wider leading-none text-right mt-0.5"
-                  >
-                    Logout
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsProfileOpen(true)}
-                  className="cursor-pointer hover:opacity-85 active:scale-95 transition-all shrink-0 rounded-full focus:outline-hidden"
-                  title="Edit user profile"
-                >
-                  {currentUser.photoURL ? (
-                    <img src={currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-250 shadow-2xs shrink-0" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs border border-slate-250 shadow-2xs uppercase shrink-0">
-                      {(currentUser.displayName || currentUser.email || "?").charAt(0)}
-                    </div>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsLoginOpen(true)}
-                className="bg-slate-900 hover:bg-[#1a1a1a] text-white hover:text-white transition-all font-black text-[10px] uppercase tracking-wider py-2.5 px-3 sm:px-4 rounded-lg flex items-center gap-1.5 shadow-xs shrink-0"
-              >
-                <Lock size={12} strokeWidth={2.5} />
-                <span>Sign In</span>
-              </button>
-            )}
-
-            {/* Hamburger Menu Toggle (Both Desktop and Mobile) */}
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(!isMobileMenuOpen);
-                setIsMobileSearchExpanded(false); // Close search if menu is opened
-              }}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all border border-slate-200 p-2 rounded-lg flex items-center justify-center shrink-0"
-              aria-label="Toggle menu"
-              title="Open Navigation Menu"
-            >
-              {isMobileMenuOpen ? <X size={15} strokeWidth={2.5} /> : <Menu size={15} strokeWidth={2.5} />}
-            </button>
-          </div>
-
-        </div>
-
-        {/* Mobile Expanded Search Bar Container */}
-        {isMobileSearchExpanded && activeTab === 'shop' && (
-          <div className="md:hidden border-t border-slate-200 bg-slate-50 p-3 shadow-inner animate-fade-in relative z-50">
-            <div className="relative flex items-center gap-2 w-full">
-              <div id="tour-search-bar-mobile" className="relative flex-1 flex items-center">
-                <Search className="absolute left-3 text-slate-400 pointer-events-none" size={14} />
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="Search panels, inverters..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-2 pl-9 pr-8 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-850 placeholder-slate-450"
-                />
-                <button 
-                  type="button"
-                  onClick={triggerCameraSearch}
-                  title="Search with Smart Vision Camera"
-                  className="absolute right-3 text-slate-400 hover:text-brand transition-colors cursor-pointer"
-                >
-                  <Camera size={15} />
-                </button>
-              </div>
+              {/* Wishlist Button (Desktop/Tablet Header - Hidden on Mobile) */}
               <button 
                 type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setIsMobileSearchExpanded(false);
-                }}
-                className="text-xs font-bold text-slate-500 hover:text-slate-800 shrink-0"
+                onClick={() => setIsWishlistModalOpen(true)}
+                className="relative text-[#c2c6d8] hover:text-[#b3c5ff] p-2 rounded-xl border border-white/10 bg-[#171b27] hover:border-white/20 transition-all cursor-pointer hidden sm:flex items-center justify-center active:scale-95"
+                title="View Wishlist"
               >
-                Cancel
+                <Heart size={18} className="text-rose-400 fill-rose-400/20" />
+                {wishlistIds.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0e131e]">
+                    {wishlistIds.length}
+                  </span>
+                )}
               </button>
-            </div>
 
-            {/* Mobile Dropdown Suggestions matches */}
-            {filteredSuggestions.length > 0 && (
-              <div className="mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden divide-y divide-slate-100 z-50 relative">
-                {filteredSuggestions.map((p) => (
+              {/* Shopping Cart Button */}
+              <button 
+                type="button"
+                id="tour-cart-btn"
+                onClick={() => setIsCartOpen(true)}
+                className="relative bg-[#0066ff] text-white p-2 sm:px-4 sm:py-2 rounded-xl font-bold active:scale-95 duration-150 shadow-lg cursor-pointer hover:bg-[#0052cc] transition-all flex items-center gap-1.5 text-[13px]"
+                title="View Cart"
+              >
+                <ShoppingBag size={18} />
+                <span className="hidden sm:inline">Cart</span>
+                {totalCartItems > 0 && (
+                  <span className="bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#0e131e] -ml-0.5 sm:ml-1">
+                    {totalCartItems}
+                  </span>
+                )}
+              </button>
+
+              {/* User Account / Login Button */}
+              {currentUser ? (
+                <div className="relative hidden sm:block pl-2 border-l border-white/10">
                   <button
-                    key={p.id}
                     type="button"
-                    onClick={() => {
-                      handleViewProduct(p);
-                      setSearchQuery('');
-                      setIsMobileSearchExpanded(false);
-                    }}
-                    className="w-full text-left p-2.5 hover:bg-slate-50 transition-colors flex items-center gap-2.5 text-xs text-slate-800"
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    className="flex items-center gap-2 cursor-pointer p-1 rounded-xl hover:bg-white/5 transition-colors"
                   >
-                    <img src={p.image} className="w-8 h-8 rounded border object-cover shrink-0" referrerPolicy="no-referrer" />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold truncate text-slate-900">{p.name}</div>
-                      <div className="text-[10px] text-slate-400 font-medium">{p.category} • ₦{p.price.toLocaleString()}</div>
+                    <div className="w-8 h-8 rounded-full bg-[#171b27] border border-white/20 flex items-center justify-center text-[#b3c5ff] font-bold text-xs shadow-inner overflow-hidden">
+                      {currentUser.photoURL ? (
+                        <img src={currentUser.photoURL} alt="User Profile" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        <span>{(currentUser.displayName || currentUser.email || '?').charAt(0).toUpperCase()}</span>
+                      )}
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </header>
-    )}
-
-      {/* Universal Full Sheet Slideover Navigation Panel & Backdrop (Desktop & Mobile) */}
-      {isMobileMenuOpen && (
-        <>
-          {/* Dark blur backdrop */}
-            <div 
-              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[1000] transition-opacity duration-300 animate-fade-in"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-
-            {/* Slideover Drawer Sheet */}
-            <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-[1001] flex flex-col animate-slide-in overflow-hidden border-l border-slate-200">
-              
-              {/* Sheet Header with Logo and Close Button */}
-              <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                <div className="flex items-center gap-2">
-                  <div className="p-0.5 rounded-lg border border-slate-200 flex items-center justify-center bg-white shadow-xs overflow-hidden w-8 h-8">
-                    <img 
-                      src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
-                      alt="SkyIT Logo" 
-                      className="w-full h-full object-contain" 
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-display font-black text-xs text-slate-900 tracking-tight leading-none">SkyIT <span className="text-brand">Ventures</span></span>
-                    <span className="text-[7px] uppercase tracking-widest font-black text-slate-400 mt-0.5">Control Menu</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-                  title="Close navigation panel"
-                >
-                  <X size={15} strokeWidth={2.5} />
-                </button>
-              </div>
-
-              {/* Scrollable Navigation List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
-                
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1 mb-2">Main Navigation</span>
-                  
-                  {/* Interactive App Tour Button */}
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setIsOnboardingOpen(true);
-                    }}
-                    className="w-full text-left px-3.5 py-2.5 rounded-xl bg-brand-light hover:bg-brand/20 border border-brand/20 text-brand font-black text-xs uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer shadow-2xs mb-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Compass size={15} className="text-brand shrink-0 animate-pulse" />
-                      <span>Interactive App Guide</span>
-                    </div>
-                    <span className="text-[9px] bg-brand text-white px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">Start</span>
+                    <span className="text-[12px] font-bold text-[#dee2f2] truncate max-w-[80px]">
+                      {currentUser.displayName ? currentUser.displayName.split(' ')[0] : (currentUser.email ? currentUser.email.split('@')[0] : 'Account')}
+                    </span>
+                    <ChevronDown size={14} className="text-[#8e95b0]" />
                   </button>
 
-                  {/* Home Nav Button - takes to home tab */}
-                  <button
-                    onClick={() => {
-                      setActiveTab('home');
-                      handleCloseProduct();
-                      setIsMobileMenuOpen(false);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'home'
-                        ? 'bg-slate-900 text-white font-black'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Home size={14} className={activeTab === 'home' ? 'text-white' : 'text-slate-550'} />
-                      <span>Home</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'home' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  {/* Shop Catalog Expandable Dropdown Container */}
-                  <div className="border border-slate-200/60 rounded-xl overflow-hidden bg-slate-50/50">
-                    <button
-                      onClick={() => {
-                        setIsShopDropdownOpen(!isShopDropdownOpen);
-                        setSelectedCategory('All');
-                        setActiveTab('shop');
-                        handleCloseProduct();
-                      }}
-                      className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                        activeTab === 'shop' ? 'bg-brand/5 text-brand font-extrabold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Store size={14} className="text-brand" />
-                        <span>Shop Catalog</span>
+                  {isUserDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-[#171b27] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden py-1.5 divide-y divide-white/5">
+                      <div className="px-3 py-2">
+                        <div className="text-xs font-bold text-[#dee2f2] truncate">{currentUser.displayName || currentUser.email}</div>
+                        <div className="text-xs text-[#b3c5ff]">{isAdmin ? 'Administrator' : (isEditor ? 'Staff Editor' : 'Customer')}</div>
                       </div>
-                      <ChevronDown size={13} className={`transition-transform duration-200 ${isShopDropdownOpen ? 'rotate-180 text-brand' : 'text-slate-450'}`} />
-                    </button>
-
-                    {/* Submenu Dropdown listing all categories */}
-                    {isShopDropdownOpen && (
-                      <div className="pl-3.5 pr-2 py-1.5 bg-white border-t border-slate-100 flex flex-col gap-1 animate-fade-in">
-                        {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Accessories'].map((cat) => (
-                          <button
-                            key={cat}
-                            onClick={() => {
-                              setSelectedCategory(cat);
-                              setActiveTab('shop');
-                              handleCloseProduct();
-                              setIsMobileMenuOpen(false);
-                              setTimeout(() => {
-                                const el = document.getElementById('catalog-section');
-                                if (el) {
-                                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                } else {
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }
-                              }, 100);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all flex justify-between items-center ${
-                              activeTab === 'shop' && selectedCategory === cat
-                                ? 'bg-brand-light text-brand font-bold border-l-2 border-brand pl-2'
-                                : 'text-slate-550 hover:bg-slate-50 hover:text-slate-900'
-                            }`}
-                          >
-                            <span>{cat === 'All' ? 'All Catalog' : cat}</span>
-                            <ChevronRight size={11} className={activeTab === 'shop' && selectedCategory === cat ? 'text-brand' : 'text-slate-300'} />
-                          </button>
-                        ))}
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            setIsProfileOpen(true);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-[#dee2f2] hover:bg-white/5 flex items-center gap-2 cursor-pointer transition-colors"
+                        >
+                          <Settings size={14} className="text-[#b3c5ff]" />
+                          Profile Settings
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            setActiveTab('admin');
+                            setSelectedProduct(null);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-[#dee2f2] hover:bg-white/5 flex items-center gap-2 cursor-pointer transition-colors"
+                        >
+                          <LayoutDashboard size={14} className="text-amber-400" />
+                          Control Deck
+                        </button>
                       </div>
-                    )}
-                  </div>
-
-                  <button
-                    id="tour-ai-advisor-btn"
-                    onClick={() => {
-                      setActiveTab('ai');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'ai' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles size={14} fill={activeTab === 'ai' ? "currentColor" : "none"} strokeWidth={2} className="text-amber-550" />
-                      <span>AI Solar Advisor</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'ai' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  <button
-                    id="tour-solar-packages-btn"
-                    onClick={() => {
-                      setActiveTab('quote');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'quote' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Package size={14} className={activeTab === 'quote' ? 'text-white' : 'text-brand'} />
-                      <span>Solar Packages</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'quote' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  <button
-                    id="tour-tracker-btn"
-                    onClick={() => {
-                      setActiveTab('tracker');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'tracker' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Truck size={14} className="text-sky-500" />
-                      <span>Track My Orders</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'tracker' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveTab('about');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'about' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Info size={14} className={activeTab === 'about' ? 'text-white' : 'text-indigo-500'} />
-                      <span>About SkyIT</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'about' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveTab('owner');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'owner' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <UserCheck size={14} className={activeTab === 'owner' ? 'text-white' : 'text-sky-500'} />
-                      <span>Managing Director</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'owner' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveTab('blog');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'blog' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <BookOpen size={14} className={activeTab === 'blog' ? 'text-white' : 'text-amber-500'} />
-                      <span>Engineering Blog</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'blog' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveTab('contact');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider ${
-                      activeTab === 'contact' ? 'bg-brand text-white font-bold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Phone size={14} className="text-emerald-500" />
-                      <span>Contact Support</span>
-                    </div>
-                    <ChevronRight size={13} className={activeTab === 'contact' ? 'text-white' : 'text-slate-400'} />
-                  </button>
-
-                  {/* Conditional Mobile Admin Command Deck link */}
-                  {(isAdmin || isEditor) ? (
-                    <button
-                      onClick={() => {
-                        setActiveTab('admin');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-3.5 py-3 rounded-lg transition-all flex items-center justify-between font-bold text-xs uppercase tracking-wider text-rose-600 bg-rose-50/60 ${
-                        activeTab === 'admin' ? 'bg-rose-600 text-white font-bold' : 'hover:bg-rose-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <LayoutDashboard size={14} />
-                        <span>{isAdmin ? 'Admin' : 'Staff'} Control Deck</span>
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer transition-colors font-bold"
+                        >
+                          <LogOut size={14} />
+                          Logout
+                        </button>
                       </div>
-                      <ChevronRight size={13} className={activeTab === 'admin' ? 'text-white' : 'text-rose-450'} />
-                    </button>
-                  ) : null}
-                </div>
-
-                {/* Mobile Auth Button HUD */}
-                <div className="pt-4 border-t border-slate-200">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1 mb-3">Account Workspace</span>
-                  
-                  {currentUser ? (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col gap-2.5">
-                      <div 
-                        onClick={() => {
-                          setIsProfileOpen(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-all"
-                        title="Edit user profile"
-                      >
-                        {currentUser.photoURL ? (
-                          <img src={currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-255 shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase border border-slate-255 shrink-0">
-                            {(currentUser.displayName || currentUser.email || "?").charAt(0)}
-                          </div>
-                        )}
-                        <div className="flex flex-col text-left">
-                          <span className="text-[11px] font-black text-slate-855 leading-tight hover:text-brand transition-colors">
-                            {currentUser.displayName || currentUser.email}
-                          </span>
-                          {isAdmin ? (
-                            <span className="text-[8px] bg-rose-600 text-white font-bold w-fit px-1.5 py-0.5 rounded-sm tracking-widest leading-none mt-0.5 uppercase">
-                              Admin Active
-                            </span>
-                          ) : isEditor ? (
-                            <span className="text-[8px] bg-blue-600 text-white font-bold w-fit px-1.5 py-0.5 rounded-sm tracking-widest leading-none mt-0.5 uppercase">
-                              Editor Active
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleLogout();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full bg-red-50 hover:bg-red-100 text-red-650 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-center border border-red-200"
-                      >
-                        Sign Out Account
-                      </button>
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsLoginOpen(true);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full bg-slate-900 hover:bg-brand text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <Lock size={12} strokeWidth={2.5} />
-                      <span>Sign In</span>
-                    </button>
                   )}
                 </div>
-
-              </div>
-
-              {/* Sheet Footer */}
-              <div className="p-4 border-t border-slate-200 bg-slate-50 text-[10px] text-center text-slate-400 font-mono flex items-center justify-between">
-                <span>SKYIT SECURE V4</span>
-                <span className="text-emerald-500 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  CONNECTED
-                </span>
-              </div>
-
-            </div>
-          </>
-        )}
-
-      {/* Hero Banner Grid (Visible on Home Tab only) */}
-      {activeTab === 'home' && !selectedProduct && (
-        <section className="bg-gradient-to-b from-brand-light/70 via-white to-slate-50 py-10 px-4 sm:px-6 md:px-8 text-slate-700 relative overflow-hidden border-b border-slate-200">
-          {/* Ambient visual glow circles representing clean solar energy */}
-          <div className="absolute top-1/2 right-1/4 w-72 h-72 bg-brand/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-10 left-10 w-48 h-48 bg-slate-200/40 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-6 items-center">
-            
-            {/* Promo core content */}
-            <div className="md:col-span-2 space-y-4">
-              <span className="bg-brand-light text-brand text-[9px] tracking-widest font-extrabold uppercase p-1 px-2.5 rounded-sm inline-block border border-brand/10">
-                High-Efficiency Solar & Deep Cycle Storage
-              </span>
-              <h1 className="font-display font-black leading-tight text-slate-900 text-3xl sm:text-4xl lg:text-5xl tracking-tight">
-                Engineering Custom Clean Energy & <span className="text-brand block mt-1">Starlight CCTV Solutions</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-xl leading-relaxed">
-                SkyIT Ventures manufactures and deploys advanced monocrystalline solar panels, pure sine wave hybrid inverters, LFP lithium storage modules, starlight PoE surveillance dome layouts, and biometric entrance gates tailored across Nigerian communities.
-              </p>
-              
-              <div className="flex flex-wrap gap-4 pt-2">
+              ) : (
                 <button 
-                  onClick={() => setActiveTab('ai')}
-                  className="bg-brand hover:bg-brand-hover active:scale-98 transition-all text-white text-xs font-bold py-2.5 px-4 rounded-lg flex items-center gap-1.5 uppercase tracking-wider animate-pulse hover:animate-none"
+                  type="button"
+                  onClick={() => setIsLoginOpen(true)}
+                  className="hidden md:block font-bold text-[#dee2f2] hover:text-[#b3c5ff] transition-colors cursor-pointer text-[13px] px-2 py-1"
                 >
-                  <Sparkles size={14} className="fill-white" />
-                  <span>Consult AI Advisor</span>
+                  Login
                 </button>
-                
-                <button 
-                  onClick={() => setActiveTab('tracker')}
-                  className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Truck size={14} className="text-brand" />
-                  <span>Track My Orders</span>
-                </button>
-              </div>
-            </div>
+              )}
 
-            {/* Quick Promo cards right column */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm text-slate-600 relative overflow-hidden min-h-[195px]">
-              <div>
-                <div className="flex items-center justify-between mb-3 border-b border-slate-100/80 pb-2">
-                  <h3 className="text-[10px] font-bold uppercase text-brand tracking-widest flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse"></span>
-                    Flash Highlights
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setSelectedCategory('All');
-                      setActiveTab('shop');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+              {/* Mobile Hamburger Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(!isMobileMenuOpen);
+                  setIsMobileSearchExpanded(false);
+                }}
+                className="lg:hidden text-[#c2c6d8] hover:text-[#b3c5ff] p-2 rounded-xl border border-white/10 bg-[#171b27] transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Search Expansion Panel (All screen sizes) */}
+          {isMobileSearchExpanded && (
+            <div className="border-t border-white/10 bg-[#121623] px-4 sm:px-8 py-3 animate-fade-in shadow-xl">
+              <div className="max-w-[1440px] mx-auto space-y-2">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3.5 text-[#8e95b0] pointer-events-none" size={16} />
+                  <input 
+                    type="text"
+                    placeholder="Search solar panels, inverters, batteries, packages..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setSelectedCategory('All');
+                        setActiveTab('shop');
+                        setSelectedProduct(null);
+                        setIsMobileSearchExpanded(false);
+                      }
                     }}
-                    className="text-[9px] font-bold uppercase tracking-wider text-brand hover:text-brand-hover bg-brand/10 hover:bg-brand/20 px-2 py-0.5 rounded-md transition-all flex items-center gap-0.5 cursor-pointer"
-                    title="View All Products Catalog"
+                    autoFocus
+                    className="w-full bg-[#171b27] border border-white/20 text-[#dee2f2] placeholder-[#8e95b0] text-base sm:text-sm rounded-xl pl-10 pr-16 py-2.5 focus:outline-none focus:border-[#0066ff] shadow-inner"
+                  />
+                  <button 
+                    type="button"
+                    onClick={triggerCameraSearch}
+                    title="Search with Smart Vision Camera"
+                    className="absolute right-9 text-[#8e95b0] hover:text-[#b3c5ff] p-1 cursor-pointer transition-colors"
                   >
-                    <span>ALL</span>
-                    <ChevronRight size={11} />
+                    <Camera size={18} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsMobileSearchExpanded(false);
+                      setSearchQuery('');
+                    }}
+                    className="absolute right-2.5 text-[#8e95b0] hover:text-white p-1 cursor-pointer transition-colors"
+                  >
+                    <X size={18} />
                   </button>
                 </div>
-                
-                {isProductsLoading ? (
-                  <div className="flex gap-3.5 items-center animate-pulse py-1">
-                    <div className="w-16 h-16 bg-slate-200/70 rounded-xl shrink-0"></div>
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="h-3 w-16 bg-slate-200/70 rounded-sm"></div>
-                      <div className="h-4 w-3/4 bg-slate-200/70 rounded-md"></div>
-                      <div className="h-3.5 w-24 bg-slate-100 rounded-sm"></div>
-                    </div>
+
+                {/* Search Dropdown Suggestions */}
+                {filteredSuggestions.length > 0 && searchQuery.trim().length > 0 && (
+                  <div className="bg-[#171b27] border border-white/10 rounded-xl overflow-hidden divide-y divide-white/5 shadow-2xl max-h-80 overflow-y-auto">
+                    {filteredSuggestions.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedProduct(p);
+                          addToRecentlyViewed(p.id);
+                          setIsMobileSearchExpanded(false);
+                          setSearchQuery('');
+                        }}
+                        className="w-full text-left p-2.5 hover:bg-white/5 transition-colors flex items-center gap-3 cursor-pointer"
+                      >
+                        <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg border border-white/10 object-cover shrink-0" referrerPolicy="no-referrer" />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold truncate text-[#dee2f2] text-xs sm:text-sm">{p.name}</div>
+                          <div className="text-[10px] sm:text-xs text-[#8e95b0]">{p.category} • ₦{p.price.toLocaleString()}</div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                ) : highlightItems.length > 0 ? (
-                  <div className="relative overflow-hidden min-h-[84px]">
-                    <AnimatePresence mode="wait">
-                      {highlightItems.map((item, idx) => {
-                        if (idx !== highlightIndex) return null;
-                        return (
-                          <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, x: 25 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -25 }}
-                            transition={{ duration: 0.35, ease: "easeInOut" }}
-                            className="flex gap-3.5 items-center"
-                          >
-                            <img 
-                              src={item.image || "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=300&q=80"} 
-                              alt={item.name} 
-                              className="w-16 h-16 object-cover rounded-xl bg-slate-50 border border-slate-100 shrink-0 shadow-3xs"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium border border-slate-100 uppercase tracking-wider">
-                                {item.category}
-                              </span>
-                              <h4 className="text-xs font-display font-semibold text-slate-800 line-clamp-1 leading-snug mt-1" title={item.name}>
-                                {item.name}
-                              </h4>
-                              {item.discountPercent > 0 ? (
-                                <span className="bg-rose-50 text-rose-600 text-[9px] px-1.5 py-0.5 uppercase font-bold rounded inline-block mt-1 mb-1.5 tracking-wide border border-rose-100/50">
-                                  -{item.discountPercent}% Limited Promo
-                                </span>
-                              ) : (
-                                <span className="bg-emerald-50 text-emerald-600 text-[9px] px-1.5 py-0.5 uppercase font-bold rounded inline-block mt-1 mb-1.5 tracking-wide border border-emerald-100/50">
-                                  Best Price
-                                </span>
-                              )}
-                              <div className="flex items-baseline gap-1.5 text-xs font-mono">
-                                <span className="font-bold text-slate-900">₦{item.price.toLocaleString()}</span>
-                                {item.originalPrice > item.price && (
-                                  <span className="text-[10px] text-slate-400 line-through">₦{item.originalPrice.toLocaleString()}</span>
-                                )}
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-xs text-slate-450">No spotlight products available</div>
                 )}
               </div>
-
-              {!isProductsLoading && highlightItems.length > 0 && (
-                <div className="space-y-3 mt-4 pt-2 border-t border-slate-50">
-                  <button 
-                    onClick={() => {
-                      const item = highlightItems[highlightIndex];
-                      if (item) handleViewProduct(item);
-                    }}
-                    className="w-full bg-slate-100 hover:bg-slate-200 hover:text-slate-800 transition-colors py-2 rounded-lg text-center text-[10px] uppercase tracking-wider font-bold text-slate-600 cursor-pointer"
-                  >
-                    Inspect Specifications
-                  </button>
-
-                  <div className="flex items-center justify-between pt-0.5">
-                    {/* Dots Progress Navigation */}
-                    <div className="flex items-center gap-1.5">
-                      {highlightItems.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setHighlightIndex(idx)}
-                          className="focus:outline-none py-1.5 px-0.5 group cursor-pointer"
-                          title={`Go to item ${idx + 1}`}
-                          aria-label={`Go to slide ${idx + 1}`}
-                        >
-                          <div 
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                              idx === highlightIndex 
-                                ? 'w-4.5 bg-brand' 
-                                : 'w-1.5 bg-slate-200 group-hover:bg-slate-350'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Left/Right Arrow controls */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setHighlightIndex(prev => (prev - 1 + highlightItems.length) % highlightItems.length)}
-                        className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                        title="Previous highlight"
-                        aria-label="Previous Slide"
-                      >
-                        <ChevronRight className="transform rotate-180" size={14} />
-                      </button>
-                      <button
-                        onClick={() => setHighlightIndex(prev => (prev + 1) % highlightItems.length)}
-                        className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                        title="Next highlight"
-                        aria-label="Next Slide"
-                      >
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
+          )}
 
-          </div>
-        </section>
+          {/* Mobile Navigation Drawer */}
+          {isMobileMenuOpen && (
+            <div className="lg:hidden border-t border-white/10 bg-[#0e131e]/98 backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in shadow-2xl max-h-[80vh] overflow-y-auto">
+              <button 
+                onClick={() => { setIsOnboardingOpen(true); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[14px] text-[#b3c5ff] bg-[#0066ff]/20 border border-[#0066ff]/40 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Compass size={18} className="text-[#0066ff]" />
+                  <span>Interactive App Tour</span>
+                </div>
+                <span className="text-[10px] bg-[#0066ff] text-white px-2 py-0.5 rounded-md uppercase font-bold">Start</span>
+              </button>
+
+              <button 
+                onClick={() => { setSelectedCategory('All'); setActiveTab('home'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-[#dee2f2] hover:bg-white/5 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Home size={18} className="text-[#0066ff]" />
+                  <span>Home</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setSelectedCategory('All'); setActiveTab('shop'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-[#dee2f2] hover:bg-white/5 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <ShoppingBag size={18} className="text-[#0066ff]" />
+                  <span>Shop Hardware</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              {/* Wishlist Mobile Shortcut */}
+              <button 
+                onClick={() => { 
+                  setIsWishlistModalOpen(true); 
+                  setIsMobileMenuOpen(false); 
+                }}
+                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-[#dee2f2] hover:bg-white/5 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Heart size={18} className="text-rose-400 fill-rose-400/20" />
+                  <span>My Wishlist</span>
+                </div>
+                <span className="text-xs font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">
+                  {wishlistIds.length} {wishlistIds.length === 1 ? 'item' : 'items'}
+                </span>
+              </button>
+              
+              <button 
+                onClick={() => { setActiveTab('quote'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-medium text-[15px] text-[#c2c6d8] hover:bg-white/5 hover:text-[#dee2f2] flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Gift size={18} className="text-amber-400" />
+                  <span>Complete Packages</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('ai'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-medium text-[15px] text-[#c2c6d8] hover:bg-white/5 hover:text-[#dee2f2] flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Sparkles size={18} className="text-[#0066ff]" />
+                  <span>AI Energy Advisor</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('tracker'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-medium text-[15px] text-[#c2c6d8] hover:bg-white/5 hover:text-[#dee2f2] flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <ClipboardList size={18} className="text-sky-400" />
+                  <span>Installation & Tracking</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('blog'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-medium text-[15px] text-[#c2c6d8] hover:bg-white/5 hover:text-[#dee2f2] flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <BookOpen size={18} className="text-amber-500" />
+                  <span>Blog & Guides</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('about'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-medium text-[15px] text-[#c2c6d8] hover:bg-white/5 hover:text-[#dee2f2] flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Info size={18} className="text-indigo-400" />
+                  <span>About SkyIT</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('owner'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-medium text-[15px] text-[#c2c6d8] hover:bg-white/5 hover:text-[#dee2f2] flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <UserCheck size={18} className="text-sky-400" />
+                  <span>Managing Director</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('contact'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-medium text-[15px] text-[#c2c6d8] hover:bg-white/5 hover:text-[#dee2f2] flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Phone size={18} className="text-emerald-400" />
+                  <span>Contact Support</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('admin'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-rose-400 bg-rose-500/10 border border-rose-500/20 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <LayoutDashboard size={18} className="text-rose-400" />
+                  <span>Admin Control Deck</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
+
+              <div className="pt-3 border-t border-white/10 flex items-center gap-3">
+                {currentUser ? (
+                  <button 
+                    type="button"
+                    onClick={() => { setIsProfileOpen(true); setIsMobileMenuOpen(false); }}
+                    className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] border border-white/10 text-[#dee2f2] hover:bg-white/5 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <UserCheck size={18} />
+                    <span>Profile</span>
+                  </button>
+                ) : (
+                  <button 
+                    type="button"
+                    onClick={() => { setIsLoginOpen(true); setIsMobileMenuOpen(false); }}
+                    className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] border border-white/10 text-[#dee2f2] hover:bg-white/5 transition-all cursor-pointer"
+                  >
+                    Login
+                  </button>
+                )}
+                <button 
+                  type="button"
+                  onClick={() => { setIsCartOpen(true); setIsMobileMenuOpen(false); }}
+                  className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] bg-[#0066ff] text-[#f8f7ff] shadow-lg hover:bg-[#0052cc] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <ShoppingBag size={18} />
+                  <span>Cart ({totalCartItems})</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </header>
       )}
 
+
+
       {/* Core Body Container */}
-      <main className={activeTab === 'ai' ? 'w-full flex-1 flex flex-col bg-[#0e0e10]' : (selectedProduct ? 'w-full flex-1 flex flex-col' : 'max-w-7xl mx-auto px-4 pt-8 pb-2 flex-1 w-full')}>
+      <main className={
+        activeTab === 'ai' || activeTab === 'home' 
+          ? 'w-full flex-1 flex flex-col bg-[#0e131e] p-0 m-0 border-0' 
+          : (selectedProduct ? 'w-full flex-1 flex flex-col' : 'max-w-7xl mx-auto px-4 pt-8 pb-2 flex-1 w-full')
+      }>
         
         {/* Dynamic Navigation Breadcrumbs */}
-        {activeTab !== 'ai' && (
+        {activeTab !== 'ai' && activeTab !== 'home' && (
           <div className={selectedProduct ? "max-w-7xl mx-auto px-4 pt-6 w-full" : "w-full"}>
             <Breadcrumbs 
               activeTab={activeTab} 
@@ -1729,17 +1661,41 @@ export default function App() {
 
         {/* VIEW 0: HOME TAB */}
         {activeTab === 'home' && !selectedProduct && (
-          <div className="space-y-12 w-full animate-fade-in">
-            <HomeSections 
+          <div className="w-full flex-1 animate-fade-in">
+            <FullHomePage 
+              onNavigate={setActiveTab}
               onSelectCategory={(category) => {
                 setSelectedCategory(category);
                 setActiveTab('shop');
-                setTimeout(() => {
-                  const el = document.getElementById('catalog-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
-              }} 
-              onNavigate={setActiveTab} 
+              }}
+              onViewProduct={handleViewProduct}
+              onAddToCart={handleAddToCart}
+              onConsultPackage={handleConsultPackage}
+              onOpenLogin={() => setIsLoginOpen(true)}
+              onOpenCart={() => setIsCartOpen(true)}
+              onOpenProfile={() => setIsProfileOpen(true)}
+              onOpenOnboarding={() => setIsOnboardingOpen(true)}
+              onLogout={handleLogout}
+              products={productsWithRealRatings}
+              isLoadingProducts={isProductsLoading}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              triggerCameraSearch={triggerCameraSearch}
+              filteredSuggestions={filteredSuggestions}
+              totalCartItems={totalCartItems}
+              currentUser={currentUser}
+              isAdmin={isAdmin}
+              isEditor={isEditor}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+              recentlyViewedIds={recentlyViewedIds}
+              onOpenWishlist={() => setIsWishlistModalOpen(true)}
+              blogPosts={blogPosts}
+              onSelectBlogPost={(post) => {
+                setSelectedBlogPost(post);
+                setActiveTab('blog');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           </div>
         )}
@@ -2011,6 +1967,8 @@ export default function App() {
                       product={prod}
                       onAddToCart={handleAddToCart}
                       onViewDetails={handleViewProduct}
+                      isWishlisted={wishlistIds.includes(prod.id)}
+                      onToggleWishlist={handleToggleWishlist}
                     />
                   ))}
                 </div>
@@ -2043,6 +2001,8 @@ export default function App() {
         {activeTab === 'ai' && !selectedProduct && (
           <div id="tour-ai-advisor-target" className="w-full">
             <AiAssistant 
+              initialPrompt={initialAiPrompt}
+              onClearInitialPrompt={() => setInitialAiPrompt('')}
               onAddToCart={handleAddToCart}
               onViewProduct={(p) => handleViewProduct(p)}
               currentUser={currentUser}
@@ -2060,8 +2020,19 @@ export default function App() {
         )}
 
         {/* VIEW 5: ADMIN LOGISTICS CONTROL TERMINAL */}
-        {activeTab === 'admin' && (isAdmin || isEditor) && !selectedProduct && (
-          <AdminPanel isUserAdmin={isAdmin} isUserEditor={isEditor} />
+        {activeTab === 'admin' && !selectedProduct && (
+          (isAdmin || isEditor) ? (
+            <AdminPanel isUserAdmin={isAdmin} isUserEditor={isEditor} />
+          ) : (
+            <AdminLoginGate 
+              onUnlockAdmin={() => {
+                setIsAdmin(true);
+                setIsEditor(true);
+                localStorage.setItem('skyit_sim_admin', 'true');
+              }}
+              onOpenLogin={() => setIsLoginOpen(true)}
+            />
+          )
         )}
 
         {/* VIEW 6: CONTACT & SPECIFICATION DESK */}
@@ -2081,7 +2052,24 @@ export default function App() {
 
         {/* VIEW 10: ENGINEERING & CLEAN ENERGY BLOG PANEL */}
         {activeTab === 'blog' && !selectedProduct && (
-          <BlogSection posts={blogPosts} onNavigate={setActiveTab} />
+          <BlogSection 
+            posts={blogPosts} 
+            selectedPost={selectedBlogPost}
+            onSelectPost={(post) => {
+              setSelectedBlogPost(post);
+              const params = new URLSearchParams(window.location.search);
+              params.set('tab', 'blog');
+              params.set('post', post.slug || post.id);
+              window.history.pushState({ tab: 'blog', post: post.id }, '', `?${params.toString()}`);
+            }}
+            onClearSelectedPost={() => {
+              setSelectedBlogPost(null);
+              const params = new URLSearchParams(window.location.search);
+              params.set('tab', 'blog');
+              params.delete('post');
+              window.history.pushState({ tab: 'blog' }, '', `?${params.toString()}`);
+            }}
+          />
         )}
 
         {/* VIEW 8: TURNKEY SOLAR PACKAGES TAB */}
@@ -2090,207 +2078,158 @@ export default function App() {
             <SolarPackages 
               onAddToCart={handleAddToCart} 
               onOpenCart={() => setIsCartOpen(true)} 
+              onConsultPackage={handleConsultPackage}
             />
           </div>
         )}
 
       </main>
 
-      {/* Core Brand Trust Footer */}
-      {activeTab !== 'ai' && !selectedProduct && (
-        <footer className="bg-slate-900 text-slate-450 py-10 mt-2 border-t border-slate-805">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-xs leading-relaxed text-slate-400">
-          
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="p-0.5 rounded-md bg-white overflow-hidden w-7 h-7 flex items-center justify-center">
-                <img 
-                  src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
-                  alt="SkyIT Logo" 
-                  className="w-full h-full object-contain" 
-                  referrerPolicy="no-referrer"
-                />
+      {/* Universal General Footer */}
+      {activeTab !== 'ai' && (
+        <footer className="w-full py-14 mt-auto border-t border-white/10 bg-[#090e19] text-[#c2c6d8]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 px-4 sm:px-10 max-w-[1440px] mx-auto">
+            
+            {/* Column 1: Brand & Socials */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-1 rounded-xl bg-white overflow-hidden w-9 h-9 flex items-center justify-center shadow-md">
+                  <img 
+                    src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
+                    alt="SkyIT Logo" 
+                    className="w-full h-full object-contain" 
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <span className="text-[22px] font-bold text-[#b3c5ff] font-display">SkyIT Ventures</span>
               </div>
-              <span className="font-display font-black text-white text-base">SkyIT Ventures</span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Leading the deployment of smart energy microgrids, hybrid MPPT Pure Sine inverters, residential LFP lithium walls, starlight outdoor CCTV surveillance networks, and state-of-the-art commissioning engineering services.
-            </p>
-            {/* Highly Polished Interactive Social Links */}
-            <div className="flex items-center gap-2 pt-1">
-              <a 
-                href="https://wa.me/2349074444140?text=Hello%20SkyIT%20Ventures%20team,%20I'd%20like%20to%20inquire%20about%20your%20solar%20solutions." 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-slate-850/80 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/30 text-slate-400 border border-slate-800 flex items-center justify-center transition-all duration-300 group shadow-sm"
-                aria-label="WhatsApp"
-                id="social-whatsapp"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 transition-transform group-hover:scale-110">
-                  <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23c-1.48 0-2.93-.39-4.19-1.15l-.3-.17l-3.12.82l.83-3.04l-.2-.32a8.2 8.2 0 0 1-1.26-4.38c.01-4.54 3.7-8.24 8.25-8.24M8.53 7.33c-.16 0-.43.06-.66.31c-.22.25-.87.86-.87 2.07c0 1.22.89 2.39 1 2.56c.14.17 1.76 2.67 4.25 3.73c.59.27 1.05.42 1.41.53c.59.19 1.13.16 1.56.1c.48-.07 1.46-.6 1.67-1.18s.21-1.07.15-1.18c-.07-.1-.23-.16-.48-.27c-.25-.14-1.47-.74-1.69-.82c-.23-.08-.37-.12-.56.12c-.16.25-.64.81-.78.97c-.15.17-.29.19-.53.07c-.26-.13-1.06-.39-2-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.12-.24-.01-.39.11-.5c.11-.11.27-.29.37-.44c.13-.14.17-.25.25-.41c.08-.17.04-.31-.02-.43c-.06-.11-.56-1.35-.77-1.84c-.2-.48-.4-.42-.56-.43c-.14 0-.3-.01-.47-.01" />
-                </svg>
-              </a>
-              <a 
-                href="https://www.facebook.com/p/Skyit-Ventures-100044418501183/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-slate-850/80 hover:bg-[#1877F2]/10 hover:text-[#1877F2] hover:border-[#1877F2]/30 text-slate-400 border border-slate-800 flex items-center justify-center transition-all duration-300 group shadow-sm"
-                aria-label="Facebook"
-                id="social-fb"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 transition-transform group-hover:scale-110">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-                </svg>
-              </a>
-              <a 
-                href="https://www.instagram.com/skyit_ltd/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-slate-850/80 hover:bg-[#E1306C]/10 hover:text-[#E1306C] hover:border-[#E1306C]/30 text-slate-400 border border-slate-800 flex items-center justify-center transition-all duration-300 group shadow-sm"
-                aria-label="Instagram"
-                id="social-instagram"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 transition-transform group-hover:scale-110">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-                </svg>
-              </a>
-              <a 
-                href="https://tiktok.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-slate-850/80 hover:bg-[#00F2EA]/10 hover:text-[#00F2EA] hover:border-[#00F2EA]/30 text-slate-400 border border-slate-800 flex items-center justify-center transition-all duration-300 group shadow-sm hidden"
-                aria-label="TikTok"
-                id="social-tiktok"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 transition-transform group-hover:scale-110">
-                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                </svg>
-              </a>
-              <a 
-                href="https://x.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-slate-850/80 hover:bg-white/10 hover:text-white hover:border-white/30 text-slate-400 border border-slate-800 flex items-center justify-center transition-all duration-300 group shadow-sm hidden"
-                aria-label="X (formerly Twitter)"
-                id="social-x"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 transition-transform group-hover:scale-110">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
-              <a 
-                href="https://ng.linkedin.com/company/skyit-limited" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-slate-850/80 hover:bg-[#0077B5]/10 hover:text-[#0077B5] hover:border-[#0077B5]/30 text-slate-400 border border-slate-800 flex items-center justify-center transition-all duration-300 group shadow-sm"
-                aria-label="LinkedIn"
-                id="social-linkedin"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 transition-transform group-hover:scale-110">
-                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-                  <rect x="2" y="9" width="4" height="12" />
-                  <circle cx="4" cy="4" r="2" />
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-xs uppercase font-bold text-white tracking-widest mb-3 font-display">Head Office Portal</h4>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              KM 1 DSC Expressway beside Jesus Temple Church, Ebrumede, Effurun-Warri, Delta State
-            </p>
-          </div>
-
-          <div>
-            <h4 className="text-xs uppercase font-bold text-white tracking-widest mb-3 font-display">Lagos Branch</h4>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Manjo Plaza, NNPC Service Station, Ikota, Second Gate, K.M 22, Lekki-Epe Expressway, Lekki, Lagos
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-xs uppercase font-bold text-white tracking-widest font-display">Technical Support</h4>
-            <div className="space-y-1.5 text-[11px] text-slate-400">
-              <p className="font-mono text-slate-300">
-                +234-9135396292 <br />
-                +234-9074444140 <br />
-                +234-9017777773 <br />
-                +234-9017777774
+              <p className="text-[13px] leading-[22px] text-[#c2c6d8]">
+                Leading the deployment of smart energy microgrids, hybrid MPPT Pure Sine inverters, residential LFP lithium walls, starlight outdoor CCTV surveillance networks, and state-of-the-art commissioning engineering services.
               </p>
-              <p className="text-sky-400 hover:text-sky-300 transition-colors font-bold underline truncate">
-                <a href="mailto:skyitventures01@gmail.com">skyitventures01@gmail.com</a>
-              </p>
+              {/* Social Links */}
+              <div className="flex items-center gap-3 pt-1">
+                <a 
+                  href="https://wa.me/2349074444140?text=Hello%20SkyIT%20Ventures%20team,%20I'd%20like%20to%20inquire%20about%20your%20solar%20solutions." 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-[#171b27] hover:bg-[#25D366]/20 hover:text-[#25D366] hover:border-[#25D366]/40 text-[#c2c6d8] border border-white/10 flex items-center justify-center transition-all group shadow-sm"
+                  aria-label="WhatsApp"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 transition-transform group-hover:scale-110">
+                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23c-1.48 0-2.93-.39-4.19-1.15l-.3-.17l-3.12.82l.83-3.04l-.2-.32a8.2 8.2 0 0 1-1.26-4.38c.01-4.54 3.7-8.24 8.25-8.24M8.53 7.33c-.16 0-.43.06-.66.31c-.22.25-.87.86-.87 2.07c0 1.22.89 2.39 1 2.56c.14.17 1.76 2.67 4.25 3.73c.59.27 1.05.42 1.41.53c.59.19 1.13.16 1.56.1c.48-.07 1.46-.6 1.67-1.18s.21-1.07.15-1.18c-.07-.1-.23-.16-.48-.27c-.25-.14-1.47-.74-1.69-.82c-.23-.08-.37-.12-.56.12c-.16.25-.64.81-.78.97c-.15.17-.29.19-.53.07c-.26-.13-1.06-.39-2-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.12-.24-.01-.39.11-.5c.11-.11.27-.29.37-.44c.13-.14.17-.25.25-.41c.08-.17.04-.31-.02-.43c-.06-.11-.56-1.35-.77-1.84c-.2-.48-.4-.42-.56-.43c-.14 0-.3-.01-.47-.01" />
+                  </svg>
+                </a>
+                <a 
+                  href="https://www.facebook.com/p/Skyit-Ventures-100044418501183/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-[#171b27] hover:bg-[#1877F2]/25 hover:text-[#1877F2] hover:border-[#1877F2]/40 text-[#c2c6d8] border border-white/10 flex items-center justify-center transition-all group shadow-sm"
+                  aria-label="Facebook"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 transition-transform group-hover:scale-110">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                  </svg>
+                </a>
+                <a 
+                  href="https://www.instagram.com/skyit_ltd/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-[#171b27] hover:bg-[#E1306C]/25 hover:text-[#E1306C] hover:border-[#E1306C]/40 text-[#c2c6d8] border border-white/10 flex items-center justify-center transition-all group shadow-sm"
+                  aria-label="Instagram"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 transition-transform group-hover:scale-110">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                  </svg>
+                </a>
+                <a 
+                  href="https://ng.linkedin.com/company/skyit-limited" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-[#171b27] hover:bg-[#0077B5]/25 hover:text-[#0077B5] hover:border-[#0077B5]/40 text-[#c2c6d8] border border-white/10 flex items-center justify-center transition-all group shadow-sm"
+                  aria-label="LinkedIn"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 transition-transform group-hover:scale-110">
+                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                    <rect x="2" y="9" width="4" height="12" />
+                    <circle cx="4" cy="4" r="2" />
+                  </svg>
+                </a>
+              </div>
             </div>
-            <button
-              onClick={() => {
-                setActiveTab('contact');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="bg-sky-500 hover:bg-sky-400 text-slate-950 text-[10.5px] font-black uppercase tracking-wider py-2.5 px-3 rounded-lg text-center transition-all shadow-md shadow-sky-500/10 w-full cursor-pointer border border-sky-400"
-            >
-              📥 Submit Sizing Inquiry
-            </button>
+
+            {/* Column 2: Quick Links */}
+            <div className="space-y-6">
+              <h4 className="font-bold text-[#dee2f2] text-[18px] sm:text-[20px] font-display">Quick Links</h4>
+              <ul className="space-y-2.5">
+                <li><button onClick={() => { setSelectedCategory('All'); setActiveTab('shop'); }} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Shop Hardware</button></li>
+                <li><button onClick={() => setActiveTab('quote')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Complete Packages</button></li>
+                <li><button onClick={() => setActiveTab('ai')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">AI Energy Advisor</button></li>
+                <li><button onClick={() => setActiveTab('tracker')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Installation & Tracking</button></li>
+                <li><button onClick={() => setActiveTab('about')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">About SkyIT</button></li>
+                <li><button onClick={() => setActiveTab('owner')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Managing Director</button></li>
+                <li><button onClick={() => setActiveTab('contact')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Contact & Support</button></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Technical Support Desk & Phones */}
+            <div className="space-y-6">
+              <h4 className="font-bold text-[#dee2f2] text-[18px] sm:text-[20px] font-display">Technical Support</h4>
+              <div className="space-y-3 text-[13px] text-[#c2c6d8]">
+                <div className="space-y-1 font-mono text-xs text-[#dee2f2] bg-[#171b27] p-3 rounded-xl border border-white/5">
+                  <div>+234-9135396292</div>
+                  <div>+234-9074444140</div>
+                  <div>+234-9017777773</div>
+                  <div>+234-9017777774</div>
+                </div>
+                <p className="font-bold text-[#0066ff] hover:underline flex flex-col gap-1">
+                  <a href="mailto:skyitventures01@gmail.com">skyitventures01@gmail.com</a>
+                  <a href="https://www.skyitonline.org" target="_blank" rel="noopener noreferrer" className="text-amber-400">www.skyitonline.org</a>
+                </p>
+              </div>
+            </div>
+
+            {/* Column 4: Office Locations */}
+            <div className="space-y-6">
+              <h4 className="font-bold text-[#dee2f2] text-[18px] sm:text-[20px] font-display">Offices</h4>
+              <div className="space-y-4">
+                <div>
+                  <div className="text-[14px] text-[#dee2f2] font-bold">Head Office Portal (Warri)</div>
+                  <p className="text-[12px] leading-[18px] text-[#c2c6d8]">KM 1 DSC Expressway beside Jesus Temple Church, Ebrumede, Effurun-Warri, Delta State.</p>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#dee2f2] font-bold">Lagos Branch HQ</div>
+                  <p className="text-[12px] leading-[18px] text-[#c2c6d8]">Manjo Plaza, NNPC Service Station, Ikota, Second Gate, K.M 22, Lekki-Epe Expressway, Lekki, Lagos.</p>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 mt-6 border-t border-slate-800 text-center text-xs text-slate-400 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="text-slate-400 font-medium text-[11px] sm:text-xs">© 2026 SkyIT Ventures Limited. All rights reserved. Built with premium Vite & React.</span>
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-3 gap-y-2 text-[11px] font-medium text-slate-400">
-            <button 
-              onClick={() => { setActiveTab('about'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
-              id="footer-about-btn"
-            >
-              About SkyIT
-            </button>
-            <span className="text-slate-700 select-none">|</span>
-            <button 
-              onClick={() => { setActiveTab('owner'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
-              id="footer-owner-btn"
-            >
-              Leadership
-            </button>
-            <span className="text-slate-700 select-none">|</span>
-            <button 
-              onClick={() => { setActiveTab('blog'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
-              id="footer-blog-btn"
-            >
-              Blog & News
-            </button>
-            <span className="text-slate-700 select-none">|</span>
-            <button 
-              onClick={() => { setPolicyTab('installation'); setIsPolicyOpen(true); }}
-              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
-              id="footer-terms-btn"
-            >
-              Terms of Installation
-            </button>
-            <span className="text-slate-700 select-none">|</span>
-            <button 
-              onClick={() => { setPolicyTab('engineering'); setIsPolicyOpen(true); }}
-              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
-              id="footer-engineering-btn"
-            >
-              Engineering Policies
-            </button>
-            <span className="text-slate-700 select-none">|</span>
-            <button 
-              onClick={() => { setPolicyTab('return'); setIsPolicyOpen(true); }}
-              className="cursor-pointer hover:text-white transition-colors border-none bg-transparent p-0"
-              id="footer-return-btn"
-            >
-              Return Policy
-            </button>
+          {/* Bottom Bar: Copyright & Legal Navigation */}
+          <div className="mt-12 pt-8 border-t border-white/10 max-w-[1440px] mx-auto px-4 sm:px-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#c2c6d8]">
+            <p className="text-xs text-[#c2c6d8] font-medium text-center md:text-left">
+              © 2026 SkyIT Ventures Limited. All rights reserved. Built with premium Vite & React.
+            </p>
+            <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-3 gap-y-2 text-xs">
+              <button type="button" onClick={() => setActiveTab('about')} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0">About SkyIT</button>
+              <span className="text-white/30 font-bold">·</span>
+              <button type="button" onClick={() => setActiveTab('owner')} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0">Leadership</button>
+              <span className="text-white/30 font-bold">·</span>
+              <button type="button" onClick={() => setActiveTab('blog')} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0">Blog & News</button>
+              <span className="text-white/30 font-bold">·</span>
+              <button type="button" onClick={() => { setPolicyTab('installation'); setIsPolicyOpen(true); }} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0">Terms of Installation</button>
+              <span className="text-white/30 font-bold">·</span>
+              <button type="button" onClick={() => { setPolicyTab('engineering'); setIsPolicyOpen(true); }} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0">Engineering Policies</button>
+              <span className="text-white/30 font-bold">·</span>
+              <button type="button" onClick={() => { setPolicyTab('return'); setIsPolicyOpen(true); }} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0">Return Policy</button>
+            </div>
           </div>
-        </div>
-      </footer>
-    )}
+        </footer>
+      )}
+
+
 
       {/* CORE FLOATING MODALS & DRAWER PORTALS */}
       
@@ -2482,6 +2421,68 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Wishlist Toast Notification Card */}
+      <AnimatePresence>
+        {wishlistToast && wishlistToast.show && (
+          <motion.div
+            key="wishlist-toast"
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-6 left-6 sm:left-auto sm:right-6 z-[9999] max-w-sm w-[calc(100vw-3rem)] sm:w-80 bg-[#171b27]/95 backdrop-blur-xl border border-rose-500/30 rounded-2xl shadow-2xl p-3.5 text-white flex items-center gap-3 font-sans"
+          >
+            <div className="relative shrink-0">
+              <img 
+                src={wishlistToast.product.image} 
+                alt={wishlistToast.product.name} 
+                className="w-12 h-12 rounded-xl object-cover border border-white/10 bg-[#303541]"
+                referrerPolicy="no-referrer"
+              />
+              <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm ${
+                wishlistToast.added ? 'bg-rose-500 text-white' : 'bg-slate-600 text-slate-300'
+              }`}>
+                <Heart size={10} fill={wishlistToast.added ? "currentColor" : "none"} />
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <span className={`text-[10px] font-black uppercase tracking-wider ${
+                  wishlistToast.added ? 'text-rose-400' : 'text-slate-400'
+                }`}>
+                  {wishlistToast.added ? 'Added to Wishlist' : 'Removed from Wishlist'}
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => setWishlistToast(null)}
+                  className="text-gray-400 hover:text-white transition-colors cursor-pointer p-0.5 rounded-md hover:bg-white/10"
+                  title="Close notification"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <p className="text-xs font-bold text-gray-100 truncate mt-0.5">
+                {wishlistToast.product.name}
+              </p>
+              {wishlistToast.added && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWishlistToast(null);
+                    setIsWishlistModalOpen(true);
+                  }}
+                  className="text-[11px] font-bold text-[#b3c5ff] hover:text-white hover:underline mt-1 inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <span>View Wishlist ({wishlistIds.length})</span>
+                  <ChevronRight size={12} />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Hidden file input for SkyIT AI Vision Search */}
       <input 
         type="file" 
@@ -2504,6 +2505,18 @@ export default function App() {
         imagePreviewUrl={scanImagePreview}
       />
 
+      {/* Wishlist Modal */}
+      <WishlistModal 
+        isOpen={isWishlistModalOpen}
+        onClose={() => setIsWishlistModalOpen(false)}
+        wishlistIds={wishlistIds}
+        allProducts={productsWithRealRatings}
+        onToggleWishlist={handleToggleWishlist}
+        onAddToCart={handleAddToCart}
+        onViewProduct={handleViewProduct}
+        onNavigateToShop={() => setActiveTab('shop')}
+      />
+
       {/* Floating Scroll to Top Button */}
       <AnimatePresence>
         {showScrollTop && (
@@ -2515,7 +2528,7 @@ export default function App() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-6 right-6 z-50 p-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-lg border border-slate-700/50 flex items-center justify-center cursor-pointer group"
+            className="fixed bottom-6 right-6 z-30 p-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-lg border border-slate-700/50 flex items-center justify-center cursor-pointer group"
             aria-label="Scroll to top"
           >
             <ArrowUp size={20} className="transition-transform group-hover:-translate-y-0.5" />

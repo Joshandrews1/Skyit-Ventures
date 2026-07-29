@@ -126,13 +126,21 @@ export const ContactSection: React.FC = () => {
 
               <div className="flex items-center gap-2.5 pt-2 border-t border-slate-800/60">
                 <Mail size={15} className="text-sky-400 shrink-0" />
-                <div>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Email Support</span>
+                <div className="space-y-0.5">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Email & Official Portal</span>
                   <a 
                     href="mailto:skyitventures01@gmail.com" 
-                    className="text-xs text-slate-200 font-mono font-semibold hover:text-sky-300 hover:underline"
+                    className="text-xs text-slate-200 font-mono font-semibold hover:text-sky-300 hover:underline block"
                   >
                     skyitventures01@gmail.com
+                  </a>
+                  <a 
+                    href="https://www.skyitonline.org" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-amber-400 font-mono font-bold hover:underline block"
+                  >
+                    www.skyitonline.org
                   </a>
                 </div>
               </div>

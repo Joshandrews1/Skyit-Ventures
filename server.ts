@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import nodemailer from "nodemailer";
 import { mockProducts } from "./src/data/products";
+import { defaultBlogPosts } from "./src/data/blogPosts";
 import { SOLAR_PACKAGES, calculateHeuristicFallback, APPLIANCES, hasHeavyLoad } from "./src/data/quote-data";
 import { Order, OrderStatus, TrackingMilestone } from "./src/types";
 import { initializeApp } from 'firebase/app';
@@ -109,32 +110,26 @@ if (apiKey && apiKey !== "MY_GEMINI_API_KEY") {
   console.warn("GEMINI_API_KEY not configured. AI features will fallback gracefully to Safety Heuristics.");
 }
 
-// Helper to execute generateContent with dynamic retries sticking exclusively to gemini-3.1-flash-lite
+// Helper to execute generateContent with dynamic retries sticking to modern gemini-3.6-flash with fallback
 async function generateContentWithFallback(aiInstance: GoogleGenAI | null, params: any): Promise<any> {
   if (!aiInstance) throw new Error("AI engine not configured.");
-  const targetModel = "gemini-3.1-flash-lite";
+  const models = ["gemini-3.6-flash", "gemini-3.1-flash-lite"];
+  let lastError = null;
 
-  const requestParams = {
-    ...params,
-    model: targetModel
-  };
-
-  try {
-    console.log(`[Gemini Request] Dispatching query to model: ${targetModel}...`);
-    return await aiInstance.models.generateContent(requestParams);
-  } catch (err: any) {
-    console.warn(`[Gemini Warning] Model ${targetModel} failure:`, err?.message || err);
-    console.log(`[Gemini Retry] Safe retry initiated for same model...`);
-    
-    // Quick delay before retrying
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  for (const model of models) {
     try {
-      return await aiInstance.models.generateContent(requestParams);
-    } catch (retryErr: any) {
-      console.error(`[Gemini Error] Retry on ${targetModel} failed:`, retryErr?.message || retryErr);
-      throw retryErr;
+      console.log(`[Gemini Request] Dispatching query to model: ${model}...`);
+      return await aiInstance.models.generateContent({
+        ...params,
+        model
+      });
+    } catch (err: any) {
+      console.warn(`[Gemini Warning] Model ${model} failure:`, err?.message || err);
+      lastError = err;
     }
   }
+  
+  throw lastError || new Error("All Gemini model attempts failed.");
 }
 
 // In-memory active order maps
@@ -460,6 +455,161 @@ async function processOrderMailing(orderData: OrderMailingInput) {
   }
 }
 
+// ————————————————————————————————————————————————————————————————
+// AUTOMATED SEO, SITEMAP.XML, RSS FEED & ROBOTS.TXT ENGINE
+// ————————————————————————————————————————————————————————————————
+
+async function getAllBlogPostsServer(): Promise<any[]> {
+  try {
+    if (serverDb) {
+      const postsColRef = collection(serverDb, 'blog_posts');
+      // 2 second timeout for Firestore fetch so sitemap / RSS generator never delays search crawlers
+      const fetchPromise = getDocs(postsColRef);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Firestore fetch timeout")), 2000)
+      );
+      
+      const snapshot: any = await Promise.race([fetchPromise, timeoutPromise]);
+      if (snapshot && !snapshot.empty) {
+        const firestorePosts: any[] = [];
+        snapshot.forEach((docSnap: any) => {
+          firestorePosts.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+        });
+        const merged = [...firestorePosts];
+        defaultBlogPosts.forEach((defPost) => {
+          if (!merged.some(p => p.id === defPost.id || p.slug === defPost.slug)) {
+            merged.push(defPost);
+          }
+        });
+        return merged.filter(p => p.published !== false);
+      }
+    }
+  } catch (e) {
+    console.warn("[SERVER_BLOG] Firestore blog fetch notice (using static fallbacks):", e);
+  }
+  return defaultBlogPosts.filter(p => p.published !== false);
+}
+
+// API: Get all published blog posts
+app.get("/api/blog/posts", async (req, res) => {
+  try {
+    const posts = await getAllBlogPostsServer();
+    res.json(posts);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to fetch blog posts" });
+  }
+});
+
+// Dynamic XML Sitemap for Google Search Console & Bing Webmaster Tools
+app.get(["/sitemap.xml", "/sitemap_index.xml"], async (req, res) => {
+  try {
+    const posts = await getAllBlogPostsServer();
+    const baseUrl = "https://skyitonline.org";
+    const nowIso = new Date().toISOString();
+
+    const staticPages = [
+      { url: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
+      { url: `${baseUrl}/?tab=shop`, priority: "0.9", changefreq: "daily" },
+      { url: `${baseUrl}/?tab=quote`, priority: "0.9", changefreq: "weekly" },
+      { url: `${baseUrl}/?tab=blog`, priority: "0.9", changefreq: "daily" },
+      { url: `${baseUrl}/?tab=about`, priority: "0.7", changefreq: "monthly" },
+      { url: `${baseUrl}/?tab=contact`, priority: "0.8", changefreq: "monthly" },
+      { url: `${baseUrl}/?tab=owner`, priority: "0.8", changefreq: "monthly" },
+    ];
+
+    const blogPages = posts.map(post => ({
+      url: `${baseUrl}/?tab=blog&amp;post=${encodeURIComponent(post.slug || post.id)}`,
+      lastmod: post.updatedAt || post.createdAt || nowIso,
+      priority: "0.8",
+      changefreq: "weekly"
+    }));
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticPages.map(page => `  <url>
+    <loc>${page.url}</loc>
+    <lastmod>${nowIso}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>`).join('\n')}
+${blogPages.map(page => `  <url>
+    <loc>${page.url}</loc>
+    <lastmod>${new Date(page.lastmod).toISOString()}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+
+    res.header("Content-Type", "application/xml; charset=utf-8");
+    res.header("Cache-Control", "public, max-age=3600");
+    res.status(200).send(xml);
+  } catch (err: any) {
+    console.error("[SITEMAP_ERROR]", err);
+    res.status(500).send("Failed to generate sitemap XML.");
+  }
+});
+
+// Dynamic RSS 2.0 Feed for News Readers & Content Aggregators
+app.get(["/rss.xml", "/feed.xml"], async (req, res) => {
+  try {
+    const posts = await getAllBlogPostsServer();
+    const baseUrl = "https://skyitonline.org";
+
+    const rssItems = posts.map(post => {
+      const link = `${baseUrl}/?tab=blog&amp;post=${encodeURIComponent(post.slug || post.id)}`;
+      const pubDate = new Date(post.createdAt || Date.now()).toUTCString();
+      const author = post.authorName ? `${post.authorName} (${post.authorRole || 'SkyIT Ventures'})` : 'SkyIT Engineering Team';
+
+      return `    <item>
+      <title><![CDATA[${post.title}]]></title>
+      <link>${link}</link>
+      <guid isPermaLink="true">${link}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <category><![CDATA[${post.category || 'Engineering'}]]></category>
+      <dc:creator><![CDATA[${author}]]></dc:creator>
+      <description><![CDATA[${post.excerpt}]]></description>
+      ${post.coverImage ? `<media:content url="${post.coverImage}" medium="image" />` : ''}
+    </item>`;
+    }).join('\n');
+
+    const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>SkyIT Ventures | Clean Energy &amp; Security Engineering Insights</title>
+    <link>${baseUrl}/?tab=blog</link>
+    <description>Executive technical guides, solar microgrid engineering tutorials, and smart security insights by SkyIT Ventures.</description>
+    <language>en-us</language>
+    <copyright>Copyright ${new Date().getFullYear()} SkyIT Ventures</copyright>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+${rssItems}
+  </channel>
+</rss>`;
+
+    res.header("Content-Type", "application/xml; charset=utf-8");
+    res.status(200).send(rss);
+  } catch (err: any) {
+    console.error("[RSS_ERROR]", err);
+    res.status(500).send("Failed to generate RSS feed XML.");
+  }
+});
+
+// Search Engine Robots Directive File
+app.get("/robots.txt", (req, res) => {
+  const robots = `User-agent: *
+Allow: /
+Allow: /?tab=blog
+Allow: /sitemap.xml
+Allow: /rss.xml
+
+Sitemap: https://skyitonline.org/sitemap.xml
+`;
+  res.header("Content-Type", "text/plain");
+  res.status(200).send(robots);
+});
+
 // API: Get products
 app.get("/api/products", async (req, res) => {
   try {
@@ -762,12 +912,18 @@ app.post("/api/chat", async (req, res) => {
     return res.json({
       reply: `${isGuest ? "Hello" : `Hello, ${userDisplayName}`}! I am your **SkyIT Ventures Energy Specialist**. 😊
 
-I am currently running in local offline safety backup mode. Based on our catalog, I can guide you on:
-1. **Solar Power Systems**: Monocrystalline plates (e.g. 550W Panel), Smart Pure Sine Inverters, and High-Performance Wall-mount Lithium-ion Batteries (PowerWall 5KWH).
-2. **CCTV & Security Solutions**: 4K Ultra-HD CCTV kits, dome security arrays, and Smart Biometric doors locks.
+I am currently running in local offline safety backup mode. Based on our solar system catalog, I can guide you on:
 
-Tell me about your building (flat, commercial site, etc.) or check out our **Smart Solar Sizing Quote Utility** from the navigator menu! It performs full electrical audits for you.`,
-      recommendedProductIds: ["prod-1", "prod-5", "prod-6"],
+📦 **Complete Solar Inverter System Packages**:
+- **1.5KVA - 5.0KVA Deep-Cycle Tubular Packages** (from ₦948,000) for budget-friendly household lighting, TVs, freezers, and AC support.
+- **4.0KVA - 10.0KVA Wall-Mount Lithium Packages** (from ₦2,700,000) for high surge capability, fast charging, and heavy AC/commercial loads.
+
+⚡ **Components & Security**:
+- Monocrystalline 550W Panels, Smart Pure Sine Hybrid Inverters, Lithium PowerWall batteries, and 4K CCTV systems.
+
+Tell me about your building, appliances, or AC units so I can calculate your exact system size!`,
+      recommendedProductIds: ["prod-1", "prod-5"],
+      recommendedPackageIds: ["tub-1.5", "li-4.0"],
       summary: summary || ""
     });
   }
@@ -778,22 +934,43 @@ Tell me about your building (flat, commercial site, etc.) or check out our **Sma
       return `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}, Price: ₦${p.price} (Original: ₦${p.originalPrice}), Rating: ${p.rating}, Description: ${p.description}`;
     }).join("\n");
 
+    const allPackages = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
+    const solarPackagesBrief = allPackages.map((pkg) => {
+      return `PACKAGE ID: ${pkg.id} | NAME: ${pkg.name} | TECH: ${pkg.tech.toUpperCase()} | CAPACITY: ${pkg.kva} | PRICE: ₦${pkg.price.toLocaleString()} | BATTERY: ${pkg.batteryInfo} | PANELS: ${pkg.panels} x Monocrystalline Panels | CABLE: ${pkg.cableSize} | AC SUPPORT: ${pkg.acSupport} | SUITABLE APPLIANCES: ${pkg.loadSummary.join(', ')} | OVERVIEW: ${pkg.description}`;
+    }).join("\n");
+
     const systemPrompt = `You are a Senior Technical Consultant and Solar Architect representing SkyIT Ventures. 
     ${isGuest ? 'The current user is a Guest (not logged in). Do NOT attempt to name them or say "Guest" or "Customer" as a greeting name. Greet them neutrally (e.g., "Hello!", "Welcome!").' : `The customer you are conversing with is named ${userDisplayName}. Address them naturally by their first name when greeting them or in conversation.`}
-    Your mission is to provide premium technical advice, evaluate customer electrical/security setups, and recommend matching items from our exact product catalog when appropriate:
+
+    Your mission is to provide premium technical advice, evaluate customer electrical/security setups, calculate load sizing (Watts, KVA, surge factors for ACs/pumps), and recommend matching items or pre-configured Solar Inverter Packages from our official SkyIT catalogs.
+
+    --- OFFICIAL INDIVIDUAL PRODUCTS CATALOG ---
     ${catalogBrief}
 
-    CRITICAL RULES:
-    1. DIAGNOSE BEFORE SUGGESTING: Do NOT immediately pitch products, list suggestions, or send long detailed catalog options when the customer first greets you or has not shared their specific needs. You must first find out why the customer is here. Ask 1 or 2 friendly, high-value questions (e.g. asking about their building type, power requirements, or security concerns) to understand their specific context first.
-    2. REPRESENT WITHOUT LOCATION: Represent our company, SkyIT Ventures, objectively and professionally. Do not explicitly state that you are physically located in "Lagos, Nigeria" or any specific city in your replies, but just represent our brand.
-    3. Ground pricing in Nigerian Naira (₦) when products are recommended.
-    4. When recommending products, suggest items STRICTLY by their exact string ID keys from the catalog above.
-    5. Keep your tone supportive, highly technical, yet clean and conversational.
-    
+    --- OFFICIAL SKYIT PRE-CONFIGURED COMPLETE SOLAR SYSTEM PACKAGES ---
+    ${solarPackagesBrief}
+
+    CRITICAL RULES & SIZING GUIDELINES:
+    1. DIAGNOSE BEFORE SUGGESTING: Do NOT immediately dump full product lists when the user gives a generic greeting or vague message. Ask 1-2 quick diagnostic questions about their appliances (e.g., number of ACs, freezers, TVs, pumps) or property type to calculate their exact KVA requirement first.
+    2. EXPERT LOAD SIZING:
+       - Light load (Lighting, TV, Fans, Sound): Recommend 1.5KVA Tubular (tub-1.5) or 2.5KVA.
+       - Medium load (Inverter Fridge, Deep Freezer, Pump, TV, Fans): Recommend 3.5KVA (tub-3.5-std / tub-3.5-ext) or 4.0KVA Lithium (li-4.0).
+       - Heavy load with 1 AC (1HP/1.5HP Inverter AC) + Freezer/Microwave: Recommend 5.0KVA Tubular Premium (tub-5.0-pre) or 4.0KVA / 6.0KVA Lithium (li-4.0 / li-6.0-10). Lithium is preferred for AC surge currents.
+       - Heavy load with Multiple ACs + Microwave + Freezers + Water Pump: Recommend 6.0KVA Lithium (li-6.0-15) or 10.0KVA Lithium (li-10.0-hyb / li-10.0-non).
+    3. TUBULAR VS LITHIUM ADVICE:
+       - Deep-cycle Tubular packages (tub-*) offer budget-friendly entry/standard backup.
+       - LFP Lithium-ion packages (li-*) offer fast 2-hour recharge, 10+ year lifespan, higher discharge efficiency, and superior handling of inductive AC surge startup currents.
+    4. RECOMMENDATIONS:
+       - Ground all pricing strictly in Nigerian Naira (₦).
+       - When recommending individual catalog products, include their exact IDs in "recommendedProductIds".
+       - When recommending pre-configured Solar Packages, include their exact package IDs (e.g., "tub-1.5", "tub-3.5-std", "tub-5.0-pre", "li-4.0", "li-6.0-10", "li-6.0-15", "li-10.0-hyb", "li-10.0-non") in "recommendedPackageIds".
+    5. REPRESENT WITHOUT LOCATION: Represent SkyIT Ventures professionally. Do not explicitly state that you are physically located in any specific city unless asked, but represent our brand.
+
     You must respond strictly in JSON format matching this schema:
     {
-      "reply": "Conversational markdown text explaining your suggestions or asking diagnostic questions.",
-      "recommendedProductIds": ["list", "of", "ids", "matching", "the", "items", "mentioned"]
+      "reply": "Conversational markdown text explaining your calculations, technical advice, or diagnostic questions.",
+      "recommendedProductIds": ["list", "of", "product", "ids"],
+      "recommendedPackageIds": ["list", "of", "package", "ids"]
     }
     Format your reply with neat markdown, bold emphasis, and direct helpful tips. Do not include external links.`;
 
@@ -881,9 +1058,14 @@ Tell me about your building (flat, commercial site, etc.) or check out our **Sma
               type: Type.ARRAY,
               items: { type: Type.STRING },
               description: "Product IDs matching recommended catalog items only."
+            },
+            recommendedPackageIds: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "Package IDs matching recommended complete solar system packages."
             }
           },
-          required: ["reply", "recommendedProductIds"]
+          required: ["reply", "recommendedProductIds", "recommendedPackageIds"]
         }
       }
     });
@@ -1323,11 +1505,10 @@ app.post("/api/ai-search", async (req, res) => {
       - If the image does not show any related system product, set "matchFound" to false and "matchedProductId" to null.`,
     };
 
-    console.log("[AI Search] Dispatching image analysis to gemini-3.5-flash...");
+    console.log("[AI Search] Dispatching image analysis to Gemini...");
     
     // 4. Request Structured JSON Output from Gemini
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+    const response = await generateContentWithFallback(ai, {
       contents: { parts: [imagePart, textPart] },
       config: {
         responseMimeType: "application/json",

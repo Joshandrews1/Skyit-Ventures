@@ -52,7 +52,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-end z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-end z-[1000] animate-fade-in">
       <div className="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl relative border-l border-slate-200 text-slate-600">
                {/* Header */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">

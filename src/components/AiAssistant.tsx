@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Send, Sparkles, MessageSquare, ShoppingCart, Loader2, Trash2, 
   Plus, SquarePen, Settings, History, ChevronDown, ChevronLeft, Check, Lightbulb, Compass, FileText, Menu, X, Zap, ShoppingBag, Mic, MicOff,
-  Store, Truck, Lock
+  Store, Truck, Lock, Home, Package, Info, UserCheck, BookOpen, Heart
 } from 'lucide-react';
 import { mockProducts } from '../data/products';
+import { SOLAR_PACKAGES, SolarPackage, convertPackageToProduct } from '../data/quote-data';
 import { db } from '../firebase';
 import { collection, doc, setDoc, deleteDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
@@ -19,10 +20,14 @@ interface AiAssistantProps {
   isAdmin?: boolean;
   isEditor?: boolean;
   onOpenCart?: () => void;
+  onOpenWishlist?: () => void;
+  wishlistIds?: string[];
   products?: Product[];
   cart?: CartItem[];
   onOpenProfile?: () => void;
   onOpenLogin?: () => void;
+  initialPrompt?: string;
+  onClearInitialPrompt?: () => void;
 }
 
 const DEFAULT_GREETING: ChatMessage = {
@@ -40,10 +45,14 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
   isAdmin,
   isEditor,
   onOpenCart,
+  onOpenWishlist,
+  wishlistIds = [],
   products = [],
   cart = [],
   onOpenProfile,
-  onOpenLogin
+  onOpenLogin,
+  initialPrompt,
+  onClearInitialPrompt
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
@@ -360,7 +369,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
     }
   };
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, baseHistory?: ChatMessage[]) => {
     if ((!text.trim() && attachedImages.length === 0) || isLoading) return;
 
     const messageText = text.trim() || "[Attached Image Reference]";
@@ -372,7 +381,8 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
       images: attachedImages.length > 0 ? attachedImages.map(img => img.base64) : undefined
     };
 
-    const updatedMessages = [...messages, userMsg];
+    const initialMsgs = baseHistory !== undefined ? baseHistory : messages;
+    const updatedMessages = [...initialMsgs, userMsg];
     setMessages(updatedMessages);
     setInputText('');
     const currentImages = [...attachedImages];
@@ -432,7 +442,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageText,
-          history: messages.map(m => ({ sender: m.sender, text: m.text })),
+          history: initialMsgs.map(m => ({ sender: m.sender, text: m.text })),
           images: currentImages.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
           summary: currentThreadSummary,
           products: activeProducts,
@@ -452,11 +462,23 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
         });
       }
 
+      const allSolarPackages = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
+      const recommendedPkgs: SolarPackage[] = [];
+      if (data.recommendedPackageIds && Array.isArray(data.recommendedPackageIds)) {
+        data.recommendedPackageIds.forEach((pkgId: string) => {
+          const matchedPkg = allSolarPackages.find(p => p.id === pkgId);
+          if (matchedPkg && !recommendedPkgs.some(p => p.id === matchedPkg.id)) {
+            recommendedPkgs.push(matchedPkg);
+          }
+        });
+      }
+
       const assistantMsg: ChatMessage = {
         sender: 'assistant',
         text: data.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        suggestedProducts: recommended.length > 0 ? recommended : undefined
+        suggestedProducts: recommended.length > 0 ? recommended : undefined,
+        suggestedPackages: recommendedPkgs.length > 0 ? recommendedPkgs : undefined
       };
 
       const finalMessages = [...updatedMessages, assistantMsg];
@@ -510,6 +532,22 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Auto-send initial prompt when passed from package cards or other pages
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      const promptToSend = initialPrompt;
+      setActiveThreadId(null);
+      setMessages([]);
+      setCurrentThreadSummary('');
+      
+      if (onClearInitialPrompt) {
+        onClearInitialPrompt();
+      }
+
+      handleSend(promptToSend, []);
+    }
+  }, [initialPrompt]);
 
   const formatNaira = (val: number) => {
     return "₦" + Math.floor(val).toLocaleString();
@@ -585,10 +623,11 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
           <div className={`flex items-center ${sidebarOpen ? 'justify-between px-2' : 'justify-center'} py-3 mb-2`}>
             <div 
               onClick={() => {
-                setActiveTab?.('shop');
+                setActiveTab?.('home');
                 if (window.innerWidth < 768) setSidebarOpen(false);
               }}
               className="flex items-center gap-2 cursor-pointer hover:opacity-90 min-w-0"
+              title="Go to Home Page"
             >
               <div className="p-0.5 rounded-lg border border-slate-700/50 flex items-center justify-center bg-white shadow-xs overflow-hidden w-8 h-8 shrink-0">
                 <img 
@@ -635,6 +674,21 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
               {sidebarOpen && <span className="text-xs truncate">New chat</span>}
             </div>
 
+            {/* Home Page Switcher */}
+            {setActiveTab && (
+              <div 
+                onClick={() => {
+                  setActiveTab('home');
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
+                className={`text-slate-400 hover:bg-white/5 rounded-full flex items-center ${sidebarOpen ? 'gap-3 px-4' : 'justify-center mx-auto w-10'} py-2.5 cursor-pointer transition-all duration-200 hover:text-[#e5e1e4] shrink-0`}
+                title="Home Page"
+              >
+                <Home size={14} className="text-amber-400 shrink-0" />
+                {sidebarOpen && <span className="text-xs truncate">Home Page</span>}
+              </div>
+            )}
+
             {/* Shop Catalog Switcher */}
             {setActiveTab && (
               <div 
@@ -650,6 +704,21 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
               </div>
             )}
 
+            {/* Solar Packages Switcher */}
+            {setActiveTab && (
+              <div 
+                onClick={() => {
+                  setActiveTab('quote');
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
+                className={`text-slate-400 hover:bg-white/5 rounded-full flex items-center ${sidebarOpen ? 'gap-3 px-4' : 'justify-center mx-auto w-10'} py-2.5 cursor-pointer transition-all duration-200 hover:text-[#e5e1e4] shrink-0`}
+                title="Solar Packages"
+              >
+                <Package size={14} className="text-amber-400 shrink-0" />
+                {sidebarOpen && <span className="text-xs truncate">Solar Packages</span>}
+              </div>
+            )}
+
             {/* Track My Orders Switcher */}
             {setActiveTab && (
               <div 
@@ -662,6 +731,76 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
               >
                 <Truck size={14} className="text-[#dab9ff] shrink-0" />
                 {sidebarOpen && <span className="text-xs truncate">Track My Orders</span>}
+              </div>
+            )}
+
+            {/* My Wishlist Switcher */}
+            {(onOpenWishlist || setActiveTab) && (
+              <div 
+                onClick={() => {
+                  if (onOpenWishlist) onOpenWishlist();
+                  else if (setActiveTab) setActiveTab('shop');
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
+                className={`text-slate-400 hover:bg-white/5 rounded-full flex items-center ${sidebarOpen ? 'gap-3 px-4' : 'justify-center mx-auto w-10'} py-2.5 cursor-pointer transition-all duration-200 hover:text-[#e5e1e4] shrink-0`}
+                title="My Wishlist"
+              >
+                <Heart size={14} className="text-rose-400 shrink-0" />
+                {sidebarOpen && (
+                  <div className="flex items-center justify-between w-full min-w-0 pr-1">
+                    <span className="text-xs truncate">My Wishlist</span>
+                    {wishlistIds && wishlistIds.length > 0 && (
+                      <span className="text-[10px] font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">
+                        {wishlistIds.length}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* About SkyIT Switcher */}
+            {setActiveTab && (
+              <div 
+                onClick={() => {
+                  setActiveTab('about');
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
+                className={`text-slate-400 hover:bg-white/5 rounded-full flex items-center ${sidebarOpen ? 'gap-3 px-4' : 'justify-center mx-auto w-10'} py-2.5 cursor-pointer transition-all duration-200 hover:text-[#e5e1e4] shrink-0`}
+                title="About SkyIT"
+              >
+                <Info size={14} className="text-sky-400 shrink-0" />
+                {sidebarOpen && <span className="text-xs truncate">About SkyIT</span>}
+              </div>
+            )}
+
+            {/* Managing Director Switcher */}
+            {setActiveTab && (
+              <div 
+                onClick={() => {
+                  setActiveTab('owner');
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
+                className={`text-slate-400 hover:bg-white/5 rounded-full flex items-center ${sidebarOpen ? 'gap-3 px-4' : 'justify-center mx-auto w-10'} py-2.5 cursor-pointer transition-all duration-200 hover:text-[#e5e1e4] shrink-0`}
+                title="Managing Director"
+              >
+                <UserCheck size={14} className="text-indigo-400 shrink-0" />
+                {sidebarOpen && <span className="text-xs truncate">Managing Director</span>}
+              </div>
+            )}
+
+            {/* Engineering Blog Switcher */}
+            {setActiveTab && (
+              <div 
+                onClick={() => {
+                  setActiveTab('blog');
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
+                className={`text-slate-400 hover:bg-white/5 rounded-full flex items-center ${sidebarOpen ? 'gap-3 px-4' : 'justify-center mx-auto w-10'} py-2.5 cursor-pointer transition-all duration-200 hover:text-[#e5e1e4] shrink-0`}
+                title="Engineering Blog"
+              >
+                <BookOpen size={14} className="text-amber-500 shrink-0" />
+                {sidebarOpen && <span className="text-xs truncate">Engineering Blog</span>}
               </div>
             )}
 
@@ -851,7 +990,8 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
             )}
             <div 
               className="flex md:hidden items-center gap-2 min-w-0 cursor-pointer"
-              onClick={() => setActiveTab?.('shop')}
+              onClick={() => setActiveTab?.('home')}
+              title="Go to Home Page"
             >
               <div className="p-0.5 rounded-md border border-slate-700/50 flex items-center justify-center bg-white overflow-hidden w-6 h-6 shrink-0">
                 <img 
@@ -1013,6 +1153,70 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Complete Solar Packages injection logic */}
+                  {msg.suggestedPackages && msg.suggestedPackages.length > 0 && (
+                    <div className="space-y-2.5 w-full mt-3.5">
+                      <div className="flex items-center gap-1.5 text-amber-300 text-[11px] font-bold tracking-wide uppercase">
+                        <Zap size={13} className="text-amber-400 fill-amber-400/20" />
+                        <span>Recommended Complete Solar System Packages</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 w-full">
+                        {msg.suggestedPackages.map((pkg: SolarPackage) => (
+                          <div 
+                            key={pkg.id}
+                            className="bg-slate-900/90 border border-amber-500/20 hover:border-amber-500/40 rounded-xl p-3.5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors duration-200 relative overflow-hidden"
+                          >
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none"></div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                  pkg.tech === 'lithium' 
+                                    ? 'bg-purple-950/80 text-purple-300 border border-purple-500/30' 
+                                    : 'bg-blue-950/80 text-blue-300 border border-blue-500/30'
+                                }`}>
+                                  {pkg.tech === 'lithium' ? 'Lithium-ion' : 'Tubular'}
+                                </span>
+                                <span className="text-[10px] font-extrabold text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                                  {pkg.kva}
+                                </span>
+                              </div>
+                              <h4 className="text-xs font-display text-white font-bold leading-tight">
+                                {pkg.name}
+                              </h4>
+                              <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">
+                                {pkg.description}
+                              </p>
+                              <div className="flex items-center gap-3 mt-2 text-[10.5px] text-slate-400 flex-wrap">
+                                <span className="flex items-center gap-1 font-mono text-amber-300 font-semibold">
+                                  🔋 {pkg.batteryInfo}
+                                </span>
+                                <span>☀️ {pkg.panels} Panels</span>
+                                <span className="text-emerald-400 font-medium">⚡ {pkg.acSupport}</span>
+                              </div>
+                            </div>
+                            <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                              <span className="text-sm font-black font-mono text-amber-300">
+                                {formatNaira(pkg.price)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  const pkgProduct = convertPackageToProduct(pkg);
+                                  onAddToCart(pkgProduct, e);
+                                  onOpenCart?.();
+                                }}
+                                className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                              >
+                                <ShoppingCart size={11} strokeWidth={2.5} />
+                                <span>Order Package</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 

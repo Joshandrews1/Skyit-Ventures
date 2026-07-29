@@ -1,18 +1,26 @@
 import React from 'react';
 import { Product } from '../types';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product, e: React.MouseEvent) => void;
   onViewDetails: (product: Product) => void;
+  isWishlisted?: boolean;
+  onToggleWishlist?: (product: Product, e: React.MouseEvent) => void;
 }
 
 const getInitialReviewsStats = (product: Product) => {
   return { count: 0, average: 0 };
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onViewDetails }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onAddToCart, 
+  onViewDetails,
+  isWishlisted = false,
+  onToggleWishlist
+}) => {
   const defaultStats = getInitialReviewsStats(product);
 
   // Directly utilize the product's rating and count or fallback to structured default stats
@@ -23,7 +31,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
     <div 
       id={`prod-card-${product.id}`}
       onClick={() => onViewDetails(product)}
-      className="group bg-white rounded-xl border border-slate-200/70 hover:border-brand/40 hover:shadow-[0_6px_20px_rgba(30,50,90,0.06)] transition-all duration-300 overflow-hidden cursor-pointer flex flex-col h-full select-none"
+      className="group bg-white rounded-xl border border-slate-200/70 hover:border-brand/40 hover:shadow-[0_6px_20px_rgba(30,50,90,0.06)] transition-all duration-300 overflow-hidden cursor-pointer flex flex-col h-full select-none relative"
     >
       {/* Product Image & Badge */}
       <div className="relative bg-white aspect-square w-full overflow-hidden flex items-center justify-center p-3 sm:p-4 border-b border-slate-100">
@@ -44,6 +52,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
         <div className="absolute top-2.5 left-2.5 bg-slate-100 text-slate-600 text-[8px] sm:text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-xs">
           {product.category}
         </div>
+
+        {/* Wishlist Love Heart Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onToggleWishlist) {
+              onToggleWishlist(product, e);
+            }
+          }}
+          className={`absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all z-20 cursor-pointer shadow-md ${
+            isWishlisted 
+              ? 'bg-rose-500 text-white shadow-rose-500/30 scale-105' 
+              : 'bg-white/90 text-slate-400 hover:text-rose-500 hover:bg-white hover:scale-110 border border-slate-200/60'
+          }`}
+          title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+        >
+          <Heart 
+            size={15} 
+            className={isWishlisted ? "fill-current text-white" : "text-slate-500 hover:text-rose-500"} 
+            strokeWidth={isWishlisted ? 0 : 2} 
+          />
+        </button>
       </div>
 
       {/* Content wrapper */}
@@ -92,10 +123,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
             <div className="flex flex-col min-h-[34px] justify-center">
               {product.discountPercent > 0 && (
                 <span className="text-[10px] sm:text-[11px] text-slate-400 line-through font-mono leading-none mb-0.5">
-                  ₦{product.originalPrice.toLocaleString()}
+                  ₦{product.originalPrice?.toLocaleString()}
                 </span>
               )}
-              <span className="text-13px sm:text-[15px] font-bold font-mono text-slate-900 leading-none">
+              <span className="text-[13px] sm:text-[15px] font-bold font-mono text-slate-900 leading-none">
                 ₦{product.price.toLocaleString()}
               </span>
             </div>
@@ -103,7 +134,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
             <button
               id={`add-btn-${product.id}`}
               onClick={(e) => onAddToCart(product, e)}
-              className="bg-brand hover:bg-brand-hover active:scale-95 text-white p-1.5 sm:px-3 sm:py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:shadow-sm shrink-0"
+              className="bg-[#0066ff] hover:bg-[#0052cc] active:scale-95 text-white p-1.5 sm:px-3 sm:py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:shadow-sm shrink-0 cursor-pointer"
               title="Add to Cart"
             >
               <ShoppingCart size={12} strokeWidth={2.5} />

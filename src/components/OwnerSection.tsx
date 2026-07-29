@@ -126,12 +126,12 @@ export const OwnerSection: React.FC<OwnerSectionProps> = ({
 
             {/* 3 Core Pillar Badges */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-              <div className="bg-slate-800/90 border border-slate-700 p-3 rounded-xl text-left space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs">
-                  <Award size={14} />
+              <div className="bg-gradient-to-br from-amber-500/15 via-slate-800/90 to-slate-900 border border-amber-400/40 p-3.5 rounded-xl text-left space-y-1 shadow-lg shadow-amber-500/5">
+                <div className="flex items-center gap-1.5 text-amber-400 font-extrabold text-sm">
+                  <Award size={16} className="animate-pulse" />
                   <span>20+ Years</span>
                 </div>
-                <p className="text-[10px] text-slate-200 font-medium">Industry Leadership Experience</p>
+                <p className="text-[11px] text-white font-semibold tracking-wide">Industry Leadership Experience</p>
               </div>
 
               <div className="bg-slate-800/90 border border-slate-700 p-3 rounded-xl text-left space-y-1">

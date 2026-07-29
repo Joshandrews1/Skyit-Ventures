@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '../types';
-import { Search, MapPin, Truck, HelpCircle, ArrowRight, ArrowLeft, RefreshCw, Calendar, PackageCheck, ClipboardList } from 'lucide-react';
+import { Search, MapPin, Truck, HelpCircle, ArrowRight, ArrowLeft, RefreshCw, Calendar, PackageCheck, ClipboardList, Download } from 'lucide-react';
 import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getOrCreateGuestUid, getCachedOrders, getCachedOrderIds, cacheOrderDetails } from '../lib/guestCache';
+import { generateOrderReceiptPDF } from '../lib/pdfGenerator';
 
 interface TrackingDashboardProps {
   initialOrderId?: string;
@@ -557,8 +558,16 @@ export const TrackingDashboard: React.FC<TrackingDashboardProps> = ({
           {/* POLL DATABASE / REFRESH STATUS ROW */}
           <div className="flex justify-end gap-2 text-xs mb-2">
             <button
+              onClick={() => generateOrderReceiptPDF(order)}
+              className="bg-brand hover:bg-brand-hover text-white transition-colors p-2 px-3 rounded-lg flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] shadow-xs cursor-pointer"
+              title="Download official receipt PDF"
+            >
+              <Download size={12} />
+              <span>Download Receipt PDF</span>
+            </button>
+            <button
               onClick={() => setRefreshToggle(prev => !prev)}
-              className="bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors border border-slate-200 p-2 rounded-lg flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]"
+              className="bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors border border-slate-200 p-2 px-3 rounded-lg flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] cursor-pointer"
             >
               <RefreshCw size={12} className={isLoading ? "animate-spin text-brand" : "text-slate-500"} />
               <span>Refresh Status</span>

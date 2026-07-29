@@ -23,6 +23,7 @@ import { AdminSolarPackages } from './AdminSolarPackages';
 import { defaultBlogPosts } from '../data/blogPosts';
 import { BlogPost } from '../types';
 import { auth } from '../firebase';
+import { generateOrderReceiptPDF, generateQuoteOrReceiptPDF } from '../lib/pdfGenerator';
 import { 
   Database, 
   Search, 
@@ -365,189 +366,51 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
 
   const handleDownloadPDF = async () => {
     if (!quoteResult) return;
-    const element = document.getElementById('quote-print-element');
-    if (!element) {
-      alert("Quotation preview element not found.");
-      return;
-    }
 
-    setFeedbackMsg("Rendering design grids to Vector PDF file...");
-    
-    // Polyfill window.getComputedStyle to translate Tailwind v4 oklch() and oklab() colors to rgb() to prevent html2pdf/html2canvas crashes
-    const originalGetComputedStyle = window.getComputedStyle;
-    const convertOklToRgb = (colorStr: string): string => {
-      if (!colorStr || typeof colorStr !== 'string') {
-        return colorStr;
-      }
-      if (!colorStr.includes('oklch') && !colorStr.includes('oklab')) {
-        return colorStr;
-      }
-      const f = (x: number) => x > 0.0031308 ? 1.055 * Math.pow(x, 1 / 2.4) - 0.055 : 12.92 * x;
-      let result = colorStr;
-
-      try {
-        if (result.includes('oklch')) {
-          const oklchRegex = /oklch\(\s*([\d.%]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.%]+))?\s*\)/g;
-          result = result.replace(oklchRegex, (match, lStr, cStr, hStr, aStr) => {
-            let L = parseFloat(lStr);
-            if (lStr.endsWith('%')) {
-              L = parseFloat(lStr) / 100;
-            }
-            const C = parseFloat(cStr);
-            const H = parseFloat(hStr);
-            let alpha = 1;
-            if (aStr) {
-              if (aStr.endsWith('%')) {
-                alpha = parseFloat(aStr) / 100;
-              } else {
-                alpha = parseFloat(aStr);
-              }
-            }
-            const rad = H * Math.PI / 180;
-            const oklabA = C * Math.cos(rad);
-            const oklabB = C * Math.sin(rad);
-            
-            const l_ = L + 0.3963377774 * oklabA + 0.2158037573 * oklabB;
-            const m_ = L - 0.1055613458 * oklabA - 0.0638541167 * oklabB;
-            const s_ = L - 0.0894841775 * oklabA - 1.2914855414 * oklabB;
-            
-            const l = l_ * l_ * l_;
-            const m = m_ * m_ * m_;
-            const s = s_ * s_ * s_;
-            
-            let rLinear = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-            let gLinear = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-            let bLinear = -0.0041960863 * l - 0.7034186145 * m + 1.7076147010 * s;
-            
-            rLinear = Math.max(0, Math.min(1, rLinear));
-            gLinear = Math.max(0, Math.min(1, gLinear));
-            bLinear = Math.max(0, Math.min(1, bLinear));
-            
-            const r = Math.round(f(rLinear) * 255);
-            const g = Math.round(f(gLinear) * 255);
-            const b = Math.round(f(bLinear) * 255);
-            
-            return aStr ? `rgba(${r}, ${g}, ${b}, ${alpha})` : `rgb(${r}, ${g}, ${b})`;
-          });
-        }
-
-        if (result.includes('oklab')) {
-          const oklabRegex = /oklab\(\s*([\d.%]+)\s+([-+e\d.]+)\s+([-+e\d.]+)(?:\s*\/\s*([\d.%]+))?\s*\)/g;
-          result = result.replace(oklabRegex, (match, lStr, aCoordStr, bCoordStr, aStr) => {
-            let L = parseFloat(lStr);
-            if (lStr.endsWith('%')) {
-              L = parseFloat(lStr) / 100;
-            }
-            const oklabA = parseFloat(aCoordStr);
-            const oklabB = parseFloat(bCoordStr);
-            let alpha = 1;
-            if (aStr) {
-              if (aStr.endsWith('%')) {
-                alpha = parseFloat(aStr) / 100;
-              } else {
-                alpha = parseFloat(aStr);
-              }
-            }
-            
-            const l_ = L + 0.3963377774 * oklabA + 0.2158037573 * oklabB;
-            const m_ = L - 0.1055613458 * oklabA - 0.0638541167 * oklabB;
-            const s_ = L - 0.0894841775 * oklabA - 1.2914855414 * oklabB;
-            
-            const l = l_ * l_ * l_;
-            const m = m_ * m_ * m_;
-            const s = s_ * s_ * s_;
-            
-            let rLinear = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-            let gLinear = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-            let bLinear = -0.0041960863 * l - 0.7034186145 * m + 1.7076147010 * s;
-            
-            rLinear = Math.max(0, Math.min(1, rLinear));
-            gLinear = Math.max(0, Math.min(1, gLinear));
-            bLinear = Math.max(0, Math.min(1, bLinear));
-            
-            const r = Math.round(f(rLinear) * 255);
-            const g = Math.round(f(gLinear) * 255);
-            const b = Math.round(f(bLinear) * 255);
-            
-            return aStr ? `rgba(${r}, ${g}, ${b}, ${alpha})` : `rgb(${r}, ${g}, ${b})`;
-          });
-        }
-      } catch (e) {
-        return colorStr.includes('0.9') ? 'rgb(15, 23, 42)' : 'rgb(241, 245, 249)';
-      }
-      return result;
-    };
-
-    (window as any).getComputedStyle = function (elt: any, pseudoElt: any) {
-      const style = originalGetComputedStyle(elt, pseudoElt);
-      return new Proxy(style, {
-        get(target, prop) {
-          if (prop === 'getPropertyValue') {
-            return (val: string) => {
-              const originalValue = target.getPropertyValue(val);
-              return convertOklToRgb(originalValue);
-            };
-          }
-          const val = Reflect.get(target, prop);
-          if (typeof val === 'function') {
-            return val.bind(target);
-          }
-          if (typeof val === 'string') {
-            return convertOklToRgb(val);
-          }
-          return val;
-        }
-      });
-    };
-
-    const originalWidth = element.style.width;
-    const originalMinWidth = element.style.minWidth;
-    const originalMaxWidth = element.style.maxWidth;
-    const originalPadding = element.style.padding;
-    const originalBoxSizing = element.style.boxSizing;
-
-    // Temporarily apply precise 800px A4 desktop width constraints to the live onscreen element.
-    // This absolutely guarantees that html2canvas reads fully painted responsive hierarchies
-    // without suffering from clipping or mobile browser memory optimization blanks.
-    element.style.width = '800px';
-    element.style.minWidth = '800px';
-    element.style.maxWidth = '800px';
-    element.style.padding = '32px';
-    element.style.boxSizing = 'border-box';
-
+    setFeedbackMsg("Generating official vector PDF document...");
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      const opt = {
-        margin:       8,
-        filename:     `${quoteResult.customerName.replace(/\s+/g, '_')}_SkyIT_Solar_${documentType === 'receipt' ? 'Receipt' : 'Quote'}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-          scale: 2, 
-          useCORS: true, 
-          logging: false,
-          width: 800,
-          windowWidth: 1024
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      
-      await html2pdf().from(element).set(opt as any).save();
-      setFeedbackMsg(`Professional PDF ${documentType === 'receipt' ? 'receipt' : 'quote'} generated/downloaded successfully!`);
+      await generateQuoteOrReceiptPDF({
+        documentType,
+        docCode: String(docCode),
+        customerName: quoteResult.customerName || 'Valued Client',
+        customerEmail: quoteResult.customerEmail || '',
+        customerPhone: quoteResult.customerPhone || '',
+        customerAddress: quoteResult.customerAddress || '',
+        city: quoteResult.city || 'Lagos',
+        state: quoteResult.state || 'Lagos State',
+        systemKva: quoteResult.systemKva,
+        batteryTech: quoteResult.batteryTech,
+        batteryInfo: quoteResult.batteryInfo,
+        batteriesCount: quoteResult.batteriesCount,
+        panelsCount: quoteResult.panelsCount,
+        panelsInfo: quoteResult.panelsInfo,
+        inverterInfo: quoteResult.inverterInfo,
+        accessories: quoteResult.accessories || [],
+        accessoriesPrices: quoteResult.accessoriesPrices || {},
+        appliancesMatched: quoteResult.appliancesMatched || [],
+        serviceFee: quoteResult.serviceFee || 0,
+        price: quoteResult.price || 0,
+        proposalText: quoteResult.proposalText || ''
+      });
+      setFeedbackMsg(`Official vector PDF ${documentType === 'receipt' ? 'receipt' : 'quote'} downloaded successfully!`);
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err) {
       console.error("PDF generation error:", err);
-      setFeedbackMsg("Failed to generate PDF. Invoking printing console...");
-      setTimeout(() => setFeedbackMsg(''), 4000);
-      window.print();
-    } finally {
-      // Instantly restore original responsive styling attributes to ensure seamless mobile touch interactions
-      element.style.width = originalWidth;
-      element.style.minWidth = originalMinWidth;
-      element.style.maxWidth = originalMaxWidth;
-      element.style.padding = originalPadding;
-      element.style.boxSizing = originalBoxSizing;
+      setFeedbackMsg("Failed to generate PDF document.");
+      setTimeout(() => setFeedbackMsg(''), 3000);
+    }
+  };
 
-      window.getComputedStyle = originalGetComputedStyle;
+  const handleDownloadOrderReceipt = async (order: Order) => {
+    setFeedbackMsg(`Generating vector receipt for Order ${order.id}...`);
+    try {
+      await generateOrderReceiptPDF(order);
+      setFeedbackMsg(`Receipt for ${order.id} downloaded successfully!`);
+      setTimeout(() => setFeedbackMsg(''), 3000);
+    } catch (err) {
+      console.error("Order receipt download error:", err);
+      setFeedbackMsg("Failed to download order receipt.");
+      setTimeout(() => setFeedbackMsg(''), 3000);
     }
   };
 
@@ -2174,6 +2037,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
                           </>
                         ) : (
                           <>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadOrderReceipt(order)}
+                              className="text-brand hover:text-brand-dark p-1.5 px-2.5 bg-sky-50 hover:bg-sky-100 border border-sky-200/60 rounded-xl transition-all flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider"
+                              title="Download official receipt PDF"
+                            >
+                              <Download size={12} />
+                              <span>Receipt</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => startEditingOrder(order)}
