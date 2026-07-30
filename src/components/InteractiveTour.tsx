@@ -1,481 +1,439 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, 
-  ArrowRight, 
-  ArrowLeft, 
+  ChevronRight, 
+  ChevronLeft, 
   X, 
-  Check, 
-  Compass, 
-  Zap,
+  Search, 
+  Zap, 
+  Calculator, 
+  ShoppingBag, 
+  Truck, 
+  Bot, 
+  Sun, 
+  ShieldCheck, 
   CreditCard,
-  Building2,
-  Truck,
-  ShieldCheck,
-  Search,
-  Cpu,
-  Layers,
-  ShoppingBag,
-  Sun
+  CheckCircle2
 } from 'lucide-react';
 
 export interface TourStep {
   id: string;
-  targetId?: string; // DOM ID of the element to highlight (optional for full-page steps)
+  targetId?: string;
+  mobileTargetId?: string;
   title: string;
   description: string;
-  tab?: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner';
-  placement?: 'top' | 'bottom' | 'left' | 'right';
-  badge?: string;
-  paymentOptions?: boolean; // Special flag to render payment options
+  tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner';
+  badge: string;
+  icon: React.ElementType;
+  noOverlay?: boolean;
+  paymentOptions?: boolean;
 }
-
-export const TOUR_STEPS: TourStep[] = [
-  {
-    id: 'welcome',
-    title: 'Welcome to SkyIT Ventures',
-    description: 'Nigeria’s premier platform for tier-1 solar equipment, hybrid microgrids, smart CCTV security, and enterprise IT hardware. Follow this quick interactive tour to explore load sizing, tracking, and seamless ordering.',
-    tab: 'home',
-    placement: 'bottom',
-    badge: 'Welcome Guide'
-  },
-  {
-    id: 'search',
-    targetId: 'tour-search-bar',
-    title: 'Instant Equipment Search',
-    description: 'Quickly search tier-1 solar panels, LFP lithium batteries, pure sine wave inverters, and CCTV security hardware by name, KVA capacity, or SKU.',
-    tab: 'shop',
-    placement: 'bottom',
-    badge: 'Search & Catalog'
-  },
-  {
-    id: 'ai-advisor',
-    targetId: 'tour-ai-advisor-header',
-    title: 'AI Solar Sizing Advisor',
-    description: 'Calculate your exact load requirement in seconds. Enter your household appliances to receive instant KVA sizing and custom equipment blueprints.',
-    tab: 'ai',
-    placement: 'bottom',
-    badge: 'AI Diagnostic'
-  },
-  {
-    id: 'solar-packages',
-    targetId: 'tour-solar-packages-header',
-    title: 'Turnkey Solar Kits',
-    description: 'Explore pre-engineered hybrid solar packages complete with professional installation, heavy-duty cables, and surge protection for Nigerian homes and businesses.',
-    tab: 'quote',
-    placement: 'bottom',
-    badge: 'Pre-Engineered Kits'
-  },
-  {
-    id: 'order-tracking',
-    targetId: 'tour-tracking-input',
-    title: 'Live Order & Dispatch Tracking',
-    description: 'Monitor your equipment delivery status and field engineer installation schedule in real-time across all 36 Nigerian states using your reference number.',
-    tab: 'tracker',
-    placement: 'bottom',
-    badge: 'Logistics'
-  },
-  {
-    id: 'payment-methods',
-    targetId: 'tour-cart-btn',
-    title: 'Flexible & Secure Payment Options',
-    description: 'SkyIT Ventures offers two secure and flexible payment methods to suit your preferences:',
-    tab: 'shop',
-    placement: 'bottom',
-    badge: 'Payment Options',
-    paymentOptions: true
-  }
-];
 
 interface InteractiveTourProps {
   isOpen: boolean;
   onClose: () => void;
+  activeTab: string;
   onNavigateTab: (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner') => void;
   onExpandMobileSearch?: () => void;
+  onCloseMobileSearch?: () => void;
 }
 
 export const InteractiveTour: React.FC<InteractiveTourProps> = ({
   isOpen,
   onClose,
+  activeTab,
   onNavigateTab,
-  onExpandMobileSearch
+  onExpandMobileSearch,
+  onCloseMobileSearch
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const currentStep = TOUR_STEPS[currentStepIndex];
+  // 1. Screen size detection
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Reset to first step whenever tour is opened
+  // 2. Define tour steps dynamically based on screen size
+  const steps: TourStep[] = useMemo(() => [
+    {
+      id: 'welcome',
+      title: 'Welcome to SkyIT Ventures 🚀',
+      description: 'Explore Nigeria’s premier engineering platform for tier-[#1] solar equipment, hybrid microgrids, smart CCTV security, and AI energy diagnostics. Take this guided 10-step tour to master our app.',
+      tab: 'home',
+      badge: '1. Welcome Guide',
+      icon: Sparkles,
+      noOverlay: true
+    },
+    {
+      id: 'search',
+      targetId: 'tour-search-bar',
+      mobileTargetId: 'tour-search-bar-mobile',
+      title: 'Instant Search & Smart Camera AI 🔍',
+      description: isMobile 
+        ? 'Tap the search bar or camera icon to perform AI Visual Equipment Recognition right on your phone.' 
+        : 'Search solar panels, lithium batteries, and inverters by name or SKU. Click the camera icon for AI Visual Equipment Recognition.',
+      tab: 'home',
+      badge: '2. Search & Camera AI',
+      icon: Search
+    },
+    {
+      id: 'home-packages',
+      targetId: 'tour-home-packages',
+      title: 'System Sizing & Battery Selector ⚡',
+      description: 'Compare Lithium-ion vs Tubular battery configurations. Inspect live system capacities, solar array requirements, and backup runtimes for 1.5kVA to 10kVA setups.',
+      tab: 'home',
+      badge: '3. Solar Capacity Sizer',
+      icon: Zap
+    },
+    {
+      id: 'home-audit',
+      targetId: 'tour-home-audit',
+      title: 'Precision Load Audit & PDF Export 🧮',
+      description: 'Calculate household power loads by adjusting appliance counts (bulbs, fans, TV, fridge, AC). Get instant KVA recommendations and download official PDF audit specs.',
+      tab: 'home',
+      badge: '4. Energy Load Audit',
+      icon: Calculator
+    },
+    {
+      id: 'home-shop',
+      targetId: 'tour-home-shop',
+      title: 'Tier-1 Hardware Component Shop 🛍️',
+      description: 'Browse industrial-grade monocrystalline solar panels, pure sine wave inverters, LFP lithium batteries, and 4K CCTV security kits with transparent pricing.',
+      tab: 'home',
+      badge: '5. Equipment Catalog',
+      icon: ShoppingBag
+    },
+    {
+      id: 'home-tracking',
+      targetId: 'tour-home-tracking',
+      title: 'Deployment Logistics Tracker 🚚',
+      description: 'Check real-time hardware dispatch progress and field engineer installation schedules across all 36 Nigerian states directly from the homepage.',
+      tab: 'home',
+      badge: '6. Deployment Tracker',
+      icon: Truck
+    },
+    {
+      id: 'ai-advisor',
+      targetId: 'tour-ai-advisor-target',
+      title: 'AI Solar Engineering Specialist 🤖',
+      description: 'Converse with our Gemini-powered AI energy consultant to design custom microgrid blueprints, estimate complex commercial loads, and receive equipment advice.',
+      tab: 'ai',
+      badge: '7. AI Engineer Chat',
+      icon: Bot
+    },
+    {
+      id: 'solar-packages',
+      targetId: 'tour-solar-packages-target',
+      title: 'Turnkey Solar Kits & Custom Mega-Quotes ☀️',
+      description: 'Explore pre-engineered hybrid solar kits complete with installation and surge protection, or request a custom mega-quote for 15kVA to 100kVA+ installations.',
+      tab: 'quote',
+      badge: '8. Turnkey Solar Hub',
+      icon: Sun
+    },
+    {
+      id: 'order-tracking',
+      targetId: 'tour-tracker-target',
+      title: 'Logistics Dashboard & Verification 🛡️',
+      description: 'Access the dedicated logistics hub to track active deployments, view engineer reports, and verify order delivery status using your reference ID.',
+      tab: 'tracker',
+      badge: '9. Logistics Hub',
+      icon: ShieldCheck
+    },
+    {
+      id: 'payment-methods',
+      targetId: 'tour-cart-btn',
+      title: 'Flutterwave & Pay on Delivery 💳',
+      description: 'SkyIT Ventures supports instant online payment via Flutterwave (cards, bank transfer, USSD) and Pay on Delivery for most eligible items across Nigeria.',
+      tab: 'shop',
+      badge: '10. Website Payments',
+      icon: CreditCard,
+      paymentOptions: true
+    }
+  ], [isMobile]);
+
+  // Reset to first step when tour is opened
   useEffect(() => {
     if (isOpen) {
       setCurrentStepIndex(0);
     }
   }, [isOpen]);
 
-  // Measure target element position without forcing re-scrolling
-  const measureTarget = useCallback(() => {
-    if (!isOpen || !currentStep || !currentStep.targetId) {
+  const currentStep = steps[currentStepIndex];
+
+  // 3. Tab navigation trigger & mobile search expansion
+  useEffect(() => {
+    if (!isOpen || !currentStep) return;
+
+    if (activeTab !== currentStep.tab) {
+      onNavigateTab(currentStep.tab);
+    }
+
+    if (currentStep.id === 'search' && isMobile) {
+      onExpandMobileSearch?.();
+    } else {
+      onCloseMobileSearch?.();
+    }
+  }, [isOpen, currentStepIndex, currentStep, activeTab, onNavigateTab, isMobile, onExpandMobileSearch, onCloseMobileSearch]);
+
+  // 4. Coordinates tracking with 200ms polling loop (smooth position lock)
+  const updateCoordinates = useCallback(() => {
+    if (!isOpen || !currentStep || currentStep.noOverlay) {
       setTargetRect(null);
       return;
     }
 
-    let element = document.getElementById(currentStep.targetId);
-    // Fallback for mobile if desktop element is hidden (width/height 0) or missing
-    if (!element || element.offsetWidth === 0 || element.offsetHeight === 0) {
-      element = document.getElementById(currentStep.targetId + '-mobile');
+    const preferredId = isMobile && currentStep.mobileTargetId ? currentStep.mobileTargetId : currentStep.targetId;
+    let el = preferredId ? document.getElementById(preferredId) : null;
+    
+    // Fallback if preferred element is hidden or zero height
+    if (!el || el.offsetWidth === 0 || el.offsetHeight === 0) {
+      if (currentStep.targetId) {
+        el = document.getElementById(currentStep.targetId);
+      }
     }
 
-    if (element && element.offsetWidth > 0 && element.offsetHeight > 0) {
-      setTargetRect(element.getBoundingClientRect());
+    if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+      const rect = el.getBoundingClientRect();
+      setTargetRect(prev => {
+        if (
+          prev &&
+          Math.abs(prev.top - rect.top) < 1 &&
+          Math.abs(prev.left - rect.left) < 1 &&
+          Math.abs(prev.width - rect.width) < 1 &&
+          Math.abs(prev.height - rect.height) < 1
+        ) {
+          return prev;
+        }
+        return rect;
+      });
     } else {
       setTargetRect(null);
     }
-  }, [isOpen, currentStep]);
+  }, [isOpen, currentStep, isMobile]);
 
-  // Handle step changes: navigate tab and scroll target into view
+  // Smooth scroll target element into viewport on step change
   useEffect(() => {
-    if (!isOpen || !currentStep) return;
+    if (!isOpen || !currentStep || currentStep.noOverlay) return;
 
-    if (currentStep.tab) {
-      onNavigateTab(currentStep.tab);
+    const preferredId = isMobile && currentStep.mobileTargetId ? currentStep.mobileTargetId : currentStep.targetId;
+    let el = preferredId ? document.getElementById(preferredId) : null;
+    if (!el && currentStep.targetId) {
+      el = document.getElementById(currentStep.targetId);
     }
 
-    if (currentStep.id === 'search') {
-      onExpandMobileSearch?.();
+    if (el) {
+      // Calculate scroll position to place section top into view with sticky header clearance (90px)
+      const headerOffset = 90;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = window.scrollY + elementPosition - headerOffset;
+
+      window.scrollTo({
+        top: Math.max(0, offsetPosition),
+        behavior: 'smooth'
+      });
     }
+  }, [isOpen, currentStepIndex, currentStep, isMobile]);
 
-    // Function to attempt finding, scrolling to, and measuring the target element
-    const attemptScrollAndMeasure = () => {
-      if (!currentStep.targetId) {
-        setTargetRect(null);
-        return;
-      }
-
-      let element = document.getElementById(currentStep.targetId);
-      // Fallback for mobile if desktop element is hidden or missing
-      if (!element || element.offsetWidth === 0 || element.offsetHeight === 0) {
-        element = document.getElementById(currentStep.targetId + '-mobile');
-      }
-
-      if (element && element.offsetWidth > 0 && element.offsetHeight > 0) {
-        const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-        const headerOffset = isMobile ? 80 : 120;
-        const rect = element.getBoundingClientRect();
-        const absoluteTop = window.pageYOffset + rect.top;
-        const targetScroll = Math.max(0, absoluteTop - headerOffset);
-
-        window.scrollTo({
-          top: targetScroll,
-          behavior: 'smooth'
-        });
-        setTargetRect(element.getBoundingClientRect());
-      }
-    };
-
-    // Staggered timers to handle tab switching DOM mount delays & smooth scroll completion
-    const t1 = setTimeout(attemptScrollAndMeasure, 50);
-    const t2 = setTimeout(attemptScrollAndMeasure, 200);
-    const t3 = setTimeout(attemptScrollAndMeasure, 450);
-    const t4 = setTimeout(attemptScrollAndMeasure, 750);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
-  }, [isOpen, currentStepIndex, currentStep, onNavigateTab, onExpandMobileSearch]);
-
-  // Update bounding rect on window resize & scroll WITHOUT re-triggering scrollIntoView
+  // Register event listeners & 200ms polling for dynamic target tracking
   useEffect(() => {
     if (!isOpen) return;
 
-    window.addEventListener('resize', measureTarget);
-    window.addEventListener('scroll', measureTarget, true);
+    updateCoordinates();
+    window.addEventListener('resize', updateCoordinates);
+    window.addEventListener('scroll', updateCoordinates, true);
+    const interval = setInterval(updateCoordinates, 200);
 
     return () => {
-      window.removeEventListener('resize', measureTarget);
-      window.removeEventListener('scroll', measureTarget, true);
+      window.removeEventListener('resize', updateCoordinates);
+      window.removeEventListener('scroll', updateCoordinates, true);
+      clearInterval(interval);
     };
-  }, [isOpen, measureTarget]);
+  }, [isOpen, updateCoordinates]);
 
-  if (!isOpen) return null;
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
 
-  const isFirstStep = currentStepIndex === 0;
-  const isLastStep = currentStepIndex === TOUR_STEPS.length - 1;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        handleBack();
+      } else if (e.key === 'Escape') {
+        handleComplete();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, currentStepIndex, steps.length]);
 
   const handleNext = () => {
-    if (isLastStep) {
-      handleComplete();
-    } else {
+    if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
+    } else {
+      handleComplete();
     }
   };
 
-  const handlePrev = () => {
-    if (!isFirstStep) {
+  const handleBack = () => {
+    if (currentStepIndex > 0) {
       setCurrentStepIndex(prev => prev - 1);
     }
   };
 
   const handleComplete = () => {
     localStorage.setItem('hasCompletedSkyITInteractiveTour', 'true');
+    onCloseMobileSearch?.();
     onClose();
   };
 
-  // Calculate position for floating tooltip box relative to target Rect
-  const getTooltipStyle = () => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  if (!isOpen || !currentStep) return null;
 
-    // Mobile Viewport (< 640px): Clean bottom sheet card
-    if (isMobile) {
-      return {
-        bottom: '12px',
-        left: '12px',
-        right: '12px',
-        margin: '0 auto',
-        maxWidth: '420px',
-        maxHeight: currentStep.paymentOptions ? '90vh' : '52vh',
-      };
-    }
-
-    // Tablet & Desktop: Step 1 (Welcome) - Centered dialog
-    if (currentStep.id === 'welcome' || !targetRect) {
-      return {
-        top: '0px',
-        bottom: '0px',
-        left: '0px',
-        right: '0px',
-        margin: 'auto',
-        width: '440px',
-        maxWidth: 'calc(100vw - 32px)',
-        height: 'fit-content',
-        maxHeight: 'calc(85vh - 24px)',
-      };
-    }
-
-    // Tablet & Desktop: Top Header Items (Search & Cart)
-    if (currentStep.id === 'search') {
-      const cardWidth = 420;
-      let left = targetRect.left;
-      if (left + cardWidth > window.innerWidth - 20) {
-        left = window.innerWidth - cardWidth - 20;
-      }
-      return {
-        top: `${Math.max(76, targetRect.bottom + 12)}px`,
-        left: `${Math.max(20, left)}px`,
-        width: `${cardWidth}px`,
-        maxWidth: 'calc(100vw - 32px)',
-        maxHeight: 'calc(100vh - 100px)',
-      };
-    }
-
-    if (currentStep.id === 'cart') {
-      const cardWidth = 400;
-      return {
-        top: `${Math.max(76, targetRect.bottom + 12)}px`,
-        right: '20px',
-        width: `${cardWidth}px`,
-        maxWidth: 'calc(100vw - 32px)',
-        maxHeight: 'calc(100vh - 100px)',
-      };
-    }
-
-    // Tablet & Desktop: Content Section Steps (AI Sizing, Solar Kits, Logistics, Payment)
-    // Position guide card floating centered at bottom with margin auto (no transform conflict)
-    const cardWidth = currentStep.paymentOptions ? 460 : 440;
-    return {
-      bottom: '24px',
-      left: '0px',
-      right: '0px',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      width: `${cardWidth}px`,
-      maxWidth: 'calc(100vw - 32px)',
-      maxHeight: 'calc(85vh - 32px)',
-    };
-  };
+  const StepIcon = currentStep.icon;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] pointer-events-none">
-        {/* Dark Backdrop Overlay with Spotlight Cutout Hole over targetRect */}
-        {targetRect ? (
-          <svg className="fixed inset-0 z-[100] w-full h-full pointer-events-none">
-            <defs>
-              <mask id="skyit-tour-spotlight-mask">
-                {/* White covers entire screen -> overlay visible */}
-                <rect x="0" y="0" width="100%" height="100%" fill="white" />
-                {/* Black cutout hole at targetRect -> component completely clear & un-obscured */}
-                <rect
-                  x={Math.max(0, targetRect.left - 6)}
-                  y={Math.max(0, targetRect.top - 6)}
-                  width={targetRect.width + 12}
-                  height={targetRect.height + 12}
-                  rx="16"
-                  fill="black"
-                />
-              </mask>
-            </defs>
-            <rect
-              x="0"
-              y="0"
-              width="100%"
-              height="100%"
-              fill="rgba(15, 23, 42, 0.65)"
-              mask="url(#skyit-tour-spotlight-mask)"
-            />
-          </svg>
-        ) : (
-          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-[2px] pointer-events-none" />
+      <div className="fixed inset-0 z-[200000] pointer-events-none">
+        {/* Full Dim / Click-catcher Overlay */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={handleComplete}
+          className={`absolute inset-0 pointer-events-auto transition-colors ${
+            targetRect && !currentStep.noOverlay 
+              ? 'bg-transparent' 
+              : 'bg-[#070b12]/70'
+          }`}
+        />
+
+        {/* Dynamic Spotlight Ring Frame around Target Element */}
+        {targetRect && !currentStep.noOverlay && (
+          <motion.div
+            className="fixed border-2 border-[#0066ff] rounded-2xl ring-[9999px] ring-[#070b12]/80 shadow-[0_0_35px_rgba(0,102,255,0.7)] z-[199998] pointer-events-none"
+            style={{
+              top: `${targetRect.top - 6}px`,
+              left: `${targetRect.left - 6}px`,
+              width: `${targetRect.width + 12}px`,
+              height: `${targetRect.height + 12}px`,
+              transition: 'top 0.35s ease-out, left 0.35s ease-out, width 0.35s ease-out, height 0.35s ease-out'
+            }}
+          />
         )}
 
-        {/* Highlight Frame around Target Element */}
-        {targetRect && (
+        {/* Fixed Control Dock Panel */}
+        <div className={`fixed z-[199999] pointer-events-auto flex justify-center ${
+          currentStep.noOverlay 
+            ? 'inset-0 items-center p-4' 
+            : 'inset-x-4 bottom-5 md:inset-auto md:bottom-8 md:right-8'
+        }`}>
           <motion.div
-            initial={false}
-            animate={{
-              top: targetRect.top - 6,
-              left: targetRect.left - 6,
-              width: targetRect.width + 12,
-              height: targetRect.height + 12,
-            }}
-            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-            className="fixed z-[101] rounded-2xl border-2 border-brand bg-brand/10 ring-4 ring-brand/30 shadow-[0_0_25px_rgba(16,185,129,0.4)] pointer-events-none"
+            key={currentStep.id}
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="w-full max-w-[440px] bg-[#0e131e] border border-[#0066ff]/40 rounded-3xl p-6 shadow-2xl shadow-black/90 text-left relative overflow-hidden"
           >
-            {/* Pulsing Beacon Icon */}
-            <div className="absolute -top-3.5 -right-3.5 w-7 h-7 bg-brand rounded-full flex items-center justify-center text-white shadow-lg animate-bounce border-2 border-white">
-              <Sparkles size={14} />
+            {/* Ambient Background Glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#0066ff]/15 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Header: Badge & Close */}
+            <div className="flex items-center justify-between gap-3 mb-3.5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0066ff]/20 border border-[#0066ff]/40 text-[#b3c5ff] text-[11px] font-bold uppercase tracking-wider">
+                <StepIcon className="w-3.5 h-3.5 text-[#0066ff]" />
+                <span>{currentStep.badge}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {currentStepIndex + 1} of {steps.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleComplete}
+                  className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all cursor-pointer"
+                  title="Close Tour"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Step Body */}
+            <div className="space-y-2 mb-5">
+              <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight font-display">
+                {currentStep.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-300 leading-relaxed font-normal">
+                {currentStep.description}
+              </p>
+
+              {/* Payment Feature Badges */}
+              {currentStep.paymentOptions && (
+                <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Flutterwave Secure Pay
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Pay on Delivery (COD)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Row */}
+            <div className="flex items-center justify-between pt-3 border-t border-white/10">
+              <div className="flex items-center gap-1">
+                {steps.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentStepIndex(idx)}
+                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                      idx === currentStepIndex 
+                        ? 'w-5 bg-[#0066ff]' 
+                        : idx < currentStepIndex
+                        ? 'w-1.5 bg-[#b3c5ff]/40'
+                        : 'w-1.5 bg-white/15'
+                    }`}
+                    title={`Go to step ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {currentStepIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold text-xs transition-all cursor-pointer flex items-center gap-1 border border-white/10"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Back</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="px-4 py-1.5 rounded-xl bg-[#0066ff] hover:bg-[#0052cc] text-white font-bold text-xs transition-all cursor-pointer flex items-center gap-1 shadow-lg shadow-[#0066ff]/30 active:scale-95"
+                >
+                  <span>{currentStepIndex === steps.length - 1 ? 'Finish' : 'Next'}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </motion.div>
-        )}
-
-        {/* Floating Interactive Guide Card (pointer-events-auto so controls work) */}
-        <motion.div
-          key={currentStep.id}
-          initial={{ opacity: 0, scale: 0.95, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 12 }}
-          transition={{ duration: 0.2 }}
-          style={getTooltipStyle()}
-          className={`fixed z-[102] pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col justify-between ${
-            currentStep.paymentOptions
-              ? 'p-3 sm:p-5 space-y-2 sm:space-y-3 max-h-[92vh] overflow-y-auto sm:overflow-visible'
-              : 'p-4 sm:p-6 space-y-3 sm:space-y-4 max-h-[85vh] overflow-y-auto'
-          }`}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 sm:pb-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-brand text-white flex items-center justify-center text-xs font-black shadow-xs">
-                {currentStepIndex + 1}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-brand bg-brand-light px-2.5 py-1 rounded-md border border-brand/20 flex items-center gap-1">
-                {currentStep.id === 'welcome' && <Sun size={12} className="text-brand" />}
-                <span>{currentStep.badge}</span>
-              </span>
-            </div>
-            <button
-              onClick={handleComplete}
-              className="p-1.5 sm:p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors touch-manipulation"
-              title="Close tour"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="space-y-1.5 sm:space-y-2 grow overflow-y-auto">
-            <h3 className="font-display font-black text-base sm:text-lg text-slate-900 leading-snug">
-              {currentStep.title}
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-              {currentStep.description}
-            </p>
-
-            {/* Special Section: Show Both Payment Options */}
-            {currentStep.paymentOptions && (
-              <div className="pt-1 space-y-1.5 sm:space-y-2">
-                {/* Option 1: Flutterwave Online */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 flex items-start gap-2 sm:gap-2.5">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <CreditCard size={14} />
-                  </div>
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
-                      <span className="text-xs font-bold text-slate-900">1. Flutterwave Online Checkout</span>
-                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded uppercase">Instant</span>
-                    </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 leading-normal">
-                      Card, USSD, or Bank App transfer. Instant payment confirmation & receipt.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Option 2: Payment on Delivery */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 flex items-start gap-2 sm:gap-2.5">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <Truck size={14} />
-                  </div>
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
-                      <span className="text-xs font-bold text-slate-900">2. Payment on Delivery (POD)</span>
-                      <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded uppercase">Pay at Door</span>
-                    </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 leading-normal">
-                      Pay upon equipment delivery or certified installation arrival by SkyIT field engineers.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer & Controls */}
-          <div className="flex items-center justify-between gap-2 pt-2.5 sm:pt-3 border-t border-slate-100 shrink-0">
-            {/* Step Dots */}
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {TOUR_STEPS.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentStepIndex(idx)}
-                  className="p-1 touch-manipulation"
-                  title={`Step ${idx + 1}`}
-                >
-                  <div
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      idx === currentStepIndex ? 'w-4 sm:w-5 bg-brand' : 'w-1.5 bg-slate-200 hover:bg-slate-300'
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-
-            {/* Next / Back Action Buttons */}
-            <div className="flex items-center gap-2">
-              {!isFirstStep && (
-                <button
-                  onClick={handlePrev}
-                  className="px-3 py-2 sm:py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 active:bg-slate-100 transition-colors flex items-center gap-1 touch-manipulation"
-                >
-                  <ArrowLeft size={13} />
-                  <span>Back</span>
-                </button>
-              )}
-
-              <button
-                onClick={handleNext}
-                className="px-4 py-2 sm:py-1.5 rounded-xl bg-brand hover:bg-brand-hover active:bg-brand-hover text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer touch-manipulation min-h-[36px]"
-              >
-                <span>{isLastStep ? 'Complete' : 'Next'}</span>
-                {isLastStep ? <Check size={14} /> : <ArrowRight size={14} />}
-              </button>
-            </div>
-          </div>
-        </motion.div>
+        </div>
       </div>
     </AnimatePresence>
   );
 };
-
-

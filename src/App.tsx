@@ -194,14 +194,13 @@ export default function App() {
   useEffect(() => {
     const hasCompleted = localStorage.getItem('hasCompletedSkyITInteractiveTour');
     if (!hasCompleted) {
-      // Small delayed trigger so app loads smoothly
       const timer = setTimeout(() => {
         setIsOnboardingOpen(true);
       }, 600);
       return () => clearTimeout(timer);
     }
   }, []);
-  
+
   // Firebase Auth State
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1243,6 +1242,7 @@ export default function App() {
 
               {/* Search Button for ALL screens */}
               <button 
+                id="tour-search-bar"
                 type="button"
                 onClick={() => {
                   setIsMobileSearchExpanded(!isMobileSearchExpanded);
@@ -1398,7 +1398,6 @@ export default function App() {
                         setIsMobileSearchExpanded(false);
                       }
                     }}
-                    autoFocus
                     className="w-full bg-[#171b27] border border-white/20 text-[#dee2f2] placeholder-[#8e95b0] text-base sm:text-sm rounded-xl pl-10 pr-16 py-2.5 focus:outline-none focus:border-[#0066ff] shadow-inner"
                   />
                   <button 
@@ -1674,7 +1673,6 @@ export default function App() {
               onOpenLogin={() => setIsLoginOpen(true)}
               onOpenCart={() => setIsCartOpen(true)}
               onOpenProfile={() => setIsProfileOpen(true)}
-              onOpenOnboarding={() => setIsOnboardingOpen(true)}
               onLogout={handleLogout}
               products={productsWithRealRatings}
               isLoadingProducts={isProductsLoading}
@@ -2351,8 +2349,10 @@ export default function App() {
       <InteractiveTour
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
+        activeTab={activeTab}
         onNavigateTab={setActiveTab}
         onExpandMobileSearch={() => setIsMobileSearchExpanded(true)}
+        onCloseMobileSearch={() => setIsMobileSearchExpanded(false)}
       />
 
       {/* Dynamic green Toast notification for "Added to Cart" */}

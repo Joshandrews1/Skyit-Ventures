@@ -25,7 +25,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onOrderSuccess,
   onOpenLogin
 }) => {
-  const [step, setStep] = useState<'details' | 'payment' | 'authenticating' | 'otp' | 'success'>('details');
+  const [step, setStep] = useState<'details' | 'authenticating' | 'success'>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authStage, setAuthStage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'flutterwave' | 'cod'>('flutterwave');
@@ -40,16 +40,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     city: "",
     address: ""
   });
-
-  const [card, setCard] = useState({
-    number: "4000 1234 5678 9010",
-    holder: "JOHN DOE",
-    expiry: "12/28",
-    cvv: "321"
-  });
-
-  const [otpCode, setOtpCode] = useState('');
-  const [otpError, setOtpError] = useState('');
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -87,13 +77,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           city: "Lagos",
           address: ""
         });
-        setCard(prev => ({
-          ...prev,
-          holder: defaultName ? defaultName.toUpperCase() : "JOHN DOE",
-          number: "4000 1234 5678 9010",
-          expiry: "12/28",
-          cvv: "321"
-        }));
       } else {
         setCustomer({
           name: "",
@@ -101,12 +84,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           phone: "",
           city: "",
           address: ""
-        });
-        setCard({
-          number: "",
-          holder: "",
-          expiry: "",
-          cvv: ""
         });
       }
     }
@@ -268,102 +245,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  const handleChargeCard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (card.number.length < 16 || card.cvv.length < 3) {
-      alert("Please enter valid card credentials.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setStep('authenticating');
-    
-    // Simulate payment gateway handshakes
-    const messages = [
-      "Establishing SSL connection to SkyIT Pay channel...",
-      "Encrypting secure hardware asset protocol tokens...",
-      "Contacting your issuing bank transfer authorization node...",
-      "3D Secure 2.0 validation request initialized: OTP pending."
-    ];
-
-    for (let i = 0; i < messages.length; i++) {
-      setAuthStage(messages[i]);
-      await new Promise(r => setTimeout(r, 700));
-    }
-
-    setIsSubmitting(false);
-    setStep('otp');
-  };
-
-  const verifyOtp = async () => {
-    if (otpCode !== "482103") {
-      setOtpError("Incorrect verification token credentials. Hint: Enter 482103");
-      return;
-    }
-
-    setOtpError('');
-    setIsSubmitting(true);
-    setStep('authenticating');
-    setAuthStage("Authorizing " + formatNaira(grandTotal) + " with SkyIT Pay Transfer Net...");
-    
-    await new Promise(r => setTimeout(r, 1000));
-    setAuthStage("Securing transaction certificate...");
-    await new Promise(r => setTimeout(r, 1000));
-
-    // Post to checkout backend to save active order
-    try {
-      const currentUserId = auth.currentUser?.uid || getOrCreateGuestUid();
-      const resp = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cartItems,
-          subtotal,
-          deliveryFee,
-          discount,
-          total: grandTotal,
-          customerDetails: customer,
-          userId: currentUserId,
-          paymentMethod: "Credit Card Secure Payment"
-        })
-      });
-
-      if (!resp.ok) throw new Error("Server checkout failed.");
-
-      const result = await resp.json();
-      
-      // Synchronously write to Firestore orders collection
-      try {
-        const orderDocRef = doc(db, 'orders', result.order.id);
-        const completeOrder: Order = {
-          ...result.order,
-          userId: currentUserId
-        };
-        await setDoc(orderDocRef, completeOrder);
-        cacheOrderDetails(completeOrder);
-      } catch (fErr) {
-        console.warn("Cloud Firestore order snapshot save noticed non-fatal reject: ", fErr);
-      }
-
-      setIsSubmitting(false);
-      setStep('success');
-      
-      // Keep on success panel for a bit, then callback to tracking page
-      setTimeout(() => {
-        onOrderSuccess({
-          ...result.order,
-          userId: currentUserId
-        });
-        onClose();
-      }, 1500);
-
-    } catch (err) {
-      console.error(err);
-      alert("Checkout sync communication error. Initializing fallback.");
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-slate-50 z-[999] overflow-y-auto flex flex-col font-sans text-slate-800 animate-fade-in" id="full-page-checkout">
       
@@ -419,10 +300,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <span className="hover:text-slate-600 cursor-pointer" onClick={onClose}>Cart</span>
             <ChevronLeft size={10} className="rotate-180 text-slate-300" />
             <span className={step === 'details' ? 'text-brand font-black' : 'text-slate-400'}>Contact & Delivery</span>
-            {(step === 'payment' || step === 'otp') && (
+            {step === 'authenticating' && (
               <>
                 <ChevronLeft size={10} className="rotate-180 text-slate-300" />
-                <span className="text-brand font-black">Secure Payment</span>
+                <span className="text-brand font-black">Processing Order</span>
               </>
             )}
           </nav>
@@ -618,9 +499,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           <span className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                             Pay safely using local/international credit cards, instant bank transfers, and USSD dialcodes.
                           </span>
-                        </button>
-
-                        {/* Option 2: Cash On Delivery */}
+                        </button>                        {/* Option 2: Pay On Delivery */}
                         <button
                           type="button"
                           disabled={!isCodAvailable}
@@ -639,12 +518,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         >
                           <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
                             <Truck size={16} className={paymentMethod === 'cod' && isCodAvailable ? 'text-brand' : 'text-slate-400'} />
-                            <span>Cash On Delivery (COD)</span>
+                            <span>Pay on Delivery (COD)</span>
                           </div>
                           <span className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                             {!isCodAvailable 
                               ? "Unavailable: Cart contains high-value premium enterprise equipment requiring pre-order verification." 
-                              : "Verify your delivery and pay securely via cash or local POS transfer upon receiving system."
+                              : "Verify your items upon delivery and pay securely via cash or local POS transfer."
                             }
                           </span>
                         </button>
@@ -653,7 +532,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       {/* Warning notice if COD is disabled for cart contents */}
                       {!isCodAvailable && (
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 leading-relaxed flex gap-3">
-                          <span className="text-amber-600 font-black shrink-0">⚠️ COD DISABLED:</span>
+                          <span className="text-amber-600 font-black shrink-0">⚠️ PAY ON DELIVERY DISABLED:</span>
                           <span>
                             Your cart includes specialized solar setups or heavy-duty industrial lithium batteries. These require professional warehouse processing and secure pre-order checkout.
                           </span>
@@ -673,7 +552,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span>
                     {paymentMethod === 'flutterwave' 
                       ? 'Proceed to Flutterwave Gateway' 
-                      : 'Place Cash on Delivery Order'
+                      : 'Place Pay on Delivery Order'
                     }
                   </span>
                   <ArrowRight size={15} strokeWidth={2.5} />
@@ -684,142 +563,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               </div>
             </form>
-          ) : step === 'payment' ? (
-            /* CASE C: Credit Card Portal (SkyIT Pay) */
-            <form onSubmit={handleChargeCard} className="space-y-6">
-              
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                <div>
-                  <h2 className="text-xl font-display font-bold text-slate-900 tracking-tight">Credit Card Payment</h2>
-                  <p className="text-xs text-slate-500 mt-1">Directly authorize using our fallback encrypted SkyIT Pay pipeline.</p>
-                </div>
-                <span className="text-[10px] text-brand uppercase font-black bg-blue-50 px-3 py-1 rounded-full flex items-center gap-1.5 border border-blue-100 self-start sm:self-center">
-                  <ShieldCheck size={13} className="text-brand animate-pulse" />
-                  <span>SkyIT Direct Safe</span>
-                </span>
-              </div>
-
-              {/* Graphical Credit Card */}
-              <div className="bg-gradient-to-br from-[#003764] via-[#002544] to-[#011425] p-6 rounded-2xl text-white shadow-xl space-y-6 relative overflow-hidden aspect-video max-w-[350px] mx-auto border border-blue-900">
-                {/* Visual grid effects */}
-                <div className="absolute inset-0 bg-radial from-transparent to-black/40 pointer-events-none" />
-                
-                <div className="flex justify-between items-center relative">
-                  <span className="text-[10px] tracking-widest font-mono text-blue-300 font-bold">SkyIT Pay Direct</span>
-                  <div className="w-9 h-6 bg-amber-400/20 rounded border border-amber-400/30" /> {/* Card metallic chip */}
-                </div>
-
-                <div className="text-lg text-center tracking-[0.2em] font-mono leading-none relative my-4 font-bold text-blue-50">
-                  {card.number || '•••• •••• •••• ••••'}
-                </div>
-
-                <div className="flex justify-between items-end relative">
-                  <div>
-                    <span className="text-[8px] text-blue-300 font-medium block uppercase tracking-widest">Card Holder</span>
-                    <span className="text-xs font-bold font-mono text-white uppercase truncate max-w-[180px] inline-block">
-                      {card.holder || 'YOUR FULL NAME'}
-                    </span>
-                  </div>
-                  <div className="flex gap-4">
-                    <div>
-                      <span className="text-[8px] text-blue-300 font-medium block uppercase tracking-widest font-mono">Expires</span>
-                      <span className="text-xs font-bold font-mono text-white text-center">
-                        {card.expiry || 'MM/YY'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[8px] text-blue-300 font-medium block uppercase tracking-widest font-mono">CVV</span>
-                      <span className="text-xs font-bold font-mono text-white text-center">
-                        {card.cvv || '•••'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Form input fields */}
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Card Number</label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3.5 top-3 text-slate-400" size={16} />
-                    <input 
-                      type="text" 
-                      required
-                      value={card.number}
-                      onChange={(e) => setCard({...card, number: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pl-11 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono"
-                      placeholder="e.g. 4000 1234 5678 9010"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Cardholder Full Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={card.holder}
-                    onChange={(e) => setCard({...card, holder: e.target.value.toUpperCase()})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-bold uppercase"
-                    placeholder="e.g. JOHN DOE"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Expiration Date</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={card.expiry}
-                      onChange={(e) => setCard({...card, expiry: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono text-center"
-                      placeholder="MM/YY"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">CVV Security Code</label>
-                    <input 
-                      type="password" 
-                      required
-                      maxLength={3}
-                      value={card.cvv}
-                      onChange={(e) => setCard({...card, cvv: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:bg-white focus:outline-hidden transition-all font-mono text-center"
-                      placeholder="3 digits"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bank security statement badge */}
-              <div className="bg-slate-50 p-4 text-xs text-slate-500 flex items-start gap-3 border border-slate-200 rounded-xl leading-relaxed">
-                <Lock className="text-brand shrink-0 mt-0.5" size={15} />
-                <span>All transactions are strictly protected by standard industry AES-256 bank-level hardware cryptology. Credit cards are secured by Verified by Visa and Mastercard Identity checks.</span>
-              </div>
-
-              {/* Actions Grid */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-150">
-                <button
-                  type="button"
-                  onClick={() => setStep('details')}
-                  className="bg-slate-100 hover:bg-slate-200/80 transition-colors border border-slate-200 text-slate-600 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer"
-                >
-                  Back to Delivery
-                </button>
-                <button
-                  type="submit"
-                  className="bg-brand hover:bg-brand-hover transition-colors active:scale-98 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-xs cursor-pointer shadow-sm"
-                >
-                  Authorize Payment
-                </button>
-              </div>
-            </form>
           ) : step === 'authenticating' ? (
-            /* CASE D: Authenticating Pipeline Handshake */
+            /* CASE C: Authenticating Pipeline Handshake */
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-6 max-w-sm mx-auto">
               <Loader2 className="animate-spin text-brand" size={48} />
               <div className="space-y-1.5">
@@ -830,60 +575,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {authStage}
               </p>
             </div>
-          ) : step === 'otp' ? (
-            /* CASE E: 3D Secure OTP verification */
-            <div className="p-6 border border-slate-200 rounded-2xl bg-white shadow-md max-w-md mx-auto space-y-5 animate-scale-up text-slate-600">
-              
-              {/* Fake bank header branding */}
-              <div className="flex justify-between items-center border-b border-slate-150 pb-3">
-                <div className="flex items-center gap-1.5 text-brand font-bold text-xs font-mono">
-                  <Landmark size={15} />
-                  <span>SkyIT Pay (Direct 3D Secure)</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-semibold font-mono">LGS-SEC-77</span>
-              </div>
-
-              <div className="text-xs text-slate-500 leading-relaxed space-y-3">
-                <p>To authorize this transaction of <strong className="text-slate-900 font-black">{formatNaira(grandTotal)}</strong>, please enter the 6-digit temporary verification security code dispatched to your registered phone number.</p>
-                
-                {/* Visual aid hint */}
-                <div className="bg-blue-50 border border-blue-100 text-[10px] text-blue-800 font-bold px-3 py-2.5 rounded-xl leading-relaxed flex flex-col gap-1">
-                  <span>🛡️ SIMULATED AUTHENTICATION TRIGGER:</span>
-                  <span>Use code <strong className="text-xs font-black bg-white border border-blue-200 px-1.5 py-0.5 rounded font-mono text-brand">482103</strong> to finalize payment.</span>
-                </div>
-              </div>
-
-              {/* OTP Form entry */}
-              <div className="space-y-3 max-w-[260px] mx-auto text-center pt-2">
-                <input 
-                  type="text"
-                  maxLength={6}
-                  placeholder="------"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  className="w-full tracking-[0.25em] text-xl font-black font-mono text-center p-3 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-brand"
-                />
-
-                {otpError && (
-                  <p className="text-[10px] text-rose-600 font-bold block">{otpError}</p>
-                )}
-
-                <button
-                  type="button"
-                  onClick={verifyOtp}
-                  disabled={isSubmitting}
-                  className="w-full bg-brand hover:bg-brand-hover text-white font-black uppercase tracking-wider py-3.5 rounded-xl text-xs transition-all shadow-sm cursor-pointer"
-                >
-                  Verify & Authorize
-                </button>
-              </div>
-
-              <div className="text-[10px] text-slate-400 text-center border-t border-slate-100 pt-3 font-medium">
-                Need help? Contact support or close checkout to choose another payment route.
-              </div>
-            </div>
           ) : (
-            /* CASE F: Order Confirmation Success screen */
+            /* CASE D: Order Confirmation Success screen */
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-6 max-w-md mx-auto" id="checkout-success-screen">
               <div className={`w-16 h-16 ${paymentMethod === 'cod' ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-brand/10 text-brand border-blue-100'} rounded-full flex items-center justify-center border shadow-xs animate-bounce`}>
                 <CheckCircle2 size={32} strokeWidth={2.5} />
@@ -894,7 +587,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </h4>
                 <p className="text-sm text-slate-500 leading-relaxed">
                   {paymentMethod === 'cod'
-                    ? 'Your Cash on Delivery order has been successfully logged. Please check your email inbox (including spam) for your electronic sales receipt.'
+                    ? 'Your Pay on Delivery order has been successfully logged. Please check your email inbox (including spam) for your electronic sales receipt.'
                     : 'Your electronic payment has been safely validated. Generating warranty tracking certificates...'
                   }
                 </p>

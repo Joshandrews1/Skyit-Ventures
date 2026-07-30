@@ -16,7 +16,6 @@ interface FullHomePageProps {
   onOpenLogin?: () => void;
   onOpenCart?: () => void;
   onOpenProfile?: () => void;
-  onOpenOnboarding?: () => void;
   onLogout?: () => void;
   products: Product[];
   isLoadingProducts: boolean;
@@ -45,7 +44,6 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
   onOpenLogin,
   onOpenCart,
   onOpenProfile,
-  onOpenOnboarding,
   onLogout,
   products,
   isLoadingProducts,
@@ -111,7 +109,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
   const [currentWordIdx, setCurrentWordIdx] = useState(0);
   const [typedText, setTypedText] = useState('');
   const [isDeletingWord, setIsDeletingWord] = useState(false);
-  const [typeSpeed, setTypeSpeed] = useState(2);
+  const [typeSpeed, setTypeSpeed] = useState(30);
 
   useEffect(() => {
     const activeWord = heroWords[currentWordIdx];
@@ -119,15 +117,15 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
       if (!isDeletingWord) {
         setTypedText(activeWord.substring(0, typedText.length + 1));
         if (typedText === activeWord) {
-          setTimeout(() => setIsDeletingWord(true), 200);
-          setTypeSpeed(2);
+          setTimeout(() => setIsDeletingWord(true), 1200);
+          setTypeSpeed(25);
         }
       } else {
         setTypedText(activeWord.substring(0, typedText.length - 1));
         if (typedText === '') {
           setIsDeletingWord(false);
           setCurrentWordIdx((prev) => (prev + 1) % heroWords.length);
-          setTypeSpeed(2);
+          setTypeSpeed(30);
         }
       }
     };
@@ -455,12 +453,14 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
               </p>
               <div className="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
                 <button 
+                  type="button"
                   onClick={() => onNavigate('quote')}
                   className="bg-[#0066ff] text-[#f8f7ff] px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-[18px] sm:text-[22px] font-bold hover:brightness-110 transition-all safety-glow cursor-pointer"
                 >
                   Deploy Energy System
                 </button>
                 <button 
+                  type="button"
                   onClick={() => { onSelectCategory('Security Systems'); onNavigate('shop'); }}
                   className="border-2 border-white/20 text-[#dee2f2] px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-[18px] sm:text-[22px] font-bold hover:bg-white/5 transition-all cursor-pointer"
                 >
@@ -603,7 +603,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
           </div>
 
           {/* Solar Packages Sizing Widget */}
-          <div className="relative z-10 mt-16 w-full max-w-7xl glass-card rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 space-y-5 sm:space-y-6">
+          <div id="tour-home-packages" className="relative z-10 mt-16 w-full max-w-7xl glass-card rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 space-y-5 sm:space-y-6">
             {/* Header & Tech Switcher Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
               <div className="space-y-1">
@@ -843,7 +843,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
 
         {/* Section 6: Interactive Energy Audit Tool */}
         <section className="py-20 sm:py-24 px-4 sm:px-10">
-          <div className="max-w-[1440px] mx-auto glass-card rounded-[3rem] p-6 sm:p-12 relative border border-white/10 shadow-2xl">
+          <div id="tour-home-audit" className="max-w-[1440px] mx-auto glass-card rounded-[3rem] p-6 sm:p-12 relative border border-white/10 shadow-2xl">
             <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#0066ff]/10 to-transparent pointer-events-none"></div>
             
             {/* Calculator Header */}
@@ -1158,7 +1158,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
         </section>
 
         {/* Section 5: Hardware Shop */}
-        <section className="py-16 sm:py-20 px-4 sm:px-10 max-w-[1440px] mx-auto">
+        <section id="tour-home-shop" className="py-16 sm:py-20 px-4 sm:px-10 max-w-[1440px] mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
             <div>
               <h2 className="text-[28px] sm:text-[32px] leading-[36px] sm:leading-[40px] font-bold text-[#dee2f2]">Component Shop</h2>
@@ -1331,7 +1331,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
             <h2 className="text-[26px] sm:text-[32px] leading-[34px] sm:leading-[40px] font-bold text-[#dee2f2]">Track Your Deployment</h2>
             <p className="text-[15px] sm:text-[18px] leading-[22px] sm:leading-[28px] text-[#c2c6d8] mt-2">Real-time logistics monitoring for your hardware delivery.</p>
           </div>
-          <div className="max-w-3xl mx-auto glass-card rounded-2xl sm:rounded-[2.5rem] p-3.5 sm:p-12 space-y-6 sm:space-y-8">
+          <div id="tour-home-tracking" className="max-w-3xl mx-auto glass-card rounded-2xl sm:rounded-[2.5rem] p-3.5 sm:p-12 space-y-6 sm:space-y-8">
             <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
               <input 
                 type="text"

@@ -73,7 +73,7 @@ export const PackageUsageModeSelector: React.FC<Props> = ({ pkg, theme = 'dark' 
       </div>
 
       {/* Mode Switches / Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-xl bg-black/20 dark:bg-black/30 light:bg-slate-200/80">
+      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100/90 dark:bg-black/40 border border-slate-200/80 dark:border-white/5">
         {modesConfig.map((item) => {
           const isActive = activeModeKey === item.key;
           return (
@@ -81,53 +81,51 @@ export const PackageUsageModeSelector: React.FC<Props> = ({ pkg, theme = 'dark' 
               key={item.key}
               type="button"
               onClick={() => setActiveModeKey(item.key)}
-              className={`flex flex-col items-center justify-center py-2.5 px-1.5 rounded-lg text-center transition-all cursor-pointer border text-xs font-bold ${
+              className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-center transition-all cursor-pointer border text-xs font-bold ${
                 isActive
                   ? isDark ? item.activeBgDark : item.activeBgLight
                   : isDark
                     ? 'bg-transparent text-slate-300 border-transparent hover:bg-white/5'
-                    : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-100'
+                    : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-200/60'
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-base shrink-0">{item.icon}</span>
-                <span className="hidden sm:inline text-xs">{item.label}</span>
-                <span className="sm:hidden text-xs">{item.shortLabel}</span>
-              </div>
+              <span className="material-symbols-outlined text-base shrink-0">{item.icon}</span>
+              <span className="truncate text-[11px] sm:text-xs font-bold">{item.label}</span>
             </button>
           );
         })}
       </div>
 
       {/* Mode Details Display */}
-      <div className={`p-3 sm:p-3.5 rounded-xl border space-y-3 animate-in fade-in duration-200 overflow-hidden ${
-        isDark ? 'bg-[#0e131e] border-white/5' : 'bg-white border-slate-200'
+      <div className={`p-3 rounded-xl border space-y-3 animate-in fade-in duration-200 overflow-hidden ${
+        isDark ? 'bg-[#0e131e] border-white/5' : 'bg-white border-slate-200 shadow-2xs'
       }`}>
-        {/* Runtime Banner */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b pb-3 border-white/5 dark:border-white/5 light:border-slate-100">
-          <div className="min-w-0 flex-1">
-            <span className={`text-[10px] uppercase tracking-wider font-extrabold block ${
+        {/* Header & Runtime Banner */}
+        <div className="space-y-2 border-b pb-2.5 border-slate-100 dark:border-white/5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <span className={`text-[10px] uppercase tracking-wider font-extrabold block truncate ${
               isDark ? 'text-slate-400' : 'text-slate-500'
             }`}>
               {currentModeDetails.title}
             </span>
-            <span className="text-xs sm:text-sm font-black text-amber-400 dark:text-amber-300 light:text-amber-600 flex items-center gap-1 mt-0.5">
-              <span className="material-symbols-outlined text-base shrink-0">schedule</span>
-              Estimated Runtime: {currentModeDetails.runtime}
+
+            <span className={`inline-flex items-center text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tight shadow-2xs shrink-0 ${
+              activeModeKey === 'max'
+                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30'
+                : activeModeKey === 'average'
+                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30'
+                : activeModeKey === 'day'
+                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30'
+            }`}>
+              {currentModeDetails.badge}
             </span>
           </div>
 
-          <span className={`inline-flex items-center text-[10px] font-black px-2.5 py-0.5 sm:py-1 rounded-full uppercase tracking-tight max-w-full text-center leading-tight shadow-xs ${
-            activeModeKey === 'max'
-              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-              : activeModeKey === 'average'
-              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-              : activeModeKey === 'day'
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-              : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-          }`}>
-            {currentModeDetails.badge}
-          </span>
+          <div className="flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/15 px-2.5 py-1.5 rounded-lg border border-amber-500/20">
+            <span className="material-symbols-outlined text-sm shrink-0">schedule</span>
+            <span>Estimated Runtime: {currentModeDetails.runtime}</span>
+          </div>
         </div>
 
         {/* Appliances List for this mode */}
