@@ -1922,30 +1922,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
                           </div>
                           <div className="flex justify-between font-black text-slate-900 border-t border-slate-100 pt-1.5 mt-1.5 text-sm">
                             <span className="font-sans">Receipt total:</span>
-                            <span>₦{(editSubtotal + editDeliveryFee - editDiscount).toLocaleString()}</span>
+                            <span>₦{(editSubtotal + editDeliveryFee - editDiscount).toLocaleString('en-US').replace(/\s+/g, '')}</span>
                           </div>
                         </div>
                       ) : (
                         <div className="space-y-1 text-xs font-mono">
                           <div className="flex justify-between">
                             <span className="text-slate-400">Cabinet subtotal:</span>
-                            <span className="text-slate-700">₦{order.subtotal.toLocaleString()}</span>
+                            <span className="text-slate-700">₦{order.subtotal?.toLocaleString('en-US').replace(/\s+/g, '')}</span>
                           </div>
                           {order.deliveryFee > 0 && (
                             <div className="flex justify-between">
                               <span className="text-slate-400">Logistic Delivery:</span>
-                              <span className="text-slate-700">₦{order.deliveryFee.toLocaleString()}</span>
+                              <span className="text-slate-700">₦{order.deliveryFee?.toLocaleString('en-US').replace(/\s+/g, '')}</span>
                             </div>
                           )}
                           {order.discount > 0 && (
                             <div className="flex justify-between text-rose-500">
                               <span>Campaign Rebate:</span>
-                              <span>-₦{order.discount.toLocaleString()}</span>
+                              <span>-₦{order.discount?.toLocaleString('en-US').replace(/\s+/g, '')}</span>
                             </div>
                           )}
                           <div className="flex justify-between font-black text-slate-900 border-t border-slate-100 pt-1.5 mt-1.5 text-sm">
                             <span className="font-sans">Receipt total:</span>
-                            <span>₦{order.total.toLocaleString()}</span>
+                            <span>₦{order.total?.toLocaleString('en-US').replace(/\s+/g, '')}</span>
                           </div>
                         </div>
                       )}

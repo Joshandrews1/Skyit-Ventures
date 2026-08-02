@@ -12,7 +12,8 @@ export const PackageUsageModeSelector: React.FC<Props> = ({ pkg, theme = 'dark' 
   const usageModes = getPackageUsageModes(pkg);
   const currentModeDetails: UsageModeDetails = usageModes[activeModeKey];
 
-  const isDark = theme === 'dark';
+  const isLightFromDOM = typeof document !== 'undefined' && document.documentElement.classList.contains('light');
+  const isDark = !isLightFromDOM && (theme === 'dark');
 
   const modesConfig = [
     {
@@ -67,7 +68,11 @@ export const PackageUsageModeSelector: React.FC<Props> = ({ pkg, theme = 'dark' 
             Appliance Load & Duration Modes
           </span>
         </div>
-        <span className="shrink-0 text-[10px] font-extrabold px-3 py-1 rounded-full whitespace-nowrap bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-xs">
+        <span className={`shrink-0 text-[10px] font-extrabold px-3 py-1 rounded-full whitespace-nowrap ${
+          isDark 
+            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-xs' 
+            : 'bg-blue-100 text-blue-800 border border-blue-200 shadow-xs'
+        }`}>
           Select Usage Profile
         </span>
       </div>
@@ -136,17 +141,22 @@ export const PackageUsageModeSelector: React.FC<Props> = ({ pkg, theme = 'dark' 
             ⚡ Appliances Powered Simultaneously:
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs font-semibold">
-            {currentModeDetails.loadItems.map((item, idx) => (
-              <div 
-                key={idx} 
-                className={`p-2 rounded-lg flex items-start gap-2 ${
-                  isDark ? 'bg-[#171b27] text-slate-200' : 'bg-slate-50 text-slate-800'
-                }`}
-              >
-                <span className="material-symbols-outlined text-green-400 text-sm shrink-0 mt-0.5">check_circle</span>
-                <span className="leading-tight">{item}</span>
-              </div>
-            ))}
+            {currentModeDetails.loadItems.map((item, idx) => {
+              const isLastOdd = currentModeDetails.loadItems.length % 2 !== 0 && idx === currentModeDetails.loadItems.length - 1;
+              return (
+                <div 
+                  key={idx} 
+                  className={`p-2.5 rounded-lg flex items-center gap-2 transition-all ${
+                    isLastOdd ? 'sm:col-span-2' : ''
+                  } ${
+                    isDark ? 'bg-[#171b27] text-slate-200 border border-white/5' : 'bg-slate-50 text-slate-800 border border-slate-200/60'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-green-400 text-sm shrink-0">check_circle</span>
+                  <span className="leading-snug">{item}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 

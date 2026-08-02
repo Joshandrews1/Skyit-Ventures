@@ -92,14 +92,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-  const totalOriginal = cartItems.reduce((acc, item) => acc + (item.product.originalPrice * item.quantity), 0);
-  const discount = totalOriginal - subtotal;
+  const discount = Math.round(subtotal * 0.02);
   // Delivery fee is negotiated dynamically with 3rd party logistics post-purchase
   const deliveryFee = 0;
-  const grandTotal = subtotal;
+  const grandTotal = Math.max(0, subtotal - discount);
 
   const formatNaira = (val: number) => {
-    return "₦" + Math.floor(val).toLocaleString();
+    return "₦" + Math.floor(val || 0).toLocaleString('en-US').replace(/\s+/g, '');
   };
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
@@ -658,7 +657,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {/* Original Total & Discount savings */}
             {discount > 0 && (
               <div className="flex justify-between items-center text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1.5 rounded-lg text-[11px]">
-                <span>Launch Promotion Discount</span>
+                <span>Launch Promotion Discount (2%)</span>
                 <span className="font-mono">-{formatNaira(discount)}</span>
               </div>
             )}

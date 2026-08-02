@@ -550,7 +550,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
   }, [initialPrompt]);
 
   const formatNaira = (val: number) => {
-    return "₦" + Math.floor(val).toLocaleString();
+    return "₦" + Math.floor(val || 0).toLocaleString('en-US').replace(/\s+/g, '');
   };
 
   const formatReplyText = (text: string) => {

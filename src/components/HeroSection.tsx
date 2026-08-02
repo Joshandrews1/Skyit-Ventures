@@ -402,11 +402,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
                             <div className="flex items-baseline gap-2 pt-1 font-mono">
                               <span className="text-base font-black text-amber-300">
-                                ₦{item.price.toLocaleString()}
+                                ₦{item.price.toLocaleString('en-US').replace(/\s+/g, '')}
                               </span>
                               {item.originalPrice && item.originalPrice > item.price && (
                                 <span className="text-xs text-slate-500 line-through">
-                                  ₦{item.originalPrice.toLocaleString()}
+                                  ₦{item.originalPrice.toLocaleString('en-US').replace(/\s+/g, '')}
                                 </span>
                               )}
                             </div>

@@ -123,11 +123,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex flex-col min-h-[34px] justify-center">
               {product.discountPercent > 0 && (
                 <span className="text-[10px] sm:text-[11px] text-slate-400 line-through font-mono leading-none mb-0.5">
-                  ₦{product.originalPrice?.toLocaleString()}
+                  ₦{product.originalPrice?.toLocaleString('en-US').replace(/\s+/g, '')}
                 </span>
               )}
               <span className="text-[13px] sm:text-[15px] font-bold font-mono text-slate-900 leading-none">
-                ₦{product.price.toLocaleString()}
+                ₦{product.price.toLocaleString('en-US').replace(/\s+/g, '')}
               </span>
             </div>
 

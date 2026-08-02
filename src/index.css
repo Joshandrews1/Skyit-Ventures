@@ -203,3 +203,349 @@
   }
 }
 
+/* ==========================================================================
+   THEME SYSTEMS (DARK & LIGHT MODES)
+   ========================================================================== */
+
+/* DARK MODE (Default Atmosphere) */
+html,
+html.dark {
+  color-scheme: dark;
+}
+
+html body,
+html.dark body {
+  background-color: #0e131e !important;
+  color: #dee2f2 !important;
+}
+
+/* LIGHT MODE OVERRIDES (copied directly from light theme specifications) */
+html.light {
+  color-scheme: light;
+
+  --color-surface: #FFFFFF;
+  --color-surface-dim: #F8FAFC;
+  --color-surface-bright: #F8FAFC;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-low: #FFFFFF;
+  --color-surface-container: #F8FAFC;
+  --color-surface-container-high: #F1F5F9;
+  --color-surface-container-highest: #E2E8F0;
+
+  --color-primary: #0066ff;
+  --color-primary-container: #0066ff;
+  --color-on-primary: #FFFFFF;
+  --color-on-primary-container: #FFFFFF;
+
+  --color-secondary: #64748b;
+  --color-secondary-container: #F1F5F9;
+  --color-on-secondary: #FFFFFF;
+
+  --color-tertiary: #007c98;
+  --color-tertiary-container: #007c98;
+  --color-on-tertiary: #FFFFFF;
+
+  --color-on-surface: #0F172A;
+  --color-on-surface-variant: #475569;
+  --color-outline: #94a3b8;
+  --color-outline-variant: #E2E8F0;
+}
+
+html.light body,
+html.light main,
+html.light #root,
+html.light div.min-h-screen {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+html.light .glass-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* LIGHT MODE CLASS MAPPINGS FOR DARK UTILITIES */
+
+/* 1. Main Card & Section Containers in Light Mode */
+html.light .bg-\[\#171b27\],
+html.light .bg-\[\#182030\],
+html.light .bg-\[\#1b2438\],
+html.light .bg-\[\#131926\],
+html.light .bg-\[\#303541\],
+html.light .bg-\[\#121623\],
+html.light .bg-\[\#111622\],
+html.light .bg-\[\#0d1527\],
+html.light .bg-\[\#1C1A2E\],
+html.light .bg-\[\#1a1a1a\],
+html.light .bg-\[\#1C1C1C\],
+html.light .bg-\[\#050505\],
+html.light .bg-\[\#0D0D0D\],
+html.light .bg-\[\#0F0F0F\],
+html.light .bg-\[\#121212\],
+html.light .bg-\[\#151515\],
+html.light .bg-\[\#161616\],
+html.light .bg-\[\#1A1A1A\],
+html.light .bg-slate-900,
+html.light .bg-slate-950,
+html.light div.bg-\[\#0e131e\]:not(.min-h-screen) {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06) !important;
+  color: #0F172A !important;
+}
+
+/* 2. Inner Sub-Cards & Panels (e.g. calculator specs, specs rows) */
+html.light .bg-\[\#0b0e17\],
+html.light .bg-\[\#0e131e\],
+html.light .bg-\[\#151b28\],
+html.light .bg-\[\#090e19\],
+html.light .bg-\[\#070b12\],
+html.light .bg-\[\#0b0e17\]\/90,
+html.light .bg-\[\#0e131e\]\/90,
+html.light .bg-\[\#0e131e\]\/95,
+html.light .bg-\[\#0e131e\]\/98,
+html.light .bg-\[\#0e131e\]\/80,
+html.light .bg-\[\#0e131e\]\/60 {
+  background-color: #F1F5F9 !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+/* 3. Gradient Cards & Banners */
+html.light [class*="from-\[\#1b2438\]"],
+html.light [class*="via-\[\#131926\]"],
+html.light [class*="to-\[\#0c101a\]"],
+html.light [class*="from-\[\#303541\]"],
+html.light [class*="to-\[\#171b27\]"] {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%) !important;
+  border-color: rgba(0, 102, 255, 0.25) !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 102, 255, 0.08) !important;
+  color: #0F172A !important;
+}
+
+html.light [class*="from-\[\#0066ff\]\/20"] {
+  background: linear-gradient(90deg, rgba(0, 102, 255, 0.08) 0%, #F8FAFC 50%, rgba(0, 102, 255, 0.08) 100%) !important;
+  border-color: rgba(0, 102, 255, 0.3) !important;
+  color: #0F172A !important;
+}
+
+/* 4. Action Buttons inside cards (e.g. Mega-Quote button bg-[#222938]) */
+html.light .bg-\[\#222938\] {
+  background-color: #E2E8F0 !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+html.light .bg-\[\#222938\]:hover {
+  background-color: #0066FF !important;
+  color: #FFFFFF !important;
+  border-color: #0066FF !important;
+}
+
+/* 5. Text Colors in Light Mode */
+html.light .text-\[\#dee2f2\] {
+  color: #0F172A !important;
+}
+
+/* Card titles and headings on converted light cards */
+html.light div.bg-\[\#171b27\] h1.text-white,
+html.light div.bg-\[\#171b27\] h2.text-white,
+html.light div.bg-\[\#171b27\] h3.text-white,
+html.light div.bg-\[\#171b27\] h4.text-white,
+html.light div.bg-\[\#171b27\] p.text-white,
+html.light div.bg-\[\#182030\] h1.text-white,
+html.light div.bg-\[\#182030\] h2.text-white,
+html.light div.bg-\[\#182030\] h3.text-white,
+html.light div.bg-\[\#182030\] h4.text-white,
+html.light div.bg-\[\#182030\] p.text-white,
+html.light div.bg-\[\#131926\] h1.text-white,
+html.light div.bg-\[\#131926\] h2.text-white,
+html.light div.bg-\[\#131926\] h3.text-white,
+html.light div.bg-\[\#131926\] h4.text-white,
+html.light div.bg-\[\#131926\] p.text-white,
+html.light div.bg-\[\#111622\] h3.text-white,
+html.light div.bg-slate-900 h3.text-white {
+  color: #0F172A !important;
+}
+
+html.light .text-\[\#c2c6d8\],
+html.light .text-slate-200,
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-\[\#8e95b0\],
+html.light .text-slate-400,
+html.light .text-slate-500 {
+  color: #64748B !important;
+}
+
+html.light .text-blue-200,
+html.light .text-blue-300,
+html.light .text-\[\#b3c5ff\] {
+  color: #0052CC !important;
+}
+
+html.light .text-blue-400 {
+  color: #0066FF !important;
+}
+
+/* 6. Borders in Light Mode */
+html.light .border-white\/10,
+html.light .border-white\/5,
+html.light .border-white\/20,
+html.light .border-white\/30,
+html.light .border-slate-800,
+html.light .border-slate-700\/60 {
+  border-color: #E2E8F0 !important;
+}
+
+/* 7. Sub-backgrounds & Hover States */
+html.light .bg-white\/5,
+html.light .bg-white\/10 {
+  background-color: #E2E8F0 !important;
+}
+
+/* 8. Progress Bar & Track Backgrounds */
+html.light .h-3.w-full.bg-\[\#131926\],
+html.light div.bg-\[\#131926\] {
+  background-color: #E2E8F0 !important;
+  border-color: #CBD5E1 !important;
+}
+
+/* 9. Header & Footer in Light Mode */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+  color: #0F172A !important;
+}
+
+html.light footer {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #334155 !important;
+}
+
+/* 10. Primary Action Buttons, Badges & Solid Colored Elements (Must maintain crisp white text on solid buttons) */
+html.light button.bg-\[\#0066ff\],
+html.light a.bg-\[\#0066ff\],
+html.light button.bg-blue-600,
+html.light a.bg-blue-600,
+html.light button.bg-blue-500,
+html.light button.bg-emerald-600,
+html.light button.bg-emerald-500,
+html.light button.bg-green-600,
+html.light button.bg-rose-600,
+html.light button.bg-rose-500,
+html.light button.bg-red-600,
+html.light button.bg-indigo-600,
+html.light button.bg-indigo-500,
+html.light button.bg-purple-600,
+html.light .bg-[#0066ff].text-white,
+html.light .bg-blue-600.text-white,
+html.light .bg-indigo-600.text-white,
+html.light .bg-emerald-600.text-white,
+html.light .bg-rose-600.text-white,
+html.light .bg-brand.text-white,
+html.light .btn-primary {
+  color: #FFFFFF !important;
+}
+
+html.light button.bg-\[\#0066ff\] *,
+html.light a.bg-\[\#0066ff\] *,
+html.light button.bg-blue-600 *,
+html.light button.bg-emerald-600 *,
+html.light button.bg-indigo-600 *,
+html.light button.bg-rose-600 *,
+html.light .btn-primary * {
+  color: #FFFFFF !important;
+}
+
+/* 10b. Soft Tinted Badges & Pills in Light Mode */
+html.light .bg-blue-500\/15,
+html.light .bg-blue-500\/20,
+html.light .bg-blue-500\/10 {
+  background-color: #EFF6FF !important;
+  color: #1D4ED8 !important;
+  border-color: #BFDBFE !important;
+}
+
+html.light .bg-rose-500\/15,
+html.light .bg-rose-500\/20,
+html.light .bg-rose-500\/10 {
+  background-color: #FFF1F2 !important;
+  color: #BE123C !important;
+  border-color: #FECDD3 !important;
+}
+
+html.light .bg-emerald-500\/15,
+html.light .bg-emerald-500\/20,
+html.light .bg-emerald-500\/10 {
+  background-color: #ECFDF5 !important;
+  color: #047857 !important;
+  border-color: #A7F3D0 !important;
+}
+
+html.light .bg-amber-500\/15,
+html.light .bg-amber-500\/20,
+html.light .bg-amber-500\/10 {
+  background-color: #FEF3C7 !important;
+  color: #B45309 !important;
+  border-color: #FDE68A !important;
+}
+
+html.light .bg-indigo-500\/15,
+html.light .bg-indigo-500\/20,
+html.light .bg-indigo-500\/10 {
+  background-color: #EEF2FF !important;
+  color: #4338CA !important;
+  border-color: #C7D2FE !important;
+}
+
+/* 11. Light Mode High-Contrast Overrides for Amber & Yellow Elements */
+html.light .text-amber-200,
+html.light .text-amber-300,
+html.light .text-amber-400,
+html.light .text-yellow-300,
+html.light .text-yellow-400 {
+  color: #b45309 !important; /* Deep Amber-800 for high-contrast WCAG AA legibility on light background */
+}
+
+html.light .text-amber-500,
+html.light .text-amber-600,
+html.light .text-amber-700 {
+  color: #92400e !important;
+}
+
+html.light .bg-amber-500\/10,
+html.light .bg-amber-500\/15,
+html.light .bg-amber-500\/20,
+html.light .bg-amber-500\/25,
+html.light .bg-amber-400\/20 {
+  background-color: #fef3c7 !important; /* Soft warm amber-100 background */
+}
+
+html.light .border-amber-500\/20,
+html.light .border-amber-500\/30,
+html.light .border-amber-500\/40 {
+  border-color: #f59e0b !important;
+}
+
+html.light .fill-amber-400,
+html.light .fill-amber-300,
+html.light .fill-yellow-400 {
+  fill: #d97706 !important;
+}
+
+html.light .fill-amber-500\/20,
+html.light .fill-amber-400\/30 {
+  fill: rgba(217, 119, 6, 0.2) !important;
+}
+
+
+
+

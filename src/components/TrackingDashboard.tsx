@@ -216,7 +216,7 @@ export const TrackingDashboard: React.FC<TrackingDashboardProps> = ({
   const pos = order ? getMapPosition(order.status) : { percent: 5 };
 
   const formatNaira = (val: number) => {
-    return "₦" + Math.floor(val).toLocaleString();
+    return "₦" + Math.floor(val || 0).toLocaleString('en-US').replace(/\s+/g, '');
   };
 
   if (showAllOrders) {

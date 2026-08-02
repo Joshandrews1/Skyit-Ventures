@@ -444,9 +444,9 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
               <span className="inline-block px-4 py-1.5 rounded-full bg-[#0066ff]/20 border border-[#0066ff]/30 text-[#b3c5ff] text-[12px] leading-[16px] font-medium uppercase tracking-widest">
                 Industrial Precision. Unmatched Power.
               </span>
-              <h1 className="text-[36px] sm:text-[48px] lg:text-[54px] leading-[44px] sm:leading-[56px] lg:leading-[62px] font-bold text-[#dee2f2] tracking-[-0.02em]">
+              <h1 className="text-[32px] sm:text-[48px] lg:text-[54px] leading-[40px] sm:leading-[56px] lg:leading-[62px] font-bold text-[#dee2f2] tracking-[-0.02em]">
                 Uninterrupted Power &amp; <br/>
-                <span className="text-[#b3c5ff]">24/7 Smart <span className="inline-block min-w-[140px] text-amber-400 font-extrabold">{typedText}<span className="animate-pulse font-light text-white ml-0.5">|</span></span></span>
+                <span className="text-[#b3c5ff]">24/7 Smart <span className="inline-block min-w-[60px] sm:min-w-[75px] md:min-w-[85px] lg:min-w-[105px] text-amber-400 font-extrabold">{typedText}<span className="animate-pulse font-light text-white ml-0.5">|</span></span></span>
               </h1>
               <p className="text-[16px] sm:text-[18px] leading-[26px] sm:leading-[28px] text-[#c2c6d8] max-w-2xl mx-auto lg:mx-0">
                 Providing Nigeria's most reliable solar infrastructure and smart surveillance systems for homes and heavy industrial sites.
@@ -537,11 +537,11 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                       )}
                       <div className="flex items-baseline gap-2 pt-0.5">
                         <span className="text-[16px] sm:text-[18px] font-extrabold text-[#0f172a]">
-                          ₦{currentSpotlight.price.toLocaleString()}
+                          ₦{currentSpotlight.price.toLocaleString('en-US').replace(/\s+/g, '')}
                         </span>
                         {currentSpotlight.originalPrice > currentSpotlight.price && (
                           <span className="text-xs line-through text-[#64748b] font-medium">
-                            ₦{currentSpotlight.originalPrice.toLocaleString()}
+                            ₦{currentSpotlight.originalPrice.toLocaleString('en-US').replace(/\s+/g, '')}
                           </span>
                         )}
                       </div>
@@ -692,7 +692,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
                   <div>
                     <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider block">Official Package Price</span>
-                    <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">₦{currentCalcPackage.price.toLocaleString()}</span>
+                    <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">₦{currentCalcPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</span>
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
@@ -882,21 +882,21 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                     <button
                       type="button"
                       onClick={() => setAuditCounts({ bulbs: 5, fans: 2, tv: 1, laptops: 1, freezer: 0, ac: 0, waterPump: 0, microwave: 0 })}
-                      className="px-2.5 py-1 rounded-xl bg-[#303541] hover:bg-[#0066ff]/20 text-[#b3c5ff] hover:text-white border border-white/10 text-[10px] font-extrabold cursor-pointer transition-all"
+                      className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#303541] hover:bg-[#0066ff]/20 text-slate-700 dark:text-[#b3c5ff] hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 text-[10px] font-extrabold cursor-pointer transition-all"
                     >
                       ⚡ Basic Entry Load
                     </button>
                     <button
                       type="button"
                       onClick={() => setAuditCounts({ bulbs: 8, fans: 3, tv: 1, laptops: 2, freezer: 1, ac: 0, waterPump: 0, microwave: 0 })}
-                      className="px-2.5 py-1 rounded-xl bg-[#303541] hover:bg-[#0066ff]/20 text-[#b3c5ff] hover:text-white border border-white/10 text-[10px] font-extrabold cursor-pointer transition-all"
+                      className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#303541] hover:bg-[#0066ff]/20 text-slate-700 dark:text-[#b3c5ff] hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 text-[10px] font-extrabold cursor-pointer transition-all"
                     >
                       🏠 Standard Home
                     </button>
                     <button
                       type="button"
                       onClick={() => setAuditCounts({ bulbs: 0, fans: 0, tv: 0, laptops: 0, freezer: 0, ac: 0, waterPump: 0, microwave: 0 })}
-                      className="px-2.5 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 text-[10px] font-extrabold cursor-pointer transition-all"
+                      className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-red-500/10 hover:bg-rose-100 dark:hover:bg-red-500/20 text-rose-700 dark:text-red-300 border border-rose-200 dark:border-red-500/20 text-[10px] font-extrabold cursor-pointer transition-all"
                     >
                       🧹 Clear All
                     </button>
@@ -929,17 +929,17 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                         <button 
                           type="button"
                           onClick={() => updateAuditCount(appliance.key as keyof typeof auditCounts, -1)}
-                          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
+                          className="w-8 h-8 rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-transparent flex items-center justify-center text-slate-800 dark:text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
                         >
                           -
                         </button>
-                        <span className="text-base font-extrabold w-5 text-center text-[#dee2f2]">
+                        <span className="text-base font-extrabold w-5 text-center text-slate-800 dark:text-[#dee2f2]">
                           {auditCounts[appliance.key as keyof typeof auditCounts]}
                         </span>
                         <button 
                           type="button"
                           onClick={() => updateAuditCount(appliance.key as keyof typeof auditCounts, 1)}
-                          className="w-8 h-8 rounded-full bg-[#303541] flex items-center justify-center text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
+                          className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#303541] flex items-center justify-center text-slate-900 dark:text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
                         >
                           +
                         </button>
@@ -963,7 +963,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                   </div>
                   
                   <div className="text-4xl sm:text-5xl font-black text-[#dee2f2]">
-                    {totalSustainedWattage.toLocaleString()} <span className="text-xl text-[#b3c5ff] font-bold">Watts</span>
+                    {totalSustainedWattage.toLocaleString('en-US').replace(/\s+/g, '')} <span className="text-xl text-[#b3c5ff] font-bold">Watts</span>
                   </div>
 
                   {/* Daytime Solar Panel Inclusion Toggle */}
@@ -1026,7 +1026,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                       <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-[10px]">Optimal Fit</span>
                     </div>
                     <div className="text-base font-black text-[#dee2f2]">{bestMatchedPackage.name}</div>
-                    <div className="text-2xl font-black text-[#0066ff]">₦{bestMatchedPackage.price.toLocaleString()}</div>
+                    <div className="text-2xl font-black text-[#0066ff]">₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</div>
                     <p className="text-xs text-[#c2c6d8] line-clamp-2">{bestMatchedPackage.description}</p>
                     <div className="pt-1 flex flex-wrap gap-1.5 text-[10px] text-[#b3c5ff] font-medium">
                       <span className="bg-[#303541] px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.kva}</span>
@@ -1107,7 +1107,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                         Solar Array
                       </span>
                       <span className="text-xs sm:text-sm font-extrabold text-[#dee2f2] mt-0.5">
-                        {totalSolarWattageActual.toLocaleString()} W
+                        {totalSolarWattageActual.toLocaleString('en-US').replace(/\s+/g, '')} W
                       </span>
                     </div>
                   </div>
@@ -1120,9 +1120,9 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                     className="w-full py-3 px-3 rounded-xl bg-[#0066ff] hover:bg-[#0052cc] text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg active:scale-95"
                   >
                     <span className="material-symbols-outlined text-base sm:text-lg shrink-0">shopping_cart</span>
-                    <span className="hidden sm:inline">Order Recommended Package (₦{bestMatchedPackage.price.toLocaleString()})</span>
+                    <span className="hidden sm:inline">Order Recommended Package (₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')})</span>
                     <span className="sm:hidden font-extrabold">Order Package</span>
-                    <span className="sm:hidden bg-white/20 px-2 py-0.5 rounded-md text-[10px] font-black shrink-0">₦{bestMatchedPackage.price.toLocaleString()}</span>
+                    <span className="sm:hidden bg-white/20 px-2 py-0.5 rounded-md text-[10px] font-black shrink-0">₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</span>
                   </button>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -1273,10 +1273,10 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
               </div>
               <button 
                 type="button"
-                onClick={() => onNavigate('shop')}
+                onClick={() => onNavigate('recently-viewed')}
                 className="text-xs font-bold text-[#b3c5ff] hover:underline flex items-center gap-1 cursor-pointer"
               >
-                <span>Browse All</span>
+                <span>View Full History ({recentlyViewedProducts.length})</span>
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
             </div>
@@ -1421,7 +1421,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                             : 'bg-[#1e2433] text-[#6b7280] opacity-50 group-hover:opacity-80'
                         }`}
                       >
-                        <span className="material-symbols-outlined text-sm sm:text-base">
+                        <span className="material-symbols-outlined text-sm sm:text-base !text-white">
                           {isDone ? 'check' : step.icon}
                         </span>
                       </div>

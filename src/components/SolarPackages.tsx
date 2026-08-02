@@ -299,31 +299,31 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
     <div className="space-y-12 animate-fade-in">
       
       {/* Visual Identity Hero Jumbotron */}
-      <div className="relative rounded-3xl bg-slate-900 border border-slate-800 text-white overflow-hidden p-6 sm:p-10 flex flex-col md:flex-row justify-between items-center gap-8 shadow-xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-brand/15 to-indigo-900/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative rounded-3xl bg-[#171b27] border border-white/10 text-[#dee2f2] overflow-hidden p-6 sm:p-10 flex flex-col md:flex-row justify-between items-center gap-8 shadow-xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#0066ff]/15 to-indigo-900/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="space-y-4 max-w-xl text-left">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-300 text-xs font-black uppercase tracking-wider">
-            <Cpu size={12} className="text-sky-400 animate-pulse" />
-            <span className="text-sky-300">Pre-Engineered Systems</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0066ff]/15 border border-[#0066ff]/30 text-[#b3c5ff] text-xs font-black uppercase tracking-wider">
+            <Cpu size={12} className="text-[#0066ff] animate-pulse" />
+            <span className="text-[#b3c5ff]">Pre-Engineered Systems</span>
           </div>
           <h2 id="tour-solar-packages-header" className="font-display font-extrabold text-2xl sm:text-4xl tracking-tight text-white leading-tight">
             Premium Turnkey <br />
             <span className="animate-text-gradient-rtl">Solar Power Packages</span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+          <p className="text-xs sm:text-sm text-[#c2c6d8] leading-relaxed font-sans">
             Ready-to-deploy clean energy packages designed by SkyIT engineering specialists. Complete with high-density storage, optimized solar panel grids, robust electrical panels, cabling, and certified local commissioning services.
           </p>
         </div>
 
-        <div className="shrink-0 w-48 h-48 bg-slate-800/40 rounded-2xl border border-slate-700/60 p-4 flex items-center justify-center shadow-lg relative backdrop-blur-xs">
-          <div className="absolute -top-1.5 -right-1.5 bg-sky-500 text-slate-950 font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-md">
+        <div className="shrink-0 w-48 h-48 bg-[#0e131e]/60 rounded-2xl border border-white/10 p-4 flex items-center justify-center shadow-lg relative backdrop-blur-xs">
+          <div className="absolute -top-1.5 -right-1.5 bg-[#0066ff] text-white font-black text-[9px] uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-md">
             Nigeria-Wide Delivery
           </div>
           <div className="text-center space-y-2">
             <legend className="text-4xl">☀️</legend>
-            <h4 className="font-display font-bold text-xs uppercase tracking-widest text-slate-200">SkyIT Standard</h4>
-            <p className="text-[10px] text-slate-400 leading-normal">
+            <h4 className="font-display font-bold text-xs uppercase tracking-widest text-[#dee2f2]">SkyIT Standard</h4>
+            <p className="text-[10px] text-[#8e95b0] leading-normal">
               Zero-Noise pure sine, rapid auto-charge, complete surge protection.
             </p>
           </div>
@@ -331,101 +331,101 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
       </div>
 
       {/* Dynamic Sizing Appliance Load Calculator */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-3xs space-y-6">
-        <div className="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-[#171b27] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="border-b border-white/10 pb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="font-display font-extrabold text-base text-slate-800 flex items-center gap-2">
-              <Zap size={18} className="text-amber-500 animate-bounce" />
+            <h3 className="font-display font-extrabold text-base text-[#dee2f2] flex items-center gap-2">
+              <Zap size={18} className="text-amber-400 animate-bounce" />
               <span>Interactive System Sizing Assistant</span>
             </h3>
-            <p className="text-xs text-slate-450 mt-1 leading-relaxed">
+            <p className="text-xs text-[#c2c6d8] mt-1 leading-relaxed">
               Not sure which package fits your home or office? Select your battery technology and appliance loads below to get an instant, logical recommendation.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowGuide(!showGuide)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0e131e] hover:bg-white/10 text-[#dee2f2] border border-white/10 transition-all cursor-pointer"
           >
-            <HelpCircle size={14} className="text-brand" />
+            <HelpCircle size={14} className="text-[#0066ff]" />
             <span>{showGuide ? 'Hide Guide' : 'How to Use This Assistant?'}</span>
           </button>
         </div>
 
         {/* User Guide Box */}
         {showGuide && (
-          <div className="bg-sky-50/80 border border-sky-200 rounded-2xl p-4 space-y-3 animate-fade-in">
+          <div className="bg-[#0e131e] border border-white/10 rounded-2xl p-4 space-y-3 animate-fade-in">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-1.5">
-                <Info size={15} className="text-sky-600" />
+              <h4 className="text-xs font-bold text-[#dee2f2] uppercase tracking-wider flex items-center gap-1.5">
+                <Info size={15} className="text-[#0066ff]" />
                 <span>Quick Guide: How System Sizing Works</span>
               </h4>
-              <span className="text-[10px] text-sky-700 font-medium">4 Simple Steps</span>
+              <span className="text-[10px] text-[#c2c6d8] font-medium">4 Simple Steps</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
-                <div className="font-bold text-sky-900 flex items-center gap-1">
-                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">1</span>
+              <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                <div className="font-bold text-[#dee2f2] flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-[#0066ff] text-white text-[10px] inline-flex items-center justify-center font-black">1</span>
                   <span>Battery Type</span>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-snug">
-                  Choose <strong>Lithium-ion</strong> (long 10yr life, fast charge) or <strong>Tubular</strong> (low upfront cost).
+                <p className="text-[11px] text-[#c2c6d8] leading-snug">
+                  Choose <strong className="text-white">Lithium-ion</strong> (long 10yr life, fast charge) or <strong className="text-white">Tubular</strong> (low upfront cost).
                 </p>
               </div>
 
-              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
-                <div className="font-bold text-sky-900 flex items-center gap-1">
-                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">2</span>
+              <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                <div className="font-bold text-[#dee2f2] flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-[#0066ff] text-white text-[10px] inline-flex items-center justify-center font-black">2</span>
                   <span>Add Load Items</span>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-snug">
-                  Click <strong>+ / -</strong> on appliances (bulbs, fans, TV, fridge, AC) to set quantities you run at once.
+                <p className="text-[11px] text-[#c2c6d8] leading-snug">
+                  Click <strong className="text-white">+ / -</strong> on appliances (bulbs, fans, TV, fridge, AC) to set quantities you run at once.
                 </p>
               </div>
 
-              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
-                <div className="font-bold text-sky-900 flex items-center gap-1">
-                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">3</span>
+              <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                <div className="font-bold text-[#dee2f2] flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-[#0066ff] text-white text-[10px] inline-flex items-center justify-center font-black">3</span>
                   <span>Live Sizing</span>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-snug">
+                <p className="text-[11px] text-[#c2c6d8] leading-snug">
                   Watch total Watts and Inverter Capacity % adjust dynamically to pick the smallest safe package.
                 </p>
               </div>
 
-              <div className="bg-white/80 p-3 rounded-xl border border-sky-100 space-y-1">
-                <div className="font-bold text-sky-900 flex items-center gap-1">
-                  <span className="w-4 h-4 rounded-full bg-sky-600 text-white text-[10px] inline-flex items-center justify-center font-black">4</span>
+              <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                <div className="font-bold text-[#dee2f2] flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-[#0066ff] text-white text-[10px] inline-flex items-center justify-center font-black">4</span>
                   <span>Instant Order</span>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-snug">
-                  Click <strong>Get Package</strong> to add the complete kit to cart or request installation.
+                <p className="text-[11px] text-[#c2c6d8] leading-snug">
+                  Click <strong className="text-white">Get Package</strong> to add the complete kit to cart or request installation.
                 </p>
               </div>
             </div>
 
             {/* Quick Test Presets */}
-            <div className="pt-2 border-t border-sky-200/60 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-bold text-sky-900">Try Quick Presets:</span>
+            <div className="pt-2 border-t border-white/10 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-[#dee2f2]">Try Quick Presets:</span>
               <button
                 type="button"
                 onClick={() => applyPresetLoad('bulbsOnly')}
-                className="bg-white hover:bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-sky-200 shadow-3xs transition-all cursor-pointer"
+                className="bg-[#171b27] hover:bg-white/10 text-[#dee2f2] text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer"
               >
                 💡 10 LED Bulbs Only (Small Load)
               </button>
               <button
                 type="button"
                 onClick={() => applyPresetLoad('standardHome')}
-                className="bg-white hover:bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-sky-200 shadow-3xs transition-all cursor-pointer"
+                className="bg-[#171b27] hover:bg-white/10 text-[#dee2f2] text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer"
               >
                 🏠 Standard Home (Bulbs, Fans, TV, Fridge)
               </button>
               <button
                 type="button"
                 onClick={() => applyPresetLoad('heavyHome')}
-                className="bg-white hover:bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-sky-200 shadow-3xs transition-all cursor-pointer"
+                className="bg-[#171b27] hover:bg-white/10 text-[#dee2f2] text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer"
               >
                 ⚡ Heavy Load (AC + Pump + Home)
               </button>
@@ -459,14 +459,14 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
         )}
 
         {/* STEP 1: Battery Technology Selection Switch */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+        <div className="bg-[#171b27] border border-white/10 rounded-2xl p-4 space-y-3 shadow-lg">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-display font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <Battery size={15} className="text-brand" />
+            <span className="text-xs font-display font-bold uppercase tracking-wider text-[#dee2f2] flex items-center gap-1.5">
+              <Battery size={15} className="text-[#0066ff]" />
               <span>1. Select Battery Storage Technology</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-mono font-bold bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-              Active Mode: <span className="text-brand font-black uppercase">{selectedTech === 'lithium' ? 'Lithium-ion (LiFePO4)' : 'Tubular Deep Cycle'}</span>
+            <span className="text-[10px] text-[#c2c6d8] font-mono font-bold bg-[#0e131e] px-2.5 py-1 rounded-lg border border-white/10">
+              Active Mode: <span className="text-[#0066ff] font-black uppercase">{selectedTech === 'lithium' ? 'Lithium-ion (LiFePO4)' : 'Tubular Deep Cycle'}</span>
             </span>
           </div>
 
@@ -476,25 +476,25 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
               onClick={() => setSelectedTech('lithium')}
               className={`p-3.5 rounded-xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
                 selectedTech === 'lithium'
-                  ? 'border-brand bg-white shadow-sm ring-2 ring-brand/20'
-                  : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300'
+                  ? 'border-[#0066ff] bg-[#0e131e] shadow-md ring-2 ring-[#0066ff]/20'
+                  : 'border-white/10 bg-[#0e131e]/60 hover:bg-[#0e131e] hover:border-white/20'
               }`}
             >
               <div className={`p-2 rounded-lg shrink-0 transition-colors ${
-                selectedTech === 'lithium' ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-slate-100 text-slate-400'
+                selectedTech === 'lithium' ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-white/5 text-slate-400'
               }`}>
                 <Zap size={18} className={selectedTech === 'lithium' ? 'fill-slate-950' : ''} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900">Lithium-ion Storage</h4>
+                  <h4 className="text-xs font-bold text-[#dee2f2]">Lithium-ion Storage</h4>
                   {selectedTech === 'lithium' && (
-                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                    <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
                       Recommended
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                <p className="text-[11px] text-[#c2c6d8] mt-0.5 leading-snug">
                   LiFePO4 tech • 10+ year lifespan • Rapid 2-hour charge • 90%+ DoD
                 </p>
               </div>
@@ -514,29 +514,29 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
               }}
               className={`p-3.5 rounded-xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
                 selectedTech === 'tubular'
-                  ? 'border-slate-800 bg-white shadow-sm ring-2 ring-slate-800/20'
-                  : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300'
+                  ? 'border-[#0066ff] bg-[#0e131e] shadow-md ring-2 ring-[#0066ff]/20'
+                  : 'border-white/10 bg-[#0e131e]/60 hover:bg-[#0e131e] hover:border-white/20'
               } ${isBiggerThanTubular ? 'opacity-70' : ''}`}
             >
               <div className={`p-2 rounded-lg shrink-0 transition-colors ${
-                selectedTech === 'tubular' ? 'bg-slate-900 text-white font-bold' : 'bg-slate-100 text-slate-400'
+                selectedTech === 'tubular' ? 'bg-[#0066ff] text-white font-bold' : 'bg-white/5 text-slate-400'
               }`}>
                 <Battery size={18} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900">Tubular Deep Cycle</h4>
+                  <h4 className="text-xs font-bold text-[#dee2f2]">Tubular Deep Cycle</h4>
                   {isBiggerThanTubular ? (
-                    <span className="bg-rose-100 text-rose-800 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
+                    <span className="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
                       Exceeds Capacity
                     </span>
                   ) : (
-                    <span className="bg-slate-100 text-slate-600 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
+                    <span className="bg-white/10 text-[#c2c6d8] text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
                       Budget Friendly
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                <p className="text-[11px] text-[#c2c6d8] mt-0.5 leading-snug">
                   {isBiggerThanTubular 
                     ? `Max ${maxTubularKva} KVA capacity. Your load requires Lithium.`
                     : 'Lead-Acid tech • Lower initial setup cost • Proven heavy duty performance'
@@ -550,8 +550,8 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
         {/* STEP 2: Appliance Load Selection */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-display font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <Zap size={15} className="text-amber-500" />
+            <span className="text-xs font-display font-bold uppercase tracking-wider text-[#dee2f2] flex items-center gap-1.5">
+              <Zap size={15} className="text-amber-400" />
               <span>2. Select Household / Office Appliances</span>
             </span>
           </div>
@@ -566,35 +566,35 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                   key={app.id} 
                   className={`border rounded-2xl p-3 flex items-center justify-between transition-all ${
                     qty > 0 
-                      ? 'border-brand/40 bg-brand-light/5 shadow-2xs' 
-                      : 'border-slate-150 hover:border-slate-300'
+                      ? 'border-[#0066ff]/50 bg-[#171b27] shadow-md' 
+                      : 'border-white/10 bg-[#171b27]/80 hover:border-white/20'
                   }`}
                 >
                   <div className="min-w-0 pr-2">
-                    <span className="text-xs font-bold text-slate-800 block truncate">{app.name}</span>
+                    <span className="text-xs font-bold text-[#dee2f2] block truncate">{app.name}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                        app.type === 'heavy' ? 'text-rose-500' : app.type === 'medium' ? 'text-amber-600' : 'text-slate-400'
+                        app.type === 'heavy' ? 'text-rose-400' : app.type === 'medium' ? 'text-amber-400' : 'text-[#8e95b0]'
                       }`}>
                         {app.type}
                       </span>
-                      <span className="text-[9px] text-slate-400 font-mono">({app.label || `${app.watts}W`})</span>
+                      <span className="text-[9px] text-[#8e95b0] font-mono">({app.label || `${app.watts}W`})</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 shrink-0">
+                  <div className="flex items-center gap-2 bg-[#0e131e] border border-white/10 rounded-xl p-1 shrink-0">
                     <button 
                       type="button"
                       onClick={() => handleQuantityChange(app.id, -1)}
                       disabled={qty === 0}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center font-bold text-xs"
+                      className="w-6 h-6 rounded-lg bg-[#171b27] border border-white/10 text-[#c2c6d8] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center font-bold text-xs cursor-pointer"
                     >
                       <Minus size={10} />
                     </button>
-                    <span className="text-xs font-mono font-bold w-4 text-center text-slate-800">{qty}</span>
+                    <span className="text-xs font-mono font-bold w-4 text-center text-[#dee2f2]">{qty}</span>
                     <button 
                       type="button"
                       onClick={() => handleQuantityChange(app.id, 1)}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 flex items-center justify-center font-bold text-xs"
+                      className="w-6 h-6 rounded-lg bg-[#171b27] border border-white/10 text-[#c2c6d8] hover:bg-white/10 flex items-center justify-center font-bold text-xs cursor-pointer"
                     >
                       <Plus size={10} />
                     </button>
@@ -605,39 +605,39 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
           </div>
 
           {/* Calculator Results Recommendation Card */}
-          <div className="lg:col-span-5 xl:col-span-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 lg:sticky lg:top-20">
-            <h4 className="text-xs font-display font-bold text-slate-800 uppercase tracking-widest border-b border-slate-150 pb-2">
+          <div className="lg:col-span-5 xl:col-span-4 bg-[#171b27] border border-white/10 rounded-2xl p-4 sm:p-5 space-y-4 lg:sticky lg:top-20 shadow-xl">
+            <h4 className="text-xs font-display font-bold text-[#dee2f2] uppercase tracking-widest border-b border-white/10 pb-2">
               Sizing Diagnostics
             </h4>
             
             {isBiggerThanLithium ? (
-              <div className="bg-amber-50/90 border-2 border-amber-400 p-5 rounded-2xl space-y-4 animate-scale-up text-center">
-                <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto shadow-2xs">
+              <div className="bg-amber-500/10 border-2 border-amber-400/40 p-5 rounded-2xl space-y-4 animate-scale-up text-center">
+                <div className="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
                   <MessageSquare size={24} />
                 </div>
 
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider bg-amber-200/80 px-2.5 py-0.5 rounded-full inline-block">
+                  <span className="text-[10px] font-black uppercase text-amber-300 tracking-wider bg-amber-500/20 px-2.5 py-0.5 rounded-full inline-block border border-amber-500/30">
                     Custom Commercial Solution Required
                   </span>
-                  <h5 className="font-display font-black text-slate-900 text-base">
+                  <h5 className="font-display font-black text-[#dee2f2] text-base">
                     Load Exceeds Standard Packages
                   </h5>
-                  <p className="text-xs text-slate-600 leading-relaxed max-w-xs mx-auto">
-                    Your calculated total load of <strong className="text-slate-900 font-mono font-bold">{totalWatts}W ({(totalWatts/1000).toFixed(2)} kW)</strong> exceeds our maximum standard Lithium package ({maxLithiumKva} KVA).
+                  <p className="text-xs text-[#c2c6d8] leading-relaxed max-w-xs mx-auto">
+                    Your calculated total load of <strong className="text-white font-mono font-bold">{totalWatts}W ({(totalWatts/1000).toFixed(2)} kW)</strong> exceeds our maximum standard Lithium package ({maxLithiumKva} KVA).
                   </p>
                 </div>
 
-                <div className="bg-white p-3.5 rounded-xl border border-amber-200 text-left text-[11px] text-slate-600 space-y-1.5">
-                  <div className="flex justify-between font-bold text-slate-800">
+                <div className="bg-[#0e131e] p-3.5 rounded-xl border border-white/10 text-left text-[11px] text-[#c2c6d8] space-y-1.5">
+                  <div className="flex justify-between font-bold text-[#dee2f2]">
                     <span>Total Running Load:</span>
-                    <span className="text-brand font-mono">{totalWatts} Watts</span>
+                    <span className="text-[#0066ff] font-mono">{totalWatts} Watts</span>
                   </div>
-                  <div className="flex justify-between font-medium text-slate-500">
+                  <div className="flex justify-between font-medium text-[#c2c6d8]">
                     <span>Est. Minimum System:</span>
-                    <span className="font-bold text-slate-900">{calculatedRequiredKva.toFixed(1)} KVA System</span>
+                    <span className="font-bold text-white">{calculatedRequiredKva.toFixed(1)} KVA System</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 pt-1.5 border-t border-slate-100">
+                  <p className="text-[10px] text-[#8e95b0] pt-1.5 border-t border-white/10">
                     We build custom 3-Phase commercial inverter systems, industrial high-voltage lithium battery banks, and high-capacity solar arrays.
                   </p>
                 </div>
@@ -646,7 +646,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                   href={`https://wa.me/2349074444140?text=${encodeURIComponent(`Hello SkyIT Ventures team, I ran your online system calculator. My calculated load is ${totalWatts}W (${(totalWatts/1000).toFixed(2)}kW / est. ${calculatedRequiredKva.toFixed(1)}KVA), which exceeds standard pre-packaged kits. Please provide a custom commercial solar plan.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
                 >
                   <MessageSquare size={16} />
                   <span>Contact Us on WhatsApp for Proper Plan</span>
@@ -655,7 +655,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                 <button
                   type="button"
                   onClick={clearCalculator}
-                  className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="w-full bg-[#0e131e] hover:bg-white/10 text-[#dee2f2] py-2 rounded-xl text-xs font-bold transition-all border border-white/10 cursor-pointer"
                 >
                   Reset Calculator
                 </button>
@@ -671,55 +671,55 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
 
               return (
                 <div className="space-y-4 animate-scale-up">
-                  <div className="bg-brand/10 border border-brand/20 p-4 rounded-xl text-center space-y-2">
-                    <div className="text-[10px] uppercase font-bold text-brand tracking-widest">Recommended Package</div>
-                    <h5 className="font-display font-black text-slate-850 text-base">{recommendedPackage.name}</h5>
-                    <div className="text-sm font-black text-slate-900 font-mono">₦{recommendedPackage.price.toLocaleString()}</div>
-                    <p className="text-[11px] text-slate-500 leading-normal">{recommendedPackage.description}</p>
+                  <div className="bg-[#0066ff]/10 border border-[#0066ff]/30 p-4 rounded-xl text-center space-y-2">
+                    <div className="text-[10px] uppercase font-bold text-[#0066ff] tracking-widest">Recommended Package</div>
+                    <h5 className="font-display font-black text-white text-base">{recommendedPackage.name}</h5>
+                    <div className="text-sm font-black text-white font-mono">₦{recommendedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</div>
+                    <p className="text-[11px] text-[#c2c6d8] leading-normal">{recommendedPackage.description}</p>
                   </div>
 
-                  <div className="space-y-2 text-[11px] text-slate-600 bg-white p-3.5 rounded-xl border border-slate-200 shadow-3xs">
-                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100">
-                      <span className="font-medium text-slate-400 shrink-0">Total Running Load</span>
-                      <span className="font-mono font-black text-brand text-xs text-right">{totalWatts} W ({(totalWatts/1000).toFixed(2)} kW)</span>
+                  <div className="space-y-2 text-[11px] text-[#c2c6d8] bg-[#0e131e] p-3.5 rounded-xl border border-white/10 shadow-sm">
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-white/10">
+                      <span className="font-medium text-[#8e95b0] shrink-0">Total Running Load</span>
+                      <span className="font-mono font-black text-[#0066ff] text-xs text-right">{totalWatts} W ({(totalWatts/1000).toFixed(2)} kW)</span>
                     </div>
-                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100">
-                      <span className="font-medium text-slate-400 shrink-0">Inverter Sizing</span>
-                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.kva} (~{ratedWatts}W)</span>
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-white/10">
+                      <span className="font-medium text-[#8e95b0] shrink-0">Inverter Sizing</span>
+                      <span className="font-bold text-[#dee2f2] text-right">{recommendedPackage.kva} (~{ratedWatts}W)</span>
                     </div>
-                    <div className="py-1 space-y-1 border-b border-slate-100">
+                    <div className="py-1 space-y-1 border-b border-white/10">
                       <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-400 font-medium">Capacity Utilization</span>
-                        <span className={`font-mono font-bold ${utilization > 85 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                        <span className="text-[#8e95b0] font-medium">Capacity Utilization</span>
+                        <span className={`font-mono font-bold ${utilization > 85 ? 'text-rose-400' : 'text-emerald-400'}`}>
                           {utilization}%
                         </span>
                       </div>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="w-full bg-[#171b27] h-2 rounded-full overflow-hidden">
                         <div 
                           className={`h-full transition-all duration-500 rounded-full ${
-                            utilization > 85 ? 'bg-rose-500' : utilization > 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                            utilization > 85 ? 'bg-rose-500' : utilization > 60 ? 'bg-amber-400' : 'bg-emerald-400'
                           }`} 
                           style={{ width: `${utilization}%` }} 
                         />
                       </div>
                     </div>
-                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100 pt-1">
-                      <span className="font-medium text-slate-400 shrink-0">Battery Array</span>
-                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.batteries}x {recommendedPackage.batteryInfo}</span>
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-white/10 pt-1">
+                      <span className="font-medium text-[#8e95b0] shrink-0">Battery Array</span>
+                      <span className="font-bold text-[#dee2f2] text-right">{recommendedPackage.batteries}x {recommendedPackage.batteryInfo}</span>
                     </div>
-                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-slate-100">
-                      <span className="font-medium text-slate-400 shrink-0">Solar PV Array</span>
-                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.panels} Panels</span>
+                    <div className="flex justify-between items-center gap-2 pb-1.5 border-b border-white/10">
+                      <span className="font-medium text-[#8e95b0] shrink-0">Solar PV Array</span>
+                      <span className="font-bold text-[#dee2f2] text-right">{recommendedPackage.panels} Panels</span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
-                      <span className="font-medium text-slate-400 shrink-0">AC Support</span>
-                      <span className="font-bold text-slate-800 text-right">{recommendedPackage.acSupport}</span>
+                      <span className="font-medium text-[#8e95b0] shrink-0">AC Support</span>
+                      <span className="font-bold text-[#dee2f2] text-right">{recommendedPackage.acSupport}</span>
                     </div>
                   </div>
 
                   {recommendedPackage.tech === 'tubular' && (
-                    <div className="p-3 bg-amber-50 text-amber-800 border border-amber-100 rounded-xl text-[10px] flex gap-2 leading-relaxed">
-                      <AlertTriangle size={14} className="shrink-0 text-amber-600 mt-0.5" />
+                    <div className="p-3 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-xl text-[10px] flex gap-2 leading-relaxed">
+                      <AlertTriangle size={14} className="shrink-0 text-amber-400 mt-0.5" />
                       <span><strong>Optimization Tip:</strong> Switch the battery storage technology above to <strong>Lithium-ion</strong> for high efficiency, faster charging times, and extended appliance life.</span>
                     </div>
                   )}
@@ -728,7 +728,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                     <button
                       type="button"
                       onClick={() => addPackageToCart(recommendedPackage)}
-                      className="flex-1 min-w-0 bg-brand hover:bg-brand-hover text-white px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm shadow-brand/10 transition-all cursor-pointer"
+                      className="flex-1 min-w-0 bg-[#0066ff] hover:bg-[#0052cc] text-white px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
                     >
                       <ShoppingCart size={14} className="shrink-0" />
                       <span className="whitespace-nowrap truncate">Get Package</span>
@@ -736,7 +736,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                     <button
                       type="button"
                       onClick={clearCalculator}
-                      className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                      className="bg-[#0e131e] hover:bg-white/10 text-[#dee2f2] border border-white/10 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
                       title="Reset choices"
                     >
                       Reset
@@ -745,10 +745,10 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                 </div>
               );
             })() : (
-              <div className="py-12 text-center text-slate-400 space-y-2">
+              <div className="py-12 text-center text-[#8e95b0] space-y-2">
                 <legend className="text-3xl">🏠</legend>
-                <p className="text-xs">No active loads selected.</p>
-                <p className="text-[10px] text-slate-400 max-w-[200px] mx-auto leading-normal">
+                <p className="text-xs text-[#dee2f2] font-semibold">No active loads selected.</p>
+                <p className="text-[10px] text-[#c2c6d8] max-w-[200px] mx-auto leading-normal">
                   Adjust quantities of electrical appliances on the left to see dynamic packages instantly matching your requirements.
                 </p>
               </div>
@@ -762,31 +762,31 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
       <div className="space-y-6">
         
         {/* Toggle Controls & Filters Bar */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-2xs space-y-4">
+        <div className="bg-[#171b27] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-display font-extrabold text-base sm:text-lg text-slate-900">
+                <h3 className="font-display font-extrabold text-base sm:text-lg text-[#dee2f2]">
                   Explore Active Packages
                 </h3>
-                <span className="bg-brand/10 text-brand text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                <span className="bg-[#0066ff]/20 border border-[#0066ff]/30 text-[#b3c5ff] text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                   {filteredPackages.length} Available
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-[#c2c6d8] mt-0.5">
                 Sorted from lowest price to highest price by default. Filter by capacity, series, or keyword.
               </p>
             </div>
 
             {/* Battery Storage Series Toggle */}
-            <div className="inline-flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80 self-start md:self-auto shrink-0">
+            <div className="inline-flex bg-[#0e131e] p-1 rounded-2xl border border-white/10 self-start md:self-auto shrink-0">
               <button
                 type="button"
                 onClick={() => setTechFilter('all')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   techFilter === 'all' 
-                    ? 'bg-slate-900 text-white shadow-xs' 
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-[#0066ff] text-white shadow-xs' 
+                    : 'text-[#c2c6d8] hover:text-white'
                 }`}
               >
                 All Series
@@ -796,8 +796,8 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                 onClick={() => setTechFilter('lithium')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   techFilter === 'lithium' 
-                    ? 'bg-slate-900 text-white shadow-xs' 
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-[#0066ff] text-white shadow-xs' 
+                    : 'text-[#c2c6d8] hover:text-white'
                 }`}
               >
                 <Zap size={12} className={techFilter === 'lithium' ? "text-amber-400 fill-amber-400" : ""} />
@@ -808,8 +808,8 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                 onClick={() => setTechFilter('tubular')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   techFilter === 'tubular' 
-                    ? 'bg-slate-900 text-white shadow-xs' 
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-[#0066ff] text-white shadow-xs' 
+                    : 'text-[#c2c6d8] hover:text-white'
                 }`}
               >
                 <Battery size={12} />
@@ -819,35 +819,35 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
           </div>
 
           {/* Secondary Controls: Sorting, Capacity Filter, Search */}
-          <div className="pt-3 border-t border-slate-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Sort Order */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                <ArrowUpDown size={13} className="text-slate-400 shrink-0" />
-                <span className="font-bold text-slate-500 text-[11px]">Sort:</span>
+              <div className="flex items-center gap-1.5 bg-[#0e131e] border border-white/10 px-3 py-1.5 rounded-xl">
+                <ArrowUpDown size={13} className="text-[#8e95b0] shrink-0" />
+                <span className="font-bold text-[#c2c6d8] text-[11px]">Sort:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-transparent border-0 font-bold text-slate-800 text-xs focus:ring-0 focus:outline-hidden cursor-pointer"
+                  className="bg-transparent border-0 font-bold text-[#dee2f2] text-xs focus:ring-0 focus:outline-hidden cursor-pointer"
                 >
-                  <option value="price-asc">Lowest to Highest Price (₦)</option>
-                  <option value="price-desc">Highest to Lowest Price (₦)</option>
-                  <option value="kva-asc">KVA Capacity (Small to Large)</option>
+                  <option value="price-asc" className="bg-[#0e131e] text-[#dee2f2]">Lowest to Highest Price (₦)</option>
+                  <option value="price-desc" className="bg-[#0e131e] text-[#dee2f2]">Highest to Lowest Price (₦)</option>
+                  <option value="kva-asc" className="bg-[#0e131e] text-[#dee2f2]">KVA Capacity (Small to Large)</option>
                 </select>
               </div>
 
               {/* KVA Capacity Filter */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                <Filter size={13} className="text-slate-400 shrink-0" />
-                <span className="font-bold text-slate-500 text-[11px]">Capacity:</span>
+              <div className="flex items-center gap-1.5 bg-[#0e131e] border border-white/10 px-3 py-1.5 rounded-xl">
+                <Filter size={13} className="text-[#8e95b0] shrink-0" />
+                <span className="font-bold text-[#c2c6d8] text-[11px]">Capacity:</span>
                 <select
                   value={kvaFilter}
                   onChange={(e) => setKvaFilter(e.target.value)}
-                  className="bg-transparent border-0 font-bold text-slate-800 text-xs focus:ring-0 focus:outline-hidden cursor-pointer"
+                  className="bg-transparent border-0 font-bold text-[#dee2f2] text-xs focus:ring-0 focus:outline-hidden cursor-pointer"
                 >
-                  <option value="all">All System Sizes</option>
+                  <option value="all" className="bg-[#0e131e] text-[#dee2f2]">All System Sizes</option>
                   {availableKvas.map(kva => (
-                    <option key={kva} value={kva}>{kva} Packages</option>
+                    <option key={kva} value={kva} className="bg-[#0e131e] text-[#dee2f2]">{kva} Packages</option>
                   ))}
                 </select>
               </div>
@@ -855,19 +855,19 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
 
             {/* Keyword / Appliance Search */}
             <div className="relative w-full sm:w-64">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e95b0]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter load e.g. AC, TV, Fridge..."
-                className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-brand/20 transition-all"
+                className="w-full pl-8 pr-7 py-1.5 bg-[#0e131e] border border-white/10 rounded-xl text-xs font-medium text-[#dee2f2] placeholder-[#8e95b0] focus:outline-hidden focus:border-[#0066ff] transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8e95b0] hover:text-white cursor-pointer"
                 >
                   <X size={13} />
                 </button>
@@ -878,15 +878,15 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
 
         {/* Pricing Table Cards Grid */}
         {loading ? (
-          <div className="py-24 text-center text-slate-450 space-y-1.5">
-            <Loader2 size={24} className="animate-spin mx-auto text-brand" />
+          <div className="py-24 text-center text-[#8e95b0] space-y-1.5">
+            <Loader2 size={24} className="animate-spin mx-auto text-[#0066ff]" />
             <span className="text-xs uppercase tracking-wider block font-bold">Synchronizing Pricing Lists...</span>
           </div>
         ) : filteredPackages.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-3">
-            <SlidersHorizontal size={32} className="text-slate-300 mx-auto" />
-            <h4 className="font-bold text-slate-800 text-sm">No packages match your active filters</h4>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <div className="bg-[#171b27] border border-white/10 rounded-3xl p-10 text-center space-y-3">
+            <SlidersHorizontal size={32} className="text-[#8e95b0] mx-auto" />
+            <h4 className="font-bold text-[#dee2f2] text-sm">No packages match your active filters</h4>
+            <p className="text-xs text-[#c2c6d8] max-w-sm mx-auto">
               Try adjusting your capacity size, battery tech filter, or clear your search term.
             </p>
             <button
@@ -897,7 +897,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                 setSearchQuery('');
                 setSortBy('price-asc');
               }}
-              className="px-4 py-2 bg-slate-900 hover:bg-brand text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="px-4 py-2 bg-[#0066ff] hover:bg-[#0052cc] text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
             >
               Reset Filters
             </button>
@@ -907,66 +907,66 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
             {filteredPackages.map((pkg) => (
               <div 
                 key={pkg.id} 
-                className="bg-white border border-slate-200 hover:border-slate-350 hover:shadow-lg rounded-3xl p-5 sm:p-6 transition-all flex flex-col justify-between relative overflow-hidden group hover:scale-[1.01] duration-300"
+                className="bg-[#171b27] border border-white/10 hover:border-[#0066ff]/40 hover:shadow-xl rounded-3xl p-5 sm:p-6 transition-all flex flex-col justify-between relative overflow-hidden group hover:scale-[1.01] duration-300"
               >
                 {/* Visual Accent Badge */}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-brand/5 to-transparent rounded-bl-full pointer-events-none" />
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#0066ff]/10 to-transparent rounded-bl-full pointer-events-none" />
 
                 <div className="space-y-4 text-left">
                   
                   {/* Top Capacity & Title */}
                   <div className="flex justify-between items-start gap-4">
                     <div>
-                      <span className="text-[10px] uppercase tracking-widest font-black text-brand mb-1 block">
+                      <span className="text-[10px] uppercase tracking-widest font-black text-[#0066ff] mb-1 block">
                         {pkg.kva} Capacity
                       </span>
-                      <h4 className="font-display font-extrabold text-slate-850 text-base group-hover:text-brand transition-colors">
+                      <h4 className="font-display font-extrabold text-[#dee2f2] text-base group-hover:text-[#0066ff] transition-colors">
                         {pkg.name}
                       </h4>
                     </div>
-                    <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div className="p-2 bg-[#0e131e] border border-white/10 rounded-xl">
                       {pkg.tech === 'lithium' ? (
-                        <Zap size={14} className="text-amber-500 fill-amber-500" />
+                        <Zap size={14} className="text-amber-400 fill-amber-400" />
                       ) : (
-                        <Battery size={14} className="text-slate-400" />
+                        <Battery size={14} className="text-[#8e95b0]" />
                       )}
                     </div>
                   </div>
 
                   {/* Pricing Header */}
                   <div className="py-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Deployment Cost</span>
-                    <span className="text-lg sm:text-xl font-mono font-black text-slate-900 leading-none">
-                      ₦{pkg.price.toLocaleString()}
+                    <span className="text-[10px] font-bold text-[#8e95b0] uppercase tracking-widest block">Deployment Cost</span>
+                    <span className="text-lg sm:text-xl font-mono font-black text-white leading-none">
+                      ₦{pkg.price.toLocaleString('en-US').replace(/\s+/g, '')}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-450 leading-relaxed font-sans min-h-[36px]">
+                  <p className="text-xs text-[#c2c6d8] leading-relaxed font-sans min-h-[36px]">
                     {pkg.description}
                   </p>
 
                   {/* Bullet Spec Highlights */}
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-150 space-y-2.5 text-[11px] text-slate-600">
+                  <div className="bg-[#0e131e] p-4 rounded-2xl border border-white/10 space-y-2.5 text-[11px] text-[#c2c6d8]">
                     <div className="flex items-center gap-2">
-                      <Battery size={13} className="text-slate-400 shrink-0" />
-                      <span><strong>Batteries:</strong> {pkg.batteryInfo}</span>
+                      <Battery size={13} className="text-[#8e95b0] shrink-0" />
+                      <span><strong className="text-white">Batteries:</strong> {pkg.batteryInfo}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Sun size={13} className="text-slate-400 shrink-0" />
-                      <span><strong>Solar Panels:</strong> {pkg.panels} Panels</span>
+                      <Sun size={13} className="text-[#8e95b0] shrink-0" />
+                      <span><strong className="text-white">Solar Panels:</strong> {pkg.panels} Panels</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Gauge size={13} className="text-slate-400 shrink-0" />
-                      <span><strong>Cables:</strong> {pkg.cableSize} standard size</span>
+                      <Gauge size={13} className="text-[#8e95b0] shrink-0" />
+                      <span><strong className="text-white">Cables:</strong> {pkg.cableSize} standard size</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Info size={13} className="text-brand shrink-0" />
-                      <span><strong>AC Support:</strong> {pkg.acSupport}</span>
+                      <Info size={13} className="text-[#0066ff] shrink-0" />
+                      <span><strong className="text-white">AC Support:</strong> {pkg.acSupport}</span>
                     </div>
                   </div>
 
                   {/* Usage Profile Modes Switcher (Max, Average, Daytime Solar, Night Battery) */}
-                  <PackageUsageModeSelector pkg={pkg} theme="light" />
+                  <PackageUsageModeSelector pkg={pkg} theme="dark" />
 
                 </div>
 
@@ -975,7 +975,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                   <button
                     type="button"
                     onClick={() => addPackageToCart(pkg)}
-                    className="flex-1 bg-slate-900 hover:bg-brand text-white hover:scale-[1.01] transition-all py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow-md"
+                    className="flex-1 bg-[#0066ff] hover:bg-[#0052cc] text-white hover:scale-[1.01] transition-all py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
                   >
                     <ShoppingCart size={13} />
                     <span>Order Package</span>
@@ -984,10 +984,10 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                     <button
                       type="button"
                       onClick={() => onConsultPackage(pkg)}
-                      className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-xs font-bold p-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                      className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold p-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
                       title="Ask AI Advisor to explain this package"
                     >
-                      <Sparkles size={16} className="text-amber-500 fill-amber-400/30" />
+                      <Sparkles size={16} className="text-amber-400 fill-amber-400/30" />
                     </button>
                   )}
                 </div>

@@ -30,7 +30,8 @@ import { WishlistModal } from './components/WishlistModal';
 import { HeroSection } from './components/HeroSection';
 import { SolarPackages } from './components/SolarPackages';
 import { InteractiveTour } from './components/InteractiveTour';
-import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award, Heart, Settings, LogOut } from 'lucide-react';
+import { RecentlyViewedPage } from './components/RecentlyViewedPage';
+import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award, Heart, Settings, LogOut, Clock, Sun, Moon } from 'lucide-react';
 import { 
   ShoppingBag, 
   Search, 
@@ -129,10 +130,10 @@ const AdminLoginGate: React.FC<{ onUnlockAdmin: () => void; onOpenLogin: () => v
 
 export default function App() {
   // Navigation State
-  const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner'>(() => {
+  const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed'>(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab') as any;
-    if (['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about', 'blog', 'owner'].includes(tabParam)) {
+    if (['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about', 'blog', 'owner', 'recently-viewed'].includes(tabParam)) {
       return tabParam;
     }
     return (localStorage.getItem('activeTab') as any) || 'home';
@@ -167,7 +168,7 @@ export default function App() {
     }
   }, [blogPosts]);
 
-  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner') => {
+  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed') => {
     _setActiveTab(tab);
     setSelectedProduct(null); // Clear selected product modal on navigation
     localStorage.setItem('activeTab', tab);
@@ -199,6 +200,15 @@ export default function App() {
       }, 600);
       return () => clearTimeout(timer);
     }
+  }, []);
+
+  // Theme State (Locked to Dark Mode)
+  const [theme] = useState<'dark'>('dark');
+
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+    localStorage.setItem('skyit_theme', 'dark');
   }, []);
 
   // Firebase Auth State
@@ -631,6 +641,27 @@ export default function App() {
     });
   };
 
+  const handleClearRecentlyViewed = () => {
+    setRecentlyViewedIds([]);
+    try {
+      localStorage.removeItem('skyit_recently_viewed');
+    } catch (e) {
+      console.warn("Failed to clear recently viewed", e);
+    }
+  };
+
+  const handleRemoveFromRecentlyViewed = (productId: string) => {
+    setRecentlyViewedIds(prev => {
+      const updated = prev.filter(id => id !== productId);
+      try {
+        localStorage.setItem('skyit_recently_viewed', JSON.stringify(updated));
+      } catch (e) {
+        console.warn("Failed to update recently viewed", e);
+      }
+      return updated;
+    });
+  };
+
   const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
 
   // Catalog Filters State
@@ -1057,9 +1088,7 @@ export default function App() {
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className={`min-h-screen text-slate-600 font-sans flex flex-col transition-colors duration-300 ${
-      activeTab === 'ai' || activeTab === 'home' ? 'bg-[#0e131e]' : 'bg-slate-50'
-    }`}>
+    <div className="min-h-screen text-slate-600 font-sans flex flex-col transition-colors duration-300 bg-[#0e131e]">
       
       {/* Top micro announcement bar */}
       {activeTab === 'home' && (
@@ -1094,8 +1123,8 @@ export default function App() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-[17px] sm:text-[21px] font-bold text-[#b3c5ff] tracking-tight font-display leading-tight">SkyIT <span className="text-[#0066ff]">Ventures</span></span>
-                <span className="text-[9px] text-[#8e95b0] uppercase tracking-widest font-semibold hidden sm:block">Solar & Security Systems</span>
+                <span className="text-[18px] sm:text-[22px] font-bold text-white tracking-tight font-display leading-tight">SkyIT <span className="text-[#0066ff]">Ventures</span></span>
+                <span className="text-[8.5px] sm:text-[9.5px] text-[#a0a8c2] uppercase tracking-[0.14em] font-semibold block">Solar & Security Systems</span>
               </div>
             </div>
 
@@ -1199,6 +1228,15 @@ export default function App() {
 
                     <button
                       type="button"
+                      onClick={() => { setActiveTab('recently-viewed'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#dee2f2] hover:bg-white/5 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <Clock size={15} className="text-blue-400" />
+                      <span>Recently Viewed</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => { setActiveTab('owner'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#dee2f2] hover:bg-white/5 transition-all flex items-center gap-2 cursor-pointer"
                     >
@@ -1224,21 +1262,31 @@ export default function App() {
                       <span>Interactive App Tour</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => { setActiveTab('admin'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      <LayoutDashboard size={15} className="text-rose-400" />
-                      <span>Admin Control Deck</span>
-                    </button>
+
+
+
+
+                    {(isAdmin || isEditor) && (
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab('admin'); setSelectedProduct(null); setIsMoreMenuOpen(false); }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        <LayoutDashboard size={15} className="text-rose-400" />
+                        <span>Admin Control Deck</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
             </nav>
 
-            {/* Right Controls: Search, Wishlist, Cart, User HUD, Mobile Toggle */}
+            {/* Right Controls: Search, Theme Toggle, Wishlist, Cart, User HUD, Mobile Toggle */}
             <div className="flex items-center gap-2 sm:gap-3">
+
+
+
+
 
               {/* Search Button for ALL screens */}
               <button 
@@ -1268,6 +1316,7 @@ export default function App() {
                   </span>
                 )}
               </button>
+
 
               {/* Shopping Cart Button */}
               <button 
@@ -1484,6 +1533,24 @@ export default function App() {
                 <ChevronRight size={16} />
               </button>
 
+              {/* Recently Viewed Mobile Shortcut */}
+              <button 
+                onClick={() => { 
+                  setActiveTab('recently-viewed');
+                  setSelectedProduct(null);
+                  setIsMobileMenuOpen(false); 
+                }}
+                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-[#dee2f2] hover:bg-white/5 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Clock size={18} className="text-blue-400" />
+                  <span>Recently Viewed</span>
+                </div>
+                <span className="text-xs font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
+                  {recentlyViewedIds.length}
+                </span>
+              </button>
+
               {/* Wishlist Mobile Shortcut */}
               <button 
                 onClick={() => { 
@@ -1578,16 +1645,22 @@ export default function App() {
                 <ChevronRight size={16} />
               </button>
 
-              <button 
-                onClick={() => { setActiveTab('admin'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-rose-400 bg-rose-500/10 border border-rose-500/20 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <LayoutDashboard size={18} className="text-rose-400" />
-                  <span>Admin Control Deck</span>
-                </div>
-                <ChevronRight size={16} />
-              </button>
+
+
+
+
+              {(isAdmin || isEditor) && (
+                <button 
+                  onClick={() => { setActiveTab('admin'); setSelectedProduct(null); setIsMobileMenuOpen(false); }}
+                  className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-rose-400 bg-rose-500/10 border border-rose-500/20 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <LayoutDashboard size={18} className="text-rose-400" />
+                    <span>Admin Control Deck</span>
+                  </div>
+                  <ChevronRight size={16} />
+                </button>
+              )}
 
               <div className="pt-3 border-t border-white/10 flex items-center gap-3">
                 {currentUser ? (
@@ -1701,9 +1774,9 @@ export default function App() {
         {/* VIEW 1: SHOP CATALOG TAB */}
         {activeTab === 'shop' && !selectedProduct && (
           <div className="space-y-6 w-full animate-fade-in">
-            <div id="tour-search-bar-mobile" className="mb-2 bg-white/70 backdrop-blur-xs p-6 rounded-2xl border border-slate-200/60 shadow-2xs">
-              <h1 className="font-display font-black text-2xl sm:text-3xl text-slate-900 uppercase tracking-tight">Our Product Catalog</h1>
-              <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+            <div id="tour-search-bar-mobile" className="mb-2 bg-[#171b27] p-6 rounded-2xl border border-white/10 shadow-xl">
+              <h1 className="font-display font-black text-2xl sm:text-3xl text-[#dee2f2] uppercase tracking-tight">Our Product Catalog</h1>
+              <p className="text-xs text-[#c2c6d8] mt-1 max-w-xl leading-relaxed">
                 Explore our range of premium clean energy hardware, LFP battery storage modules, starlight PoE camera networks, and custom solar power kits.
               </p>
             </div>
@@ -1713,9 +1786,9 @@ export default function App() {
             {/* Left Column: Adaptive filter sidebar */}
             <aside className="hidden lg:block space-y-6">
                        {/* Category selector */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-                <div className="flex items-center gap-1.5 text-slate-850 font-display font-bold mb-3 tracking-wide text-xs">
-                  <SlidersHorizontal size={14} className="text-brand" />
+              <div className="bg-[#171b27] p-4 rounded-2xl border border-white/10 shadow-lg">
+                <div className="flex items-center gap-1.5 text-[#dee2f2] font-display font-bold mb-3 tracking-wide text-xs">
+                  <SlidersHorizontal size={14} className="text-[#0066ff]" />
                   <span>System Categories</span>
                 </div>
 
@@ -1726,44 +1799,44 @@ export default function App() {
                       onClick={() => setSelectedCategory(cat)}
                       className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all flex justify-between items-center ${
                         selectedCategory === cat 
-                          ? 'bg-brand-light text-brand font-bold border-l-2 border-brand pl-2' 
-                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                          ? 'bg-[#0066ff]/20 text-[#b3c5ff] font-bold border-l-2 border-[#0066ff] pl-2' 
+                          : 'text-[#c2c6d8] hover:bg-white/5 hover:text-white'
                       }`}
                     >
                       <span>{cat === 'All' ? 'All Catalog' : cat}</span>
-                      <ChevronRight size={12} className={selectedCategory === cat ? 'text-brand' : 'text-slate-300'} />
+                      <ChevronRight size={12} className={selectedCategory === cat ? 'text-[#0066ff]' : 'text-slate-500'} />
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Price filter and High discount filters */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <h4 className="text-xs font-display font-bold text-slate-800 tracking-wide border-b border-slate-100 pb-1.5">Refine Database</h4>
+              <div className="bg-[#171b27] p-4 rounded-2xl border border-white/10 shadow-lg space-y-4">
+                <h4 className="text-xs font-display font-bold text-[#dee2f2] tracking-wide border-b border-white/10 pb-1.5">Refine Database</h4>
                 
                 {/* Price sorting */}
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1 tracking-wider">Sort Cost Option</label>
+                  <label className="text-[10px] font-bold text-[#c2c6d8] uppercase block mb-1 tracking-wider">Sort Cost Option</label>
                   <select
                     value={priceSort}
                     onChange={(e) => setPriceSort(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg p-2 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
+                    className="w-full bg-[#0e131e] border border-white/10 text-[#dee2f2] rounded-lg p-2 text-xs focus:ring-1 focus:ring-[#0066ff] focus:outline-hidden"
                   >
-                    <option value="default">Default Sizing Rank</option>
-                    <option value="low-high">Price: Low to High</option>
-                    <option value="high-low">Price: High to Low</option>
+                    <option value="default" className="bg-[#0e131e] text-[#dee2f2]">Default Sizing Rank</option>
+                    <option value="low-high" className="bg-[#0e131e] text-[#dee2f2]">Price: Low to High</option>
+                    <option value="high-low" className="bg-[#0e131e] text-[#dee2f2]">Price: High to Low</option>
                   </select>
                 </div>
 
                 {/* Percentage discount options */}
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5 tracking-wider">SkyIT Promos</label>
+                  <label className="text-[10px] font-bold text-[#c2c6d8] uppercase block mb-1.5 tracking-wider">SkyIT Promos</label>
                   <button
                     onClick={() => setDiscountFilter(prev => prev === 'high' ? 'All' : 'high')}
                     className={`w-full p-2.5 rounded-lg text-xs font-bold tracking-wide uppercase text-center border transition-all ${
                       discountFilter === 'high' 
-                        ? 'bg-red-50 text-red-650 border-red-205 font-bold' 
-                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-red-500/20 text-red-400 border-red-500/30 font-bold' 
+                        : 'bg-[#0e131e] text-[#c2c6d8] border-white/10 hover:bg-white/10'
                     }`}
                   >
                     🔥 Promo Drops &gt;= 15%
@@ -1779,7 +1852,7 @@ export default function App() {
                       setPriceSort('default');
                       setDiscountFilter('All');
                     }}
-                    className="w-full bg-slate-150 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all text-center border border-slate-200"
+                    className="w-full bg-[#0e131e] hover:bg-white/10 text-[#dee2f2] py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all text-center border border-white/10"
                   >
                     Clear Search Criteria
                   </button>
@@ -1787,7 +1860,7 @@ export default function App() {
               </div>
 
               {/* SkyIT AI Smart Vision box */}
-              <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-sm space-y-3 relative overflow-hidden border border-slate-800">
+              <div className="bg-[#171b27] text-white rounded-2xl p-4 shadow-lg space-y-3 relative overflow-hidden border border-white/10">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full blur-xl pointer-events-none" />
                 <div className="flex items-center gap-1.5">
                   <span className="text-[8px] tracking-widest font-black uppercase bg-orange-500 text-white px-2 py-0.5 rounded-sm inline-block">
@@ -1796,7 +1869,7 @@ export default function App() {
                   <span className="text-[8px] font-mono text-slate-400">v1.2</span>
                 </div>
                 <h4 className="text-xs font-display font-bold leading-snug text-white uppercase tracking-wide">AI Visual Search Scanner</h4>
-                <p className="text-[10px] text-slate-400 leading-normal">
+                <p className="text-[10px] text-[#c2c6d8] leading-normal">
                   Upload or snap a photo of any hardware, solar label, inverter, or battery to instantly find its exact match or closest model in our catalog!
                 </p>
                 <button
@@ -1810,18 +1883,18 @@ export default function App() {
               </div>
 
               {/* AI Support helper promo box */}
-              <div className="bg-brand-light border border-brand/10 text-slate-700 rounded-2xl p-4 shadow-3xs space-y-3 relative overflow-hidden lg:sticky lg:top-24">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-brand/10 to-brand-hover/5 rounded-full blur-xl pointer-events-none" />
-                <span className="text-[9px] tracking-widest font-bold uppercase bg-brand text-white px-2 py-0.5 rounded-sm inline-block">
+              <div className="bg-[#171b27] border border-white/10 text-[#dee2f2] rounded-2xl p-4 shadow-lg space-y-3 relative overflow-hidden lg:sticky lg:top-24">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#0066ff]/20 to-transparent rounded-full blur-xl pointer-events-none" />
+                <span className="text-[9px] tracking-widest font-bold uppercase bg-[#0066ff] text-white px-2 py-0.5 rounded-sm inline-block">
                   AI Engineering Expert
                 </span>
-                <h4 className="text-xs font-display font-bold leading-snug text-slate-800">let our AI design your optimal microgrid</h4>
-                <p className="text-[10px] text-slate-500 leading-normal">
+                <h4 className="text-xs font-display font-bold leading-snug text-white">let our AI design your optimal microgrid</h4>
+                <p className="text-[10px] text-[#c2c6d8] leading-normal">
                   Describe your building shape, AC loads, and battery technology preference. Let the AI advisor write a professional hardware checklist instantly.
                 </p>
                 <button
                   onClick={() => setActiveTab('ai')}
-                  className="w-full bg-brand hover:bg-brand-hover text-white transition-all py-2 rounded-lg text-center font-bold text-xs uppercase tracking-widest"
+                  className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white transition-all py-2 rounded-lg text-center font-bold text-xs uppercase tracking-widest"
                 >
                   Consult Advisor Chat
                 </button>
@@ -1835,10 +1908,10 @@ export default function App() {
               {/* Header result info */}
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="font-display font-bold text-base text-slate-800">
+                  <h3 className="font-display font-bold text-base text-[#dee2f2]">
                     SkyIT {selectedCategory} Catalog
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  <p className="text-[10px] text-[#c2c6d8] font-mono mt-0.5">
                     Showing {filteredProducts.length} Premium Architectural Results
                   </p>
                 </div>
@@ -1849,8 +1922,8 @@ export default function App() {
                     onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
                     className={`font-semibold text-xs flex items-center gap-1.5 uppercase tracking-wider px-3.1 py-2 rounded-xl border transition-all active:scale-95 ${
                       isMobileFiltersOpen 
-                        ? 'bg-brand text-white border-brand shadow-xs' 
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                        ? 'bg-[#0066ff] text-white border-[#0066ff] shadow-xs' 
+                        : 'bg-[#171b27] text-[#dee2f2] border-white/10 hover:bg-white/10'
                     }`}
                   >
                     <SlidersHorizontal size={13} strokeWidth={2.5} />
@@ -1861,12 +1934,12 @@ export default function App() {
 
               {/* Mobile Filter Panel (Shown inline when toggled) */}
               {isMobileFiltersOpen && (
-                <div className="lg:hidden block bg-slate-50 border border-slate-200 rounded-2xl p-4 gap-4 grid sm:grid-cols-2 animate-fade-in">
+                <div className="lg:hidden block bg-[#171b27] border border-white/10 rounded-2xl p-4 gap-4 grid sm:grid-cols-2 animate-fade-in">
                   
                   {/* Category Sorter */}
-                  <div className="bg-white p-4 rounded-xl border border-slate-150 shadow-3xs">
-                    <div className="flex items-center gap-1.5 text-slate-800 font-display font-bold mb-3 tracking-wide text-xs">
-                      <SlidersHorizontal size={13} className="text-brand font-bold" />
+                  <div className="bg-[#0e131e] p-4 rounded-xl border border-white/10 shadow-3xs">
+                    <div className="flex items-center gap-1.5 text-[#dee2f2] font-display font-bold mb-3 tracking-wide text-xs">
+                      <SlidersHorizontal size={13} className="text-[#0066ff] font-bold" />
                       <span>System Categories</span>
                     </div>
 
@@ -1879,32 +1952,32 @@ export default function App() {
                           }}
                           className={`text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all flex justify-between items-center ${
                             selectedCategory === cat 
-                              ? 'bg-brand-light text-brand font-bold border-l-2 border-brand pl-2' 
-                              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                              ? 'bg-[#0066ff]/20 text-[#b3c5ff] font-bold border-l-2 border-[#0066ff] pl-2' 
+                              : 'text-[#c2c6d8] hover:bg-white/5 hover:text-white'
                           }`}
                         >
                           <span>{cat}</span>
-                          <ChevronRight size={11} className={selectedCategory === cat ? 'text-brand' : 'text-slate-300'} />
+                          <ChevronRight size={11} className={selectedCategory === cat ? 'text-[#0066ff]' : 'text-slate-500'} />
                         </button>
                       ))}
                     </div>
                   </div>
 
                   {/* Refine options */}
-                  <div className="bg-white p-4 rounded-xl border border-slate-150 shadow-3xs space-y-4 animate-fade-in">
-                    <h4 className="text-xs font-display font-bold text-slate-800 tracking-wide border-b border-slate-100 pb-1.5">Refine Database</h4>
+                  <div className="bg-[#0e131e] p-4 rounded-xl border border-white/10 shadow-3xs space-y-4 animate-fade-in">
+                    <h4 className="text-xs font-display font-bold text-[#dee2f2] tracking-wide border-b border-white/10 pb-1.5">Refine Database</h4>
                     
                     {/* Price sorting */}
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1 tracking-wider">Sort Cost Option</label>
+                      <label className="text-[10px] font-bold text-[#c2c6d8] uppercase block mb-1 tracking-wider">Sort Cost Option</label>
                       <select
                         value={priceSort}
                         onChange={(e) => setPriceSort(e.target.value as any)}
-                        className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg p-2 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
+                        className="w-full bg-[#171b27] border border-white/10 text-[#dee2f2] rounded-lg p-2 text-xs focus:ring-1 focus:ring-[#0066ff] focus:outline-hidden"
                       >
-                        <option value="default">Default Sizing Rank</option>
-                        <option value="low-high">Price: Low to High</option>
-                        <option value="high-low">Price: High to Low</option>
+                        <option value="default" className="bg-[#171b27] text-[#dee2f2]">Default Sizing Rank</option>
+                        <option value="low-high" className="bg-[#171b27] text-[#dee2f2]">Price: Low to High</option>
+                        <option value="high-low" className="bg-[#171b27] text-[#dee2f2]">Price: High to Low</option>
                       </select>
                     </div>
 
@@ -2081,6 +2154,21 @@ export default function App() {
           </div>
         )}
 
+        {/* VIEW 11: RECENTLY VIEWED PRODUCTS PAGE */}
+        {activeTab === 'recently-viewed' && !selectedProduct && (
+          <RecentlyViewedPage 
+            recentlyViewedIds={recentlyViewedIds}
+            allProducts={productsWithRealRatings}
+            onClearHistory={handleClearRecentlyViewed}
+            onRemoveFromHistory={handleRemoveFromRecentlyViewed}
+            onViewProduct={handleViewProduct}
+            onAddToCart={handleAddToCart}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
+            onNavigateToShop={() => setActiveTab('shop')}
+          />
+        )}
+
       </main>
 
       {/* Universal General Footer */}
@@ -2099,7 +2187,10 @@ export default function App() {
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                <span className="text-[22px] font-bold text-[#b3c5ff] font-display">SkyIT Ventures</span>
+                <div className="flex flex-col">
+                  <span className="text-[20px] font-bold text-white font-display leading-tight">SkyIT <span className="text-[#0066ff]">Ventures</span></span>
+                  <span className="text-[9px] text-[#8e95b0] uppercase tracking-[0.15em] font-semibold">Solar & Security Systems</span>
+                </div>
               </div>
               <p className="text-[13px] leading-[22px] text-[#c2c6d8]">
                 Leading the deployment of smart energy microgrids, hybrid MPPT Pure Sine inverters, residential LFP lithium walls, starlight outdoor CCTV surveillance networks, and state-of-the-art commissioning engineering services.
@@ -2162,6 +2253,7 @@ export default function App() {
               <h4 className="font-bold text-[#dee2f2] text-[18px] sm:text-[20px] font-display">Quick Links</h4>
               <ul className="space-y-2.5">
                 <li><button onClick={() => { setSelectedCategory('All'); setActiveTab('shop'); }} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Shop Hardware</button></li>
+                <li><button onClick={() => setActiveTab('recently-viewed')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Recently Viewed</button></li>
                 <li><button onClick={() => setActiveTab('quote')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Complete Packages</button></li>
                 <li><button onClick={() => setActiveTab('ai')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">AI Energy Advisor</button></li>
                 <li><button onClick={() => setActiveTab('tracker')} className="text-[13px] text-[#c2c6d8] hover:text-[#b3c5ff] transition-colors hover:underline cursor-pointer">Installation & Tracking</button></li>

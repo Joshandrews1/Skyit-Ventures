@@ -26,15 +26,14 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
 
   // Calculators
   const subtotal = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-  const totalOriginal = cartItems.reduce((acc, item) => acc + (item.product.originalPrice * item.quantity), 0);
-  const totalDiscount = totalOriginal - subtotal;
+  const totalDiscount = Math.round(subtotal * 0.02);
   
   // Delivery fee is negotiated dynamically with 3rd party logistics post-purchase
   const deliveryFee = 0;
-  const grandTotal = subtotal;
+  const grandTotal = Math.max(0, subtotal - totalDiscount);
 
   const formatNaira = (val: number) => {
-    return "₦" + Math.floor(val).toLocaleString();
+    return "₦" + Math.floor(val || 0).toLocaleString('en-US').replace(/\s+/g, '');
   };
 
   const handleInitiateCheckout = () => {
@@ -157,13 +156,15 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
           <div className="p-4 border-t border-slate-200 bg-slate-50">
             <div className="space-y-1.5 text-xs text-slate-500 mb-4">
               <div className="flex justify-between">
-                <span>Original Subtotal</span>
-                <span className="line-through text-slate-400 font-mono">{formatNaira(totalOriginal)}</span>
+                <span>Subtotal</span>
+                <span className="font-mono text-slate-800">{formatNaira(subtotal)}</span>
               </div>
-              <div className="flex justify-between text-red-650 font-medium">
-                <span>Campaign Savings</span>
-                <span className="font-mono">-{formatNaira(totalDiscount)}</span>
-              </div>
+              {totalDiscount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded">
+                  <span>Launch Promotion Discount (2%)</span>
+                  <span className="font-mono">-{formatNaira(totalDiscount)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-start py-0.5">
                 <div className="flex flex-col gap-0.5">
                   <span className="font-semibold text-slate-700">Installation & Delivery Fee</span>
