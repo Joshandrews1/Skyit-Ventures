@@ -708,6 +708,96 @@ Guidelines:
   }
 });
 
+// API: AI Batch Price Update Detector & Product Matcher
+app.post("/api/admin/batch-detect-price-updates", async (req, res) => {
+  const { pastedText, catalogItems } = req.body;
+
+  if (!pastedText || !pastedText.trim()) {
+    return res.status(400).json({ error: "Please paste a product price list or invoice text." });
+  }
+
+  if (!catalogItems || !Array.isArray(catalogItems) || catalogItems.length === 0) {
+    return res.status(400).json({ error: "No catalog items provided for price matching." });
+  }
+
+  const catalogSummary = catalogItems.map((item: any) => ({
+    id: item.id,
+    isPackage: !!item.isPackage,
+    name: item.name,
+    category: item.category || 'General',
+    originalPrice: Number(item.originalPrice || item.price || 0),
+    discountPercent: Number(item.discountPercent || 0),
+    price: Number(item.price || 0)
+  }));
+
+  const prompt = `You are an AI E-Commerce Price Matching Specialist.
+Given a list of existing store catalog products/packages and a block of pasted raw text (supplier pricelist, text message, quote, or invoice notes), detect which products in the store catalog are present in the text and extract their new updated prices.
+
+EXISTING CATALOG ITEMS (${catalogSummary.length} items):
+${JSON.stringify(catalogSummary, null, 2)}
+
+PASTED RAW TEXT:
+"""
+${pastedText}
+"""
+
+INSTRUCTIONS:
+1. Carefully compare the names, brands, specifications, and keywords in the pasted raw text against our store catalog items.
+2. For every store product/package matched in the text:
+   - Match it to its exact 'id' in our store catalog.
+   - Extract the new price mentioned in the text (convert K/k or million abbreviations if needed, e.g., "145k" => 145000, "1.5M" => 1500000, "N550,000" => 550000).
+   - If discount or promo percent is specified in text, extract newDiscountPercent (0-100). Otherwise, keep currentDiscountPercent or 0.
+   - Calculate newOriginalPrice and newSellingPrice. If only a single price is mentioned, newOriginalPrice is that price, newDiscountPercent is 0, newSellingPrice = newOriginalPrice.
+   - Extract the exact snippet/line from the pasted text where the match occurred (matchedTextSnippet).
+   - Rate matching confidence as "high", "medium", or "low".
+3. ONLY include items that clearly correspond to an existing store catalog item.
+4. If no items match or no prices are found, return an empty array [].`;
+
+  try {
+    const response = await generateContentWithFallback(ai, {
+      model: "gemini-3.1-flash-lite",
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING, description: "Catalog product or package ID" },
+              isPackage: { type: Type.BOOLEAN, description: "True if solar package" },
+              matchedName: { type: Type.STRING, description: "Catalog item display name" },
+              category: { type: Type.STRING, description: "Catalog item category" },
+              currentOriginalPrice: { type: Type.NUMBER, description: "Current store baseline price" },
+              currentDiscountPercent: { type: Type.NUMBER, description: "Current store discount percent" },
+              currentSellingPrice: { type: Type.NUMBER, description: "Current store selling price" },
+              newOriginalPrice: { type: Type.NUMBER, description: "Detected new original baseline price" },
+              newDiscountPercent: { type: Type.NUMBER, description: "Detected new discount percent" },
+              newSellingPrice: { type: Type.NUMBER, description: "Calculated new final selling price" },
+              matchedTextSnippet: { type: Type.STRING, description: "Raw text snippet where match occurred" },
+              confidence: { type: Type.STRING, description: "high, medium, or low" }
+            },
+            required: [
+              "id", "matchedName", "category", 
+              "currentOriginalPrice", "currentDiscountPercent", "currentSellingPrice", 
+              "newOriginalPrice", "newDiscountPercent", "newSellingPrice", 
+              "matchedTextSnippet", "confidence"
+            ]
+          }
+        }
+      }
+    });
+
+    const bodyText = response?.text?.trim() || "[]";
+    const detectedList = JSON.parse(bodyText);
+    res.json({ detected: detectedList });
+  } catch (err: any) {
+    console.error("[BATCH_DETECT_PRICES_ERROR]", err);
+    res.status(500).json({ error: err?.message || "Failed to parse price list with Gemini AI." });
+  }
+});
+
 // API: Contact Submission with Automated Multi-Recipient SMTP Notifications
 app.post("/api/contact", async (req, res) => {
   const { name, email, phone, subject, message } = req.body;

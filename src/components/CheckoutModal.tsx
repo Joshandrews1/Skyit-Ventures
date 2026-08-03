@@ -9,6 +9,7 @@ import {
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getOrCreateGuestUid, cacheOrderDetails } from '../lib/guestCache';
+import { createUserNotification } from '../lib/notificationService';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -156,6 +157,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           await setDoc(orderDocRef, completeOrder);
           console.log("CheckoutModal: Order written successfully.");
           cacheOrderDetails(completeOrder);
+
+          // Dispatch in-app order notification
+          if (customer.email) {
+            createUserNotification({
+              userEmail: customer.email,
+              userId: currentUserId,
+              title: `📦 Order Placed Successfully (${result.order.id})`,
+              message: `Your order #${result.order.id} totaling ₦${grandTotal.toLocaleString()} was placed successfully. Our logistics engineering team is preparing your package.`,
+              type: 'order',
+              actionUrl: 'tracker',
+              metadata: {
+                orderId: result.order.id,
+                status: 'pending'
+              }
+            }).catch(nErr => console.warn("Checkout notification warning:", nErr));
+          }
         } catch (fErr) {
           console.warn("Cloud Firestore order snapshot save noticed non-fatal reject: ", fErr);
         }

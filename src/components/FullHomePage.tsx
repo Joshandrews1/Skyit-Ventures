@@ -72,8 +72,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
 
   // Compute real blog posts for home display
   const homeBlogPosts = useMemo(() => {
-    const list = (blogPosts && blogPosts.length > 0) ? blogPosts : defaultBlogPosts;
-    return list.filter(p => p.published !== false).slice(0, 3);
+    return (blogPosts || []).filter(p => p.published !== false).slice(0, 3);
   }, [blogPosts]);
 
   // Hero Live Product Spotlight State
@@ -461,10 +460,10 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                 </button>
                 <button 
                   type="button"
-                  onClick={() => { onSelectCategory('Security Systems'); onNavigate('shop'); }}
+                  onClick={() => { onSelectCategory('All'); onNavigate('shop'); }}
                   className="border-2 border-white/20 text-[#dee2f2] px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-[18px] sm:text-[22px] font-bold hover:bg-white/5 transition-all cursor-pointer"
                 >
-                  View Security Kits
+                  Explore All Catalog
                 </button>
               </div>
             </div>
@@ -1596,7 +1595,19 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-              {homeBlogPosts.map((post) => (
+              {homeBlogPosts.length === 0 ? (
+                <div className="col-span-full bg-[#131926] border border-white/5 rounded-3xl p-8 text-center space-y-3">
+                  <p className="text-slate-400 text-sm font-medium">No published insights or articles available at the moment. Check back soon or visit our blog!</p>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('blog')}
+                    className="bg-[#0066ff] hover:bg-[#0052cc] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
+                  >
+                    Open Knowledge Hub
+                  </button>
+                </div>
+              ) : (
+                homeBlogPosts.map((post) => (
                 <div 
                   key={post.id}
                   onClick={() => {
@@ -1657,7 +1668,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                     </span>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </section>

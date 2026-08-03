@@ -1,12 +1,12 @@
 import React from 'react';
-import { Home, ChevronRight, Store, Sparkles, Truck, Phone, Settings, ShieldAlert, Info, Package, BookOpen, UserCheck, Clock } from 'lucide-react';
+import { Home, ChevronRight, Store, Sparkles, Truck, Phone, Settings, ShieldAlert, Info, Package, BookOpen, UserCheck, Clock, Bell } from 'lucide-react';
 import { Product } from '../types';
 
 interface BreadcrumbsProps {
-  activeTab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed';
+  activeTab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed' | 'notifications';
   selectedProduct: Product | null;
   selectedCategory: string;
-  onNavigate: (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed') => void;
+  onNavigate: (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed' | 'notifications') => void;
   onClearProduct: () => void;
   onSelectCategory: (category: string) => void;
 }
@@ -49,6 +49,8 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
         return { label: 'Managing Director', icon: <UserCheck size={12} className="text-sky-400" /> };
       case 'recently-viewed':
         return { label: 'Recently Viewed', icon: <Clock size={12} className="text-blue-400" /> };
+      case 'notifications':
+        return { label: 'Notifications & Alerts', icon: <Bell size={12} className="text-amber-400" /> };
       default:
         return { label: 'Home', icon: <Home size={12} /> };
     }

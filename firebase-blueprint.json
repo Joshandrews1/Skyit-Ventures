@@ -229,6 +229,23 @@
         }
       },
       "required": ["id", "title", "slug", "excerpt", "content", "category", "authorName", "createdAt", "coverImage", "published"]
+    },
+    "UserNotification": {
+      "title": "UserNotification",
+      "description": "User specific security alerts, order updates, and activity notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique notification ID" },
+        "userId": { "type": "string", "description": "UID of the target user" },
+        "userEmail": { "type": "string", "description": "Email address of the recipient user" },
+        "title": { "type": "string", "description": "Notification heading text" },
+        "message": { "type": "string", "description": "Detailed notification body message" },
+        "type": { "type": "string", "description": "Category type: security, order, quote, system, promo" },
+        "read": { "type": "boolean", "description": "Whether the user has marked this notification as read" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of notification creation" },
+        "actionUrl": { "type": "string", "description": "Optional navigation tab or target link" }
+      },
+      "required": ["id", "userEmail", "title", "message", "type", "read", "createdAt"]
     }
   },
   "firestore": {
@@ -251,6 +268,10 @@
     "/blog_posts/{postId}": {
       "schema": "BlogPost",
       "description": "Articles, news, and technical publications"
+    },
+    "/user_notifications/{notificationId}": {
+      "schema": "UserNotification",
+      "description": "User security alerts, order updates, and activity notifications"
     }
   }
 }

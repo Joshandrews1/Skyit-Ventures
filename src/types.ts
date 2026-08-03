@@ -93,3 +93,24 @@ export interface ChatMessage {
   suggestedPackages?: any[];
   images?: string[];
 }
+
+export type NotificationType = 'security' | 'order' | 'quote' | 'system' | 'promo';
+
+export interface UserNotification {
+  id: string;
+  userId?: string;
+  userEmail: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  read: boolean;
+  createdAt: string;
+  actionUrl?: string;
+  metadata?: {
+    orderId?: string;
+    status?: string;
+    ip?: string;
+    browser?: string;
+  };
+}
+

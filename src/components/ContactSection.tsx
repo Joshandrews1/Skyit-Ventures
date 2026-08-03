@@ -55,13 +55,13 @@ export const ContactSection: React.FC = () => {
     <div className="max-w-6xl mx-auto px-4 py-8" id="contact-page-container">
       {/* Editorial Greetings */}
       <div className="text-center space-y-3 max-w-2xl mx-auto mb-10">
-        <span className="bg-brand/10 text-brand text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+        <span className="bg-[#0066ff]/20 text-[#3898ff] border border-[#0066ff]/30 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
           DIRECT ACCESS PASS
         </span>
-        <h2 className="text-3xl font-display font-black text-slate-900 tracking-tight">
+        <h2 className="text-3xl font-display font-black text-white tracking-tight">
           Connect With SkyIT Engineers
         </h2>
-        <p className="text-xs text-slate-500 leading-relaxed">
+        <p className="text-xs text-[#a0a8c2] leading-relaxed">
           Need a personalized energy capacity assessment, hardware telemetry questions, or private smart microgrid quotes? Contact our command deck directly.
         </p>
       </div>
@@ -72,36 +72,36 @@ export const ContactSection: React.FC = () => {
         <div className="md:col-span-5 space-y-6">
           
           {/* Head Office Depot */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-3xs space-y-3">
+          <div className="bg-[#171b27] p-5 rounded-3xl border border-white/10 shadow-sm space-y-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">🏢</span>
-              <h3 className="font-display font-black text-xs uppercase tracking-wider text-slate-900">
+              <h3 className="font-display font-black text-xs uppercase tracking-wider text-white">
                 Head Office Depot
               </h3>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed flex gap-2">
-              <MapPin size={16} className="text-brand shrink-0 mt-0.5" />
+            <p className="text-xs text-[#c2c6d8] leading-relaxed flex gap-2">
+              <MapPin size={16} className="text-[#3898ff] shrink-0 mt-0.5" />
               <span>KM 1 DSC Expressway beside Jesus Temple Church, Ebrumede, Effurun-Warri, Delta State</span>
             </p>
           </div>
 
           {/* Branch Office Depot */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-3xs space-y-3">
+          <div className="bg-[#171b27] p-5 rounded-3xl border border-white/10 shadow-sm space-y-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">📍</span>
-              <h3 className="font-display font-black text-xs uppercase tracking-wider text-slate-900">
+              <h3 className="font-display font-black text-xs uppercase tracking-wider text-white">
                 Lagos Branch Office
               </h3>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed flex gap-2">
-              <MapPin size={16} className="text-brand shrink-0 mt-0.5" />
+            <p className="text-xs text-[#c2c6d8] leading-relaxed flex gap-2">
+              <MapPin size={16} className="text-[#3898ff] shrink-0 mt-0.5" />
               <span>Manjo Plaza, NNPC Service Station, Ikota, Second Gate, K.M 22, Lekki-Epe Expressway, Lekki, Lagos</span>
             </p>
           </div>
 
           {/* Direct Communication Channels */}
-          <div className="bg-slate-900 text-slate-300 p-5 rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-            <h3 className="font-display font-black text-xs uppercase tracking-wider text-white border-b border-slate-800 pb-2">
+          <div className="bg-[#131722] text-slate-300 p-5 rounded-3xl border border-white/10 space-y-4 shadow-sm">
+            <h3 className="font-display font-black text-xs uppercase tracking-wider text-white border-b border-white/10 pb-2">
               Connect Channels
             </h3>
             
@@ -109,7 +109,7 @@ export const ContactSection: React.FC = () => {
               <div className="flex items-start gap-2.5">
                 <Phone size={15} className="text-sky-400 mt-1 shrink-0" />
                 <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Official Lines</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Official Lines</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {phoneNumbers.map((num, i) => (
                       <a 
@@ -124,10 +124,10 @@ export const ContactSection: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 pt-2 border-t border-slate-800/60">
+              <div className="flex items-center gap-2.5 pt-2 border-t border-white/10">
                 <Mail size={15} className="text-sky-400 shrink-0" />
                 <div className="space-y-0.5">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Email & Official Portal</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Email & Official Portal</span>
                   <a 
                     href="mailto:skyitventures01@gmail.com" 
                     className="text-xs text-slate-200 font-mono font-semibold hover:text-sky-300 hover:underline block"
@@ -164,26 +164,26 @@ export const ContactSection: React.FC = () => {
         </div>
 
         {/* Right Side: Inquiry desk form */}
-        <div className="md:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-3xs space-y-4">
+        <div className="md:col-span-7 bg-[#171b27] p-6 sm:p-8 rounded-3xl border border-white/10 shadow-sm space-y-4">
           <div>
-            <h3 className="font-display font-black text-sm text-slate-900">
+            <h3 className="font-display font-black text-sm text-white">
               Submit Direct Site Inquiry
             </h3>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[#a0a8c2]">
               Complete this ledger form and a regional technical supervisor will respond with complete project plans.
             </p>
           </div>
 
           {submitted ? (
-            <div className="p-8 bg-emerald-50 rounded-2xl border border-emerald-150 text-center space-y-3 animate-scale-up">
-              <span className="text-3xl text-emerald-500 block">✓</span>
-              <h4 className="text-sm font-semibold text-emerald-800">Telemetry Request Sent</h4>
-              <p className="text-xs text-emerald-600 max-w-sm mx-auto leading-relaxed">
+            <div className="p-8 bg-emerald-950/40 rounded-2xl border border-emerald-500/30 text-center space-y-3 animate-scale-up">
+              <span className="text-3xl text-emerald-400 block">✓</span>
+              <h4 className="text-sm font-semibold text-emerald-300">Telemetry Request Sent</h4>
+              <p className="text-xs text-emerald-200 max-w-sm mx-auto leading-relaxed">
                 Thank you for reaching out! Your hardware specification inquiry has been successfully locked on our supervisor board. We will reach back within 2 business hours.
               </p>
               <button
                 onClick={() => setSubmitted(false)}
-                className="text-xs text-brand font-black hover:underline uppercase tracking-wide"
+                className="text-xs text-[#3898ff] font-black hover:underline uppercase tracking-wide cursor-pointer"
               >
                 File another request
               </button>
@@ -191,8 +191,8 @@ export const ContactSection: React.FC = () => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMsg && (
-                <div className="bg-red-50 text-red-700 text-xs p-3 rounded-xl flex items-center gap-2 border border-red-100">
-                  <AlertCircle size={14} className="shrink-0" />
+                <div className="bg-red-500/10 text-red-300 text-xs p-3 rounded-xl flex items-center gap-2 border border-red-500/20">
+                  <AlertCircle size={14} className="shrink-0 text-red-400" />
                   <span>{errorMsg}</span>
                 </div>
               )}
@@ -205,7 +205,7 @@ export const ContactSection: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-brand text-slate-800 font-medium"
+                    className="w-full bg-[#0d111a] border border-white/10 rounded-xl p-2.5 text-xs focus:outline-hidden focus:border-[#0066ff] text-white font-medium placeholder:text-slate-600"
                     placeholder="e.g. John Doe"
                   />
                 </div>
@@ -216,7 +216,7 @@ export const ContactSection: React.FC = () => {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-brand text-slate-800"
+                    className="w-full bg-[#0d111a] border border-white/10 rounded-xl p-2.5 text-xs focus:outline-hidden focus:border-[#0066ff] text-white placeholder:text-slate-600"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -229,7 +229,7 @@ export const ContactSection: React.FC = () => {
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-brand text-slate-800 font-mono"
+                    className="w-full bg-[#0d111a] border border-white/10 rounded-xl p-2.5 text-xs focus:outline-hidden focus:border-[#0066ff] text-white font-mono placeholder:text-slate-600"
                     placeholder="e.g. +234..."
                   />
                 </div>
@@ -238,12 +238,12 @@ export const ContactSection: React.FC = () => {
                   <select
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-brand text-slate-800 font-semibold"
+                    className="w-full bg-[#0d111a] border border-white/10 rounded-xl p-2.5 text-xs focus:outline-hidden focus:border-[#0066ff] text-white font-semibold"
                   >
-                    <option value="Consultation Inquiry">Residential Solar Setup (Inquiry)</option>
-                    <option value="Commercial Microgrids">Commercial Sizing Microgrid</option>
-                    <option value="CCTV Security Support">CCTV Security & Alarms Network</option>
-                    <option value="Billing & Pricing Feedback">Quotation Billing Feedback</option>
+                    <option value="Consultation Inquiry" className="bg-[#171b27] text-white">Residential Solar Setup (Inquiry)</option>
+                    <option value="Commercial Microgrids" className="bg-[#171b27] text-white">Commercial Sizing Microgrid</option>
+                    <option value="CCTV Security Support" className="bg-[#171b27] text-white">CCTV Security & Alarms Network</option>
+                    <option value="Billing & Pricing Feedback" className="bg-[#171b27] text-white">Quotation Billing Feedback</option>
                   </select>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export const ContactSection: React.FC = () => {
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   rows={4}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:outline-hidden focus:ring-1 focus:ring-brand text-slate-800 font-sans resize-none"
+                  className="w-full bg-[#0d111a] border border-white/10 rounded-xl p-3 text-xs focus:outline-hidden focus:border-[#0066ff] text-white font-sans resize-none placeholder:text-slate-600"
                   placeholder="Tell us about your home appliances array, peak power load conditions, or setup schedules..."
                 />
               </div>
@@ -263,7 +263,7 @@ export const ContactSection: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-slate-900 hover:bg-[#1a1a1a] text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 shadow-xs"
+                className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 shadow-md cursor-pointer"
               >
                 {isSubmitting ? (
                   <>

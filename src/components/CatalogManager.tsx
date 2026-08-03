@@ -24,8 +24,33 @@ import {
   Download,
   Search,
   Zap,
-  Edit2
+  Edit2,
+  Tag,
+  CheckSquare,
+  Square,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  Eye,
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
+
+export interface DetectedPriceUpdate {
+  id: string;
+  isPackage?: boolean;
+  matchedName: string;
+  category: string;
+  currentOriginalPrice: number;
+  currentDiscountPercent: number;
+  currentSellingPrice: number;
+  newOriginalPrice: number;
+  newDiscountPercent: number;
+  newSellingPrice: number;
+  matchedTextSnippet: string;
+  confidence: 'high' | 'medium' | 'low';
+  selected: boolean;
+}
 
 interface CatalogManagerProps {
   onProductUploaded?: () => void;
@@ -133,6 +158,17 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
   const [extraImages, setExtraImages] = useState<string[]>([]);
   const [newExtraUrl, setNewExtraUrl] = useState('');
   const [compressingExtra, setCompressingExtra] = useState(false);
+
+  // Mode Switcher state for Admin Catalog Workspace
+  const [bulkEditMode, setBulkEditMode] = useState<boolean>(false);
+
+  // AI Batch Price Updater states
+  const [batchRawText, setBatchRawText] = useState('');
+  const [isDetectingBatch, setIsDetectingBatch] = useState(false);
+  const [batchDetectError, setBatchDetectError] = useState('');
+  const [batchSuccessMsg, setBatchSuccessMsg] = useState('');
+  const [detectedUpdates, setDetectedUpdates] = useState<DetectedPriceUpdate[]>([]);
+  const [isPublishingBatch, setIsPublishingBatch] = useState(false);
 
   // Individual product form values
   const [name, setName] = useState('');
@@ -510,6 +546,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
   };
 
   const handleStartEdit = (prod: Product) => {
+    setBulkEditMode(false);
     setEditingProduct(prod);
     setName(prod.name);
     setDescription(prod.description);
@@ -528,12 +565,543 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
     window.scrollTo({ top: 300, behavior: 'smooth' });
   };
 
+  // AI Batch Price Updates Handlers
+  const handleDetectPrices = async () => {
+    if (!batchRawText.trim()) {
+      setBatchDetectError("Please paste a product price list or supplier text before clicking detect.");
+      return;
+    }
+
+    setIsDetectingBatch(true);
+    setBatchDetectError('');
+    setBatchSuccessMsg('');
+
+    try {
+      const catalogSummary = [
+        ...allShownProducts.map(p => ({
+          id: p.id,
+          isPackage: false,
+          name: p.name,
+          category: p.category,
+          originalPrice: p.originalPrice,
+          discountPercent: p.discountPercent,
+          price: p.price
+        })),
+        ...packagesList.map(pkg => ({
+          id: pkg.id,
+          isPackage: true,
+          name: pkg.name,
+          category: 'Solar Packages',
+          originalPrice: pkg.price,
+          discountPercent: 0,
+          price: pkg.price
+        }))
+      ];
+
+      const res = await fetch('/api/admin/batch-detect-price-updates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pastedText: batchRawText,
+          catalogItems: catalogSummary
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to analyze price list.");
+      }
+
+      const data = await res.json();
+      const list: DetectedPriceUpdate[] = (data.detected || []).map((item: any) => ({
+        ...item,
+        selected: true
+      }));
+
+      if (list.length === 0) {
+        setBatchDetectError("No matching store products or price changes were detected in the pasted text. Please verify product names.");
+      } else {
+        setDetectedUpdates(list);
+        setBatchSuccessMsg(`✨ AI detected ${list.length} item price match(es)! Review the changes below before publishing to the live catalog.`);
+      }
+    } catch (err: any) {
+      console.error("Batch price detect error:", err);
+      setBatchDetectError("AI Detection Error: " + (err.message || String(err)));
+    } finally {
+      setIsDetectingBatch(false);
+    }
+  };
+
+  const handlePasteSampleBatch = () => {
+    const sample = `--- SkyIT Price Revision List (August 2026) ---
+1. Felicity 550W Mono Solar Panel - N135,000 (10% promo discount)
+2. Deye 5KVA Hybrid Inverter N620,000
+3. Luminous 220Ah 12V Tall Tubular Battery - ₦275,000
+4. Smart CCTV Outdoor Security Camera - ₦38,000
+5. Turnkey 5KVA Solar System Package - ₦2,450,000`;
+    setBatchRawText(sample);
+    setBatchDetectError('');
+  };
+
+  const handleUpdateDetectedItemField = (index: number, field: 'newOriginalPrice' | 'newDiscountPercent', value: number) => {
+    setDetectedUpdates(prev => {
+      const copy = [...prev];
+      const item = { ...copy[index] };
+      if (field === 'newOriginalPrice') {
+        item.newOriginalPrice = Math.max(0, value);
+      } else if (field === 'newDiscountPercent') {
+        item.newDiscountPercent = Math.min(100, Math.max(0, value));
+      }
+      item.newSellingPrice = Math.round(item.newOriginalPrice * (1 - item.newDiscountPercent / 100));
+      copy[index] = item;
+      return copy;
+    });
+  };
+
+  const handleToggleSelectItem = (id: string) => {
+    setDetectedUpdates(prev => prev.map(u => u.id === id ? { ...u, selected: !u.selected } : u));
+  };
+
+  const handleToggleSelectAll = (select: boolean) => {
+    setDetectedUpdates(prev => prev.map(u => ({ ...u, selected: select })));
+  };
+
+  const handleApplyBatchPrices = async () => {
+    const selectedUpdates = detectedUpdates.filter(u => u.selected);
+    if (selectedUpdates.length === 0) {
+      setBatchDetectError("Please select at least one item to publish.");
+      return;
+    }
+
+    setIsPublishingBatch(true);
+    setBatchDetectError('');
+    setBatchSuccessMsg('');
+
+    try {
+      let updatedCount = 0;
+      for (const update of selectedUpdates) {
+        if (update.isPackage) {
+          await setDoc(doc(db, 'solar_packages', update.id), { price: update.newSellingPrice }, { merge: true });
+          await logAuditEvent(
+            'UPDATE_PACKAGE_PRICE',
+            update.id,
+            'quote',
+            `AI Batch Update: Adjusted price for ${update.matchedName} to ₦${update.newSellingPrice.toLocaleString()}`
+          );
+          updatedCount++;
+        } else {
+          const existingCustom = customProducts.find(p => p.id === update.id);
+          const existingMock = mockProducts.find(p => p.id === update.id);
+          const baseProduct = existingCustom || existingMock;
+
+          if (baseProduct) {
+            const updatedProduct: Product = {
+              ...baseProduct,
+              originalPrice: update.newOriginalPrice,
+              discountPercent: update.newDiscountPercent,
+              price: update.newSellingPrice
+            };
+            await setDoc(doc(db, 'products', update.id), updatedProduct);
+            await logAuditEvent(
+              'UPDATE_PRODUCT_PRICE',
+              update.id,
+              'product',
+              `AI Batch Update: Adjusted price for ${update.matchedName} to ₦${update.newSellingPrice.toLocaleString()} (was ₦${update.currentSellingPrice.toLocaleString()})`
+            );
+            updatedCount++;
+          }
+        }
+      }
+
+      setBatchSuccessMsg(`🎉 Successfully published ${updatedCount} price updates live to the store catalog!`);
+      setDetectedUpdates([]);
+      setBatchRawText('');
+      await fetchProductsOnce();
+      if (onProductUploaded) onProductUploaded();
+    } catch (err: any) {
+      console.error("Batch publish error:", err);
+      setBatchDetectError("Failed to publish price updates: " + (err.message || String(err)));
+    } finally {
+      setIsPublishingBatch(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 pt-4">
       
       {/* LEFT COLUMN: UPLOAD PRODUCT WORKSPACE (lg:col-span-7) */}
       <div className="lg:col-span-7 space-y-6">
-        
+
+        {/* ===================================================================== */}
+        {/* CATALOG WORKSPACE MODE SWITCHER BAR */}
+        {/* ===================================================================== */}
+        <div className="bg-slate-900/95 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-2xl border transition-all shrink-0 ${
+              bulkEditMode 
+                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
+                : 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+            }`}>
+              {bulkEditMode ? <Tag size={20} className="text-amber-400" /> : <Plus size={20} className="text-indigo-400" />}
+            </div>
+            <div>
+              <h2 className="font-display font-black text-base text-white flex items-center gap-2">
+                <span>{bulkEditMode ? 'AI Bulk Price Updater Mode' : 'Product Catalog Management'}</span>
+                <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full border ${
+                  bulkEditMode 
+                    ? 'bg-amber-400/20 border-amber-400/40 text-amber-300' 
+                    : 'bg-indigo-400/20 border-indigo-400/40 text-indigo-300'
+                }`}>
+                  {bulkEditMode ? 'Batch Prices' : 'Single Entry'}
+                </span>
+              </h2>
+              <p className="text-xs text-slate-300 mt-0.5">
+                {bulkEditMode 
+                  ? 'Paste raw supplier price lists or invoices. AI matches items and lets you review changes before publishing live.'
+                  : 'Add new products, edit individual items, or use Gemini AI sales copywriter.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Mode Switch Pills */}
+          <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 self-stretch sm:self-auto justify-between sm:justify-start shrink-0">
+            <button
+              type="button"
+              onClick={() => setBulkEditMode(false)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                !bulkEditMode 
+                  ? 'bg-indigo-600 text-white shadow-md' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Plus size={14} />
+              <span>Single Entry</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setBulkEditMode(true)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                bulkEditMode 
+                  ? 'bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sparkles size={14} className={bulkEditMode ? 'fill-amber-300 text-amber-300' : ''} />
+              <span>Bulk Price Edit</span>
+              {detectedUpdates.length > 0 && (
+                <span className="bg-amber-400 text-slate-950 text-[10px] font-mono font-black px-1.5 py-0.2 rounded-full">
+                  {detectedUpdates.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* ===================================================================== */}
+        {/* MODE 1: AI INTELLIGENT BULK PRICE UPDATER */}
+        {/* ===================================================================== */}
+        {bulkEditMode ? (
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-5 border border-indigo-500/30 shadow-2xl space-y-5 relative overflow-hidden">
+            {/* Subtle decorative glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Card Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-500/20 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-500/20 border border-indigo-400/30 p-2.5 rounded-2xl text-indigo-300 shrink-0">
+                  <Tag size={22} className="text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-display font-extrabold text-base tracking-tight text-white flex items-center gap-2">
+                    <span>AI Intelligent Bulk Price Updater</span>
+                    <span className="text-[10px] uppercase font-mono font-bold text-amber-300 bg-amber-400/20 border border-amber-400/40 px-2 py-0.5 rounded-full">
+                      AI Auto-Detect
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                    Paste supplier price lists, quotes, or invoice text. AI automatically detects matching catalog items, extracts new prices, and lets you review changes before publishing!
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePasteSampleBatch}
+                className="self-start sm:self-auto text-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Click to populate with sample supplier pricelist text"
+              >
+                <FileText size={13} className="text-amber-400" />
+                <span>Paste Sample Pricelist</span>
+              </button>
+            </div>
+
+          {/* Input Textarea & Action Bar */}
+          <div className="space-y-3">
+            <div className="relative">
+              <textarea
+                value={batchRawText}
+                onChange={(e) => setBatchRawText(e.target.value)}
+                placeholder="Paste supplier pricelist, invoice text, or price notes here...&#10;e.g.&#10;1. Felicity Solar 550W Mono Panel - ₦135,000 (10% promo)&#10;2. Deye 5KVA Hybrid Inverter - ₦620,000&#10;3. Luminous 220Ah Tubular Battery - ₦275,000"
+                rows={4}
+                className="w-full bg-slate-950/80 border border-indigo-500/30 text-xs sm:text-sm text-slate-100 placeholder-slate-400 rounded-2xl p-4 focus:outline-hidden focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors font-mono leading-relaxed resize-y"
+              />
+              {batchRawText && (
+                <button
+                  type="button"
+                  onClick={() => { setBatchRawText(''); setDetectedUpdates([]); setBatchDetectError(''); setBatchSuccessMsg(''); }}
+                  className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs font-bold bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700 cursor-pointer"
+                >
+                  Clear Text
+                </button>
+              )}
+            </div>
+
+            {/* Notifications */}
+            {batchDetectError && (
+              <div className="p-3 bg-rose-500/20 border border-rose-500/40 text-rose-200 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0 text-rose-400" />
+                <span>{batchDetectError}</span>
+              </div>
+            )}
+            {batchSuccessMsg && (
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 rounded-xl text-xs flex items-center gap-2">
+                <CheckCircle2 size={15} className="shrink-0 text-emerald-400" />
+                <span>{batchSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <span className="text-[11px] text-slate-400 font-medium">
+                ⚡ Supports Naira prices (e.g. ₦150k, 150000, N150,000), discounts %, and solar packages.
+              </span>
+
+              <button
+                type="button"
+                onClick={handleDetectPrices}
+                disabled={isDetectingBatch || !batchRawText.trim()}
+                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs px-5 py-3 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider shrink-0"
+              >
+                {isDetectingBatch ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin text-white" />
+                    <span>AI Analyzing & Matching Products...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} className="text-amber-300 fill-amber-300" />
+                    <span>Detect Product Prices via AI</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* ===================================================================== */}
+          {/* REVIEW PREVIEW TABLE (SHOWS BEFORE PUBLISHING) */}
+          {/* ===================================================================== */}
+          {detectedUpdates.length > 0 && (
+            <div className="mt-6 pt-5 border-t border-indigo-500/20 space-y-4 animate-fadeIn">
+              
+              {/* Review Header Stats Bar */}
+              <div className="bg-slate-950/90 border border-indigo-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
+                    <Eye size={16} className="text-amber-400" />
+                    <span>Review Detected Price Updates ({detectedUpdates.length} items)</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Carefully review the detected price changes below. You can tweak prices or uncheck any item before publishing live.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSelectAll(true)}
+                    className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-bold border border-slate-700 cursor-pointer"
+                  >
+                    Select All ({detectedUpdates.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSelectAll(false)}
+                    className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-bold border border-slate-700 cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+
+              {/* Items Review List / Cards */}
+              <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                {detectedUpdates.map((item, idx) => {
+                  const diff = item.newSellingPrice - item.currentSellingPrice;
+                  const percentDiff = item.currentSellingPrice > 0 ? ((diff / item.currentSellingPrice) * 100).toFixed(1) : '0.0';
+
+                  return (
+                    <div
+                      key={item.id + '-' + idx}
+                      className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                        item.selected
+                          ? 'bg-slate-950/90 border-indigo-400/60 shadow-md'
+                          : 'bg-slate-950/40 border-slate-800 opacity-65'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSelectItem(item.id)}
+                            className="mt-0.5 shrink-0 cursor-pointer text-indigo-400 hover:text-indigo-300"
+                          >
+                            {item.selected ? (
+                              <CheckSquare size={18} className="text-amber-400 fill-amber-400/20" />
+                            ) : (
+                              <Square size={18} className="text-slate-500" />
+                            )}
+                          </button>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-extrabold text-sm text-white">{item.matchedName}</span>
+                              <span className="text-[10px] font-extrabold uppercase bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 px-2 py-0.5 rounded-md">
+                                {item.category}
+                              </span>
+                              {item.isPackage && (
+                                <span className="text-[10px] font-extrabold uppercase bg-amber-500/20 border border-amber-400/30 text-amber-300 px-2 py-0.5 rounded-md">
+                                  Solar Package
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-1 italic font-mono">
+                              Parsed from: "{item.matchedTextSnippet}"
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Variance badge */}
+                        <div className="shrink-0">
+                          {diff > 0 ? (
+                            <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-emerald-400 bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 rounded-xl">
+                              <TrendingUp size={14} />
+                              <span>+₦{diff.toLocaleString()} (+{percentDiff}%)</span>
+                            </span>
+                          ) : diff < 0 ? (
+                            <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-rose-400 bg-rose-500/20 border border-rose-500/40 px-3 py-1 rounded-xl">
+                              <TrendingDown size={14} />
+                              <span>-₦{Math.abs(diff).toLocaleString()} ({percentDiff}%)</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700 px-3 py-1 rounded-xl">
+                              <span>No Change</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Pricing Comparison & Tweak Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs">
+                        {/* Current Store Price */}
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase block">Current Store Price</span>
+                          <span className="font-mono font-extrabold text-slate-300 block mt-0.5">
+                            ₦{item.currentSellingPrice.toLocaleString()}
+                          </span>
+                        </div>
+
+                        {/* Editable Base Price */}
+                        <div>
+                          <label className="text-[10px] text-amber-300 font-bold uppercase block">
+                            Detected Base Price (₦)
+                          </label>
+                          <input
+                            type="number"
+                            value={item.newOriginalPrice}
+                            onChange={(e) => handleUpdateDetectedItemField(idx, 'newOriginalPrice', Number(e.target.value))}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white font-mono font-bold mt-0.5 focus:border-amber-400 focus:outline-hidden"
+                          />
+                        </div>
+
+                        {/* Editable Discount % & New Selling Price */}
+                        <div>
+                          <label className="text-[10px] text-emerald-300 font-bold uppercase block">
+                            New Selling Price (Discount {item.newDiscountPercent}%)
+                          </label>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={item.newDiscountPercent}
+                              onChange={(e) => handleUpdateDetectedItemField(idx, 'newDiscountPercent', Number(e.target.value))}
+                              title="Promo Discount %"
+                              className="w-16 bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-rose-300 font-mono font-bold focus:border-emerald-400 focus:outline-hidden shrink-0"
+                            />
+                            <span className="font-mono font-extrabold text-emerald-400 text-sm truncate">
+                              = ₦{item.newSellingPrice.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Publish Action Button */}
+              <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDetectedUpdates([])}
+                  className="w-full sm:w-auto text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer"
+                >
+                  Discard List
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApplyBatchPrices}
+                  disabled={isPublishingBatch || detectedUpdates.filter(u => u.selected).length === 0}
+                  className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider px-6 py-3.5 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isPublishingBatch ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin text-white" />
+                      <span>Publishing Price Updates...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} className="text-white" />
+                      <span>Publish {detectedUpdates.filter(u => u.selected).length} Price Updates to Live Store Catalog</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </div>
+          )}
+        </div>
+        ) : (
+        <>
+          {/* Quick Banner to switch to Bulk Mode */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-slate-900 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md">
+            <div className="flex items-center gap-2.5 text-slate-200">
+              <Sparkles size={18} className="text-amber-400 fill-amber-400 shrink-0" />
+              <div>
+                <span className="font-extrabold text-white block">Updating multiple product prices at once?</span>
+                <span className="text-[11px] text-slate-300">Paste your raw supplier price list or invoice to auto-detect and update catalog prices in seconds.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBulkEditMode(true)}
+              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-4 py-2 rounded-xl text-xs uppercase tracking-wide shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+            >
+              <span>Switch to Bulk Price Mode</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+
         {/* Gemini Catalog AI Assistant Card */}
         <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
@@ -1116,6 +1684,8 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
             </div>
           )}
         </div>
+        </>
+      )}
 
       </div>
 

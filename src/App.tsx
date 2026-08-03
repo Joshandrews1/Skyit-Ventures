@@ -31,7 +31,10 @@ import { HeroSection } from './components/HeroSection';
 import { SolarPackages } from './components/SolarPackages';
 import { InteractiveTour } from './components/InteractiveTour';
 import { RecentlyViewedPage } from './components/RecentlyViewedPage';
-import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award, Heart, Settings, LogOut, Clock, Sun, Moon } from 'lucide-react';
+import { NotificationsPage } from './components/NotificationsPage';
+import { UserNotification } from './types';
+import { subscribeUserNotifications } from './lib/notificationService';
+import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award, Heart, Settings, LogOut, Clock, Sun, Moon, Bell } from 'lucide-react';
 import { 
   ShoppingBag, 
   Search, 
@@ -130,25 +133,25 @@ const AdminLoginGate: React.FC<{ onUnlockAdmin: () => void; onOpenLogin: () => v
 
 export default function App() {
   // Navigation State
-  const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed'>(() => {
+  const [activeTab, _setActiveTab] = useState<'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed' | 'notifications'>(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab') as any;
-    if (['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about', 'blog', 'owner', 'recently-viewed'].includes(tabParam)) {
+    if (['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about', 'blog', 'owner', 'recently-viewed', 'notifications'].includes(tabParam)) {
       return tabParam;
     }
     return (localStorage.getItem('activeTab') as any) || 'home';
   });
 
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(defaultBlogPosts);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
+
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [selectedBlogPost, setSelectedBlogPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'blog_posts'), (snapshot) => {
-      if (!snapshot.empty) {
-        const list: BlogPost[] = [];
-        snapshot.forEach(docSnap => list.push(docSnap.data() as BlogPost));
-        setBlogPosts(list);
-      }
+      const list: BlogPost[] = [];
+      snapshot.forEach(docSnap => list.push(docSnap.data() as BlogPost));
+      setBlogPosts(list);
     }, (err) => {
       console.warn("Blog posts Firestore sync notice:", err);
     });
@@ -168,7 +171,7 @@ export default function App() {
     }
   }, [blogPosts]);
 
-  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed') => {
+  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed' | 'notifications') => {
     _setActiveTab(tab);
     setSelectedProduct(null); // Clear selected product modal on navigation
     localStorage.setItem('activeTab', tab);
@@ -215,6 +218,16 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
+
+  // Subscribe to real-time user activity & security notifications
+  useEffect(() => {
+    const email = currentUser?.email || undefined;
+    const uid = currentUser?.uid || undefined;
+    const unsub = subscribeUserNotifications(email, uid, (updatedNotifications) => {
+      setNotifications(updatedNotifications);
+    });
+    return () => unsub();
+  }, [currentUser]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -1136,7 +1149,7 @@ export default function App() {
                   type="button"
                   onClick={() => { setSelectedCategory('All'); setActiveTab('shop'); setSelectedProduct(null); }}
                   onMouseEnter={() => setIsShopMenuOpen(true)}
-                  className={`hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1 ${activeTab === 'shop' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                  className={`hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1 ${activeTab === 'shop' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
                 >
                   <span>Shop Hardware</span>
                   <ChevronDown size={14} />
@@ -1170,7 +1183,7 @@ export default function App() {
               <button 
                 type="button"
                 onClick={() => { setActiveTab('quote'); setSelectedProduct(null); }}
-                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'quote' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'quote' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
               >
                 Packages
               </button>
@@ -1187,15 +1200,15 @@ export default function App() {
               <button 
                 type="button"
                 onClick={() => { setActiveTab('tracker'); setSelectedProduct(null); }}
-                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'tracker' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'tracker' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
               >
-                Installation
+                Tracker
               </button>
 
               <button 
                 type="button"
                 onClick={() => { setActiveTab('blog'); setSelectedProduct(null); }}
-                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'blog' ? 'text-[#0066ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'blog' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
               >
                 Blog
               </button>
@@ -1317,6 +1330,25 @@ export default function App() {
                 )}
               </button>
 
+              {/* Notifications Activity Bell Button */}
+              <button 
+                type="button"
+                onClick={() => { setActiveTab('notifications'); setSelectedProduct(null); }}
+                className={`relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+                  activeTab === 'notifications'
+                    ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md shadow-amber-400/20'
+                    : 'text-[#c2c6d8] hover:text-[#b3c5ff] border-white/10 bg-[#171b27] hover:border-white/20'
+                }`}
+                title="Activity & Security Notifications"
+              >
+                <Bell size={18} className={activeTab === 'notifications' ? 'text-slate-950' : 'text-amber-400'} />
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-950 text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0e131e] animate-pulse">
+                    {notifications.filter(n => !n.read).length}
+                  </span>
+                )}
+              </button>
+
 
               {/* Shopping Cart Button */}
               <button 
@@ -1363,6 +1395,25 @@ export default function App() {
                         <div className="text-xs text-[#b3c5ff]">{isAdmin ? 'Administrator' : (isEditor ? 'Staff Editor' : 'Customer')}</div>
                       </div>
                       <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            setActiveTab('notifications');
+                            setSelectedProduct(null);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-[#dee2f2] hover:bg-white/5 flex items-center justify-between cursor-pointer transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Bell size={14} className="text-amber-400" />
+                            <span>Notifications</span>
+                          </div>
+                          {notifications.filter(n => !n.read).length > 0 && (
+                            <span className="bg-amber-400 text-slate-950 font-black text-[10px] px-1.5 py-0.5 rounded-full">
+                              {notifications.filter(n => !n.read).length}
+                            </span>
+                          )}
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
@@ -1551,6 +1602,28 @@ export default function App() {
                 </span>
               </button>
 
+              {/* Notifications Mobile Shortcut */}
+              <button 
+                onClick={() => { 
+                  setActiveTab('notifications');
+                  setSelectedProduct(null);
+                  setIsMobileMenuOpen(false); 
+                }}
+                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[15px] text-[#dee2f2] hover:bg-white/5 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Bell size={18} className="text-amber-400" />
+                  <span>Notifications & Alerts</span>
+                </div>
+                {notifications.filter(n => !n.read).length > 0 ? (
+                  <span className="text-xs font-black bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                    {notifications.filter(n => !n.read).length} Unread
+                  </span>
+                ) : (
+                  <ChevronRight size={16} />
+                )}
+              </button>
+
               {/* Wishlist Mobile Shortcut */}
               <button 
                 onClick={() => { 
@@ -1596,7 +1669,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-3">
                   <ClipboardList size={18} className="text-sky-400" />
-                  <span>Installation & Tracking</span>
+                  <span>Tracker</span>
                 </div>
                 <ChevronRight size={16} />
               </button>
@@ -2166,6 +2239,15 @@ export default function App() {
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
             onNavigateToShop={() => setActiveTab('shop')}
+          />
+        )}
+
+        {/* VIEW 12: NOTIFICATIONS & ACTIVITY CENTER */}
+        {activeTab === 'notifications' && !selectedProduct && (
+          <NotificationsPage
+            notifications={notifications}
+            userEmail={currentUser?.email}
+            onNavigateTab={setActiveTab}
           />
         )}
 

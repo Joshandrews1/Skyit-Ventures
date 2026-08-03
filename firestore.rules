@@ -162,6 +162,20 @@ service cloud.firestore {
              (!post.keys().hasAny(['featured']) || post.featured is bool);
     }
 
+    function isValidNotification(notif) {
+      return notif.keys().hasAll(['id', 'userEmail', 'title', 'message', 'type', 'read', 'createdAt']) &&
+             notif.id is string && notif.id.size() <= 128 &&
+             notif.userEmail is string && notif.userEmail.size() <= 256 &&
+             notif.title is string && notif.title.size() <= 300 &&
+             notif.message is string && notif.message.size() <= 2000 &&
+             notif.type is string && notif.type.size() <= 50 &&
+             notif.read is bool &&
+             notif.createdAt is string && notif.createdAt.size() <= 100 &&
+             (!notif.keys().hasAny(['userId']) || (notif.userId is string && notif.userId.size() <= 128)) &&
+             (!notif.keys().hasAny(['actionUrl']) || (notif.actionUrl is string && notif.actionUrl.size() <= 200)) &&
+             (!notif.keys().hasAny(['metadata']) || notif.metadata is map);
+    }
+
     // Admins Collection: holds administrator references
     match /admins/{adminId} {
       allow get: if isSignedIn() && (request.auth.uid == adminId || isEditor());
@@ -252,6 +266,15 @@ service cloud.firestore {
       allow read, get, list: if true; // public reading
       allow create, update: if isSignedIn() && isEditor() && isValidBlogPost(incoming());
       allow delete: if isSignedIn() && isEditor();
+    }
+
+    // User Notifications Collection: security alerts, order updates, and activity notifications
+    match /user_notifications/{notificationId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
   }
 }

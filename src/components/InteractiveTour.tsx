@@ -14,7 +14,10 @@ import {
   Sun, 
   ShieldCheck, 
   CreditCard,
-  CheckCircle2
+  CheckCircle2,
+  Bell,
+  ShieldAlert,
+  Tag
 } from 'lucide-react';
 
 export interface TourStep {
@@ -23,7 +26,7 @@ export interface TourStep {
   mobileTargetId?: string;
   title: string;
   description: string;
-  tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner';
+  tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'notifications';
   badge: string;
   icon: React.ElementType;
   noOverlay?: boolean;
@@ -34,7 +37,7 @@ interface InteractiveTourProps {
   isOpen: boolean;
   onClose: () => void;
   activeTab: string;
-  onNavigateTab: (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner') => void;
+  onNavigateTab: (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'notifications') => void;
   onExpandMobileSearch?: () => void;
   onCloseMobileSearch?: () => void;
 }
@@ -64,7 +67,7 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
     {
       id: 'welcome',
       title: 'Welcome to SkyIT Ventures 🚀',
-      description: 'Explore Nigeria’s premier engineering platform for tier-[#1] solar equipment, hybrid microgrids, smart CCTV security, and AI energy diagnostics. Take this guided 10-step tour to master our app.',
+      description: 'Explore Nigeria’s premier engineering platform for tier-1 solar equipment, hybrid microgrids, AI energy diagnostics, login fraud protection, and real-time activity notifications. Take this guided tour to master our app.',
       tab: 'home',
       badge: '1. Welcome Guide',
       icon: Sparkles,
@@ -119,12 +122,30 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
       icon: Truck
     },
     {
+      id: 'notifications-center',
+      title: 'Notifications & Activity Center 🔔',
+      description: 'Access real-time order status changes, delivery milestones, login security alerts, and custom customer notifications in one dedicated activity center.',
+      tab: 'notifications',
+      badge: '7. Activity Center',
+      icon: Bell,
+      noOverlay: true
+    },
+    {
+      id: 'login-fraud-protection',
+      title: 'Login Fraud Detection & Security 🔒',
+      description: 'To protect customer accounts, every user login triggers instant automated email notifications and security logs to detect unauthorized access early.',
+      tab: 'notifications',
+      badge: '8. Anti-Fraud Security',
+      icon: ShieldAlert,
+      noOverlay: true
+    },
+    {
       id: 'ai-advisor',
       targetId: 'tour-ai-advisor-target',
       title: 'AI Solar Engineering Specialist 🤖',
       description: 'Converse with our Gemini-powered AI energy consultant to design custom microgrid blueprints, estimate complex commercial loads, and receive equipment advice.',
       tab: 'ai',
-      badge: '7. AI Engineer Chat',
+      badge: '9. AI Engineer Chat',
       icon: Bot
     },
     {
@@ -133,7 +154,7 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
       title: 'Turnkey Solar Kits & Custom Mega-Quotes ☀️',
       description: 'Explore pre-engineered hybrid solar kits complete with installation and surge protection, or request a custom mega-quote for 15kVA to 100kVA+ installations.',
       tab: 'quote',
-      badge: '8. Turnkey Solar Hub',
+      badge: '10. Turnkey Solar Hub',
       icon: Sun
     },
     {
@@ -142,7 +163,7 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
       title: 'Logistics Dashboard & Verification 🛡️',
       description: 'Access the dedicated logistics hub to track active deployments, view engineer reports, and verify order delivery status using your reference ID.',
       tab: 'tracker',
-      badge: '9. Logistics Hub',
+      badge: '11. Logistics Hub',
       icon: ShieldCheck
     },
     {
@@ -151,7 +172,7 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
       title: 'Flutterwave & Pay on Delivery 💳',
       description: 'SkyIT Ventures supports instant online payment via Flutterwave (cards, bank transfer, USSD) and Pay on Delivery for most eligible items across Nigeria.',
       tab: 'shop',
-      badge: '10. Website Payments',
+      badge: '12. Website Payments',
       icon: CreditCard,
       paymentOptions: true
     }

@@ -24,6 +24,7 @@ import { defaultBlogPosts } from '../data/blogPosts';
 import { BlogPost } from '../types';
 import { auth } from '../firebase';
 import { generateOrderReceiptPDF, generateQuoteOrReceiptPDF } from '../lib/pdfGenerator';
+import { createUserNotification } from '../lib/notificationService';
 import { 
   Database, 
   Search, 
@@ -113,15 +114,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
     return (localStorage.getItem('adminView') as 'logistics' | 'analytics' | 'quote' | 'packages' | 'products' | 'blog' | 'roles') || 'logistics';
   });
 
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(defaultBlogPosts);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'blog_posts'), (snapshot) => {
-      if (!snapshot.empty) {
-        const list: BlogPost[] = [];
-        snapshot.forEach(docSnap => list.push(docSnap.data() as BlogPost));
-        setBlogPosts(list);
-      }
+      const list: BlogPost[] = [];
+      snapshot.forEach(docSnap => list.push(docSnap.data() as BlogPost));
+      setBlogPosts(list);
     }, (err) => {
       console.warn("Firestore blog posts sync notice:", err);
     });
@@ -587,6 +586,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
         'order',
         `Updated logistics status of order ${orderId} to: ${newStatus.toUpperCase()}`
       );
+
+      // Dispatch user activity notification for order status update
+      if (targetOrder.customerDetails?.email) {
+        createUserNotification({
+          userEmail: targetOrder.customerDetails.email,
+          userId: targetOrder.userId || '',
+          title: `📦 Order Status Updated: ${newStatus.replace('_', ' ').toUpperCase()} (${targetOrder.id})`,
+          message: `Your solar system order #${targetOrder.id} status was updated to ${newStatus.replace('_', ' ').toUpperCase()}. Click to track real-time delivery progress.`,
+          type: 'order',
+          actionUrl: 'tracker',
+          metadata: {
+            orderId: targetOrder.id,
+            status: newStatus
+          }
+        }).catch(nErr => console.warn("Notice dispatch exception:", nErr));
+      }
 
       setFeedbackMsg(`Successfully pushed state [${newStatus}] to order ${orderId}!`);
       setTimeout(() => setFeedbackMsg(''), 3000);

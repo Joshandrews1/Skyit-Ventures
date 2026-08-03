@@ -24,6 +24,7 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { dispatchLoginSecurityAlert } from '../lib/notificationService';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -127,6 +128,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
       }
 
+      // Trigger fraud detection email and security notification
+      if (user.email) {
+        dispatchLoginSecurityAlert(
+          user.email,
+          user.displayName || name.trim(),
+          mode === 'signup' ? 'New Account Registration' : 'Email Password Login',
+          user.uid
+        ).catch(e => console.warn("Failed to dispatch login alert:", e));
+      }
+
       onLoginSuccess(user, isAdminUser);
       onClose();
     } catch (err: any) {
@@ -169,6 +180,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         } catch (dbErr) {
           console.error("Admin Google integration register warning:", dbErr);
         }
+      }
+
+      // Trigger fraud detection email and security notification
+      if (user.email) {
+        dispatchLoginSecurityAlert(
+          user.email,
+          user.displayName || 'Google Account Holder',
+          'Google OAuth 2.0 Sign-In',
+          user.uid
+        ).catch(e => console.warn("Failed to dispatch google login alert:", e));
       }
 
       onLoginSuccess(user, isAdminUser);
