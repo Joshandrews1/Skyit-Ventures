@@ -504,18 +504,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           onClick={() => setPaymentMethod('flutterwave')}
                           className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all cursor-pointer ${
                             paymentMethod === 'flutterwave'
-                              ? 'border-brand bg-blue-50/20 text-slate-900 shadow-sm ring-1 ring-brand'
+                              ? 'border-brand bg-blue-50/20 text-slate-900 shadow-xs ring-1 ring-brand'
                               : 'border-slate-200 bg-white text-slate-600 hover:border-slate-350'
                           }`}
                         >
                           <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
                             <ShieldCheck size={16} className={paymentMethod === 'flutterwave' ? 'text-brand' : 'text-slate-400'} />
-                            <span>Flutterwave Secure Pay</span>
+                            <span>Flutterwave Pay</span>
                           </div>
                           <span className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                            Pay safely using local/international credit cards, instant bank transfers, and USSD dialcodes.
+                            Pay using cards, bank transfers, or USSD code.
                           </span>
-                        </button>                        {/* Option 2: Pay On Delivery */}
+                        </button>
+
+                        {/* Option 2: Pay On Delivery */}
                         <button
                           type="button"
                           disabled={!isCodAvailable}
@@ -528,18 +530,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                               : 'cursor-pointer'
                           } ${
                             paymentMethod === 'cod' && isCodAvailable
-                              ? 'border-brand bg-blue-50/20 text-slate-900 shadow-sm ring-1 ring-brand'
+                              ? 'border-brand bg-blue-50/20 text-slate-900 shadow-xs ring-1 ring-brand'
                               : 'border-slate-200 bg-white text-slate-600 hover:border-slate-350'
                           }`}
                         >
                           <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
                             <Truck size={16} className={paymentMethod === 'cod' && isCodAvailable ? 'text-brand' : 'text-slate-400'} />
-                            <span>Pay on Delivery (COD)</span>
+                            <span>Pay on Delivery</span>
                           </div>
                           <span className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                             {!isCodAvailable 
-                              ? "Unavailable: Cart contains high-value premium enterprise equipment requiring pre-order verification." 
-                              : "Verify your items upon delivery and pay securely via cash or local POS transfer."
+                              ? "Unavailable for high-value items." 
+                              : "Verify items upon delivery and pay via POS/cash."
                             }
                           </span>
                         </button>

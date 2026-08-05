@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Product } from '../types';
-import { Clock, Trash2, ShoppingCart, Eye, Heart, ArrowRight, Sparkles, SlidersHorizontal, ArrowUpDown, Check, RefreshCw } from 'lucide-react';
+import { Clock, Trash2, ShoppingCart, Eye, Heart, ArrowRight, Sparkles, SlidersHorizontal, ArrowUpDown, Check, ShieldAlert } from 'lucide-react';
 
 interface RecentlyViewedPageProps {
   recentlyViewedIds: string[];
@@ -12,6 +12,8 @@ interface RecentlyViewedPageProps {
   wishlistIds: string[];
   onToggleWishlist: (product: Product) => void;
   onNavigateToShop: () => void;
+  currentUser?: any;
+  onOpenLogin?: () => void;
 }
 
 export const RecentlyViewedPage: React.FC<RecentlyViewedPageProps> = ({
@@ -24,6 +26,8 @@ export const RecentlyViewedPage: React.FC<RecentlyViewedPageProps> = ({
   wishlistIds,
   onToggleWishlist,
   onNavigateToShop,
+  currentUser,
+  onOpenLogin,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'recent' | 'price-low' | 'price-high'>('recent');
@@ -117,6 +121,30 @@ export const RecentlyViewedPage: React.FC<RecentlyViewedPageProps> = ({
           )}
         </div>
       </div>
+
+      {/* Guest Session Notice */}
+      {!currentUser && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <ShieldAlert size={22} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="text-sm font-bold text-amber-200 block">💡 Browsing in Guest Mode</span>
+              <p className="text-xs text-amber-100/80 leading-relaxed max-w-2xl">
+                Your recently viewed hardware history is saved locally for this browser session only and will be wiped upon logout. Sign in or create an account to permanently sync your browsing history across all devices.
+              </p>
+            </div>
+          </div>
+          {onOpenLogin && (
+            <button
+              type="button"
+              onClick={onOpenLogin}
+              className="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black px-4 py-2.5 rounded-xl uppercase tracking-wider transition-all cursor-pointer shrink-0 shadow-sm active:scale-95"
+            >
+              Sign In / Register
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Main Content Area */}
       {viewedProducts.length === 0 ? (

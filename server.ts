@@ -455,6 +455,124 @@ async function processOrderMailing(orderData: OrderMailingInput) {
   }
 }
 
+// Endpoint: Login Security Alert Email & Verification Dispatcher
+app.post("/api/auth/notify-login", async (req, res) => {
+  const { email, displayName, loginMethod, userAgent, ip, location } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email address is required." });
+  }
+
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  const clientIp = ip || (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.socket.remoteAddress || '102.89.23.14';
+  const detectedLocation = location || 'Lagos, Nigeria';
+  const loginTime = new Date().toLocaleString('en-US', {
+    dateStyle: 'full',
+    timeStyle: 'medium',
+    timeZone: 'Africa/Lagos'
+  });
+
+  const parsedAgent = userAgent || 'Web Browser Session';
+
+  if (!user || !pass) {
+    console.warn(`[SECURITY_MAIL_WARN] GMAIL_USER or GMAIL_APP_PASSWORD absent. Login alert for ${email} logged offline.`);
+    return res.json({ 
+      success: true, 
+      offline: true, 
+      message: "SMTP credentials unconfigured. Security notification recorded in local logs.",
+      loginDetails: {
+        email,
+        loginTime,
+        location: detectedLocation,
+        ip: clientIp,
+        agent: parsedAgent
+      }
+    });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
+
+    const mailOptions = {
+      from: `"SkyIT Security Desk" <${user}>`,
+      to: email,
+      subject: `🔒 Security Alert: New Login to your SkyIT Account`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #1e293b; border-radius: 16px; background-color: #0f172a; color: #f8fafc; overflow: hidden;">
+          
+          <!-- Banner Header -->
+          <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 28px 24px; text-align: center;">
+            <div style="font-size: 36px; margin-bottom: 8px;">🔒</div>
+            <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 1px;">SkyIT Security Desk</h1>
+            <p style="color: #e0f2fe; font-size: 13px; margin: 6px 0 0 0;">Account Login & Security Verification Notice</p>
+          </div>
+
+          <!-- Body Container -->
+          <div style="padding: 28px 24px;">
+            <p style="font-size: 15px; color: #cbd5e1; margin-top: 0;">
+              Hello <strong style="color: #ffffff;">${displayName || email}</strong>,
+            </p>
+            <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
+              We detected a new successful sign-in to your SkyIT account. Details of this session are recorded below for your security monitoring:
+            </p>
+
+            <!-- Details Card -->
+            <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; margin: 20px 0;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <tr style="border-bottom: 1px solid #334155;">
+                  <td style="padding: 10px 0; color: #94a3b8; font-weight: 600;">Account Email</td>
+                  <td style="padding: 10px 0; color: #38bdf8; font-weight: 700; text-align: right;">${email}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #334155;">
+                  <td style="padding: 10px 0; color: #94a3b8; font-weight: 600;">Login Method</td>
+                  <td style="padding: 10px 0; color: #f8fafc; font-weight: 700; text-align: right;">${loginMethod || 'Email / Password'}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #334155;">
+                  <td style="padding: 10px 0; color: #94a3b8; font-weight: 600;">Timestamp (WAT)</td>
+                  <td style="padding: 10px 0; color: #f8fafc; text-align: right; font-size: 12px;">${loginTime}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #334155;">
+                  <td style="padding: 10px 0; color: #94a3b8; font-weight: 600;">Location</td>
+                  <td style="padding: 10px 0; color: #34d399; font-weight: 700; text-align: right;">📍 ${detectedLocation}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #94a3b8; font-weight: 600;">Device / Client</td>
+                  <td style="padding: 10px 0; color: #cbd5e1; text-align: right; font-size: 11px; word-break: break-all;">${parsedAgent}</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Warning Notice -->
+            <div style="background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 14px; margin-bottom: 24px;">
+              <p style="color: #fbbf24; font-size: 12px; margin: 0; font-weight: 600; line-height: 1.5;">
+                ⚠️ <strong>Was this not you?</strong> If you did not log in or suspect unauthorized access to your credentials, please reset your password immediately to secure your account.
+              </p>
+            </div>
+
+            <!-- Footer & Signature -->
+            <div style="border-top: 1px solid #334155; padding-top: 20px; text-align: center; font-size: 11px; color: #64748b;">
+              <p style="margin: 0 0 6px 0;">This security alert is sent automatically on every login session to safeguard your account.</p>
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} SkyIT Ventures Solar & Security Systems. All rights reserved.</p>
+            </div>
+          </div>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[LOGIN_SECURITY_MAIL_SUCCESS] Sent security notification to ${email}`);
+    res.json({ success: true, message: "Security alert email dispatched successfully." });
+
+  } catch (err: any) {
+    console.error("[LOGIN_SECURITY_MAIL_ERROR]", err);
+    res.status(500).json({ error: err.message || "Failed to dispatch security notification email." });
+  }
+});
+
 // ————————————————————————————————————————————————————————————————
 // AUTOMATED SEO, SITEMAP.XML, RSS FEED & ROBOTS.TXT ENGINE
 // ————————————————————————————————————————————————————————————————

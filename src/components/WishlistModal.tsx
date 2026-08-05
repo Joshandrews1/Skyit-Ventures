@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product } from '../types';
-import { X, Heart, ShoppingCart, Trash2, ArrowRight } from 'lucide-react';
+import { X, Heart, ShoppingCart, Trash2, ArrowRight, ShieldAlert, UserCheck } from 'lucide-react';
 
 interface WishlistModalProps {
   isOpen: boolean;
@@ -11,6 +11,8 @@ interface WishlistModalProps {
   onAddToCart: (product: Product, e?: React.MouseEvent) => void;
   onViewProduct: (product: Product) => void;
   onNavigateToShop: () => void;
+  currentUser?: any;
+  onOpenLogin?: () => void;
 }
 
 export const WishlistModal: React.FC<WishlistModalProps> = ({
@@ -22,6 +24,8 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
   onAddToCart,
   onViewProduct,
   onNavigateToShop,
+  currentUser,
+  onOpenLogin,
 }) => {
   if (!isOpen) return null;
 
@@ -54,6 +58,30 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
           </button>
         </div>
 
+        {/* Guest Session Notice */}
+        {!currentUser && (
+          <div className="bg-amber-50 border-b border-amber-200/80 p-3.5 px-5 flex items-center justify-between gap-3 text-xs text-amber-900">
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={16} className="text-amber-600 shrink-0" />
+              <span>
+                <strong>Guest Mode:</strong> Saved items are temporary and will be cleared upon logout.
+              </span>
+            </div>
+            {onOpenLogin && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenLogin();
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold px-3 py-1 rounded-lg text-[11px] uppercase tracking-wider shrink-0 transition-colors cursor-pointer"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Content */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           {wishlistedProducts.length === 0 ? (
@@ -64,19 +92,35 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-slate-800">Your wishlist is empty</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Save items you like by clicking the heart icon on any product card while browsing.
+                  {!currentUser 
+                    ? 'Sign in to save wishlist items permanently across devices or click the heart icon on any product to save temporarily.'
+                    : 'Save items you like by clicking the heart icon on any product card while browsing.'}
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  onClose();
-                  onNavigateToShop();
-                }}
-                className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066ff] hover:bg-[#0052cc] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
-              >
-                <span>Browse Component Shop</span>
-                <ArrowRight size={14} />
-              </button>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                {!currentUser && onOpenLogin && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenLogin();
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                  >
+                    <UserCheck size={14} />
+                    <span>Sign In / Register</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    onClose();
+                    onNavigateToShop();
+                  }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066ff] hover:bg-[#0052cc] text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <span>Browse Shop</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">

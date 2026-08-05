@@ -24,6 +24,37 @@ export function saveLocalNotifications(notifs: UserNotification[]) {
   }
 }
 
+// Helper to clear local notifications on logout
+export function clearLocalNotifications() {
+  try {
+    localStorage.removeItem(LOCAL_NOTIFS_KEY);
+  } catch (e) {
+    console.error("Failed to clear local notifications", e);
+  }
+}
+
+// Helper to retrieve last recorded login metadata
+export interface LastLoginInfo {
+  timestamp: string;
+  userEmail: string;
+  displayName?: string;
+  loginMethod: string;
+  ip: string;
+  locationName: string;
+  lat: number;
+  lng: number;
+  userAgent: string;
+}
+
+export function getStoredLastLogin(): LastLoginInfo | null {
+  try {
+    const raw = localStorage.getItem('skyit_last_login');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Dispatch login fraud detection notification email & create in-app notification
 export async function dispatchLoginSecurityAlert(
   userEmail: string,
@@ -37,7 +68,60 @@ export async function dispatchLoginSecurityAlert(
   const notifId = `notif_login_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const browserInfo = typeof navigator !== 'undefined' ? navigator.userAgent : 'Web Browser';
 
-  // 1. Send Security Email Alert to user email via server API
+  // 1. Resolve Location & Geolocation Coordinates (with Lagos, Nigeria as fallback)
+  let userIp = '102.89.23.14';
+  let locationName = 'Lagos, Nigeria';
+  let lat = 6.5244;
+  let lng = 3.3792;
+
+  try {
+    const geoRes = await Promise.race([
+      fetch('https://ipapi.co/json/').then(r => r.json()),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Geo timeout')), 2500))
+    ]) as any;
+
+    if (geoRes && geoRes.city && geoRes.country_name) {
+      locationName = `${geoRes.city}, ${geoRes.country_name}`;
+      userIp = geoRes.ip || userIp;
+      if (typeof geoRes.latitude === 'number' && typeof geoRes.longitude === 'number') {
+        lat = geoRes.latitude;
+        lng = geoRes.longitude;
+      }
+    }
+  } catch (err) {
+    console.log('[GEO_FETCH_FALLBACK] Using default location metadata for security alert.');
+  }
+
+  const lastLoginData: LastLoginInfo = {
+    timestamp,
+    userEmail,
+    displayName: displayName || '',
+    loginMethod: loginMethod || 'Email Password Login',
+    ip: userIp,
+    locationName,
+    lat,
+    lng,
+    userAgent: browserInfo
+  };
+
+  // Persist locally for immediate map UI rendering
+  try {
+    localStorage.setItem('skyit_last_login', JSON.stringify(lastLoginData));
+  } catch (e) {
+    console.warn("Could not set local last login:", e);
+  }
+
+  // Persist in Firestore user document if userId is available
+  if (userId) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, { lastLogin: lastLoginData }, { merge: true });
+    } catch (dbErr) {
+      console.warn("Firestore lastLogin update ignored:", dbErr);
+    }
+  }
+
+  // 2. Dispatch Security Email Alert via Server Endpoint
   try {
     fetch('/api/auth/notify-login', {
       method: 'POST',
@@ -47,25 +131,28 @@ export async function dispatchLoginSecurityAlert(
         displayName: displayName || '',
         loginMethod: loginMethod || 'Account Login',
         userAgent: browserInfo,
-        ip: ''
+        ip: userIp,
+        location: locationName
       })
     }).catch(err => console.warn('[NOTIFY_LOGIN_FETCH_ERR]', err));
   } catch (err) {
     console.warn("Failed to invoke notify-login API:", err);
   }
 
-  // 2. Create in-app notification object
+  // 3. Create in-app notification object
   const newNotif: UserNotification = {
     id: notifId,
     userId: userId || '',
     userEmail: userEmail,
     title: '🔒 Security Alert: Account Login Detected',
-    message: `A new login was recorded for ${userEmail} using ${loginMethod || 'credentials'}. A confirmation email was sent to your inbox. If this was not you, please reset your password immediately.`,
+    message: `A new login was recorded for ${userEmail} from ${locationName} (${userIp}) using ${loginMethod || 'credentials'}. An email notification was sent to your inbox.`,
     type: 'security',
     read: false,
     createdAt: timestamp,
     metadata: {
-      browser: browserInfo
+      browser: browserInfo,
+      location: locationName,
+      ip: userIp
     }
   };
 
@@ -126,9 +213,9 @@ export function subscribeUserNotifications(
 ): () => void {
   const localNotifs = getLocalNotifications();
 
-  // If offline or no auth email, return local
+  // If no authenticated user email or id, return empty array to protect user privacy
   if (!userEmail && !userId) {
-    onUpdate(localNotifs);
+    onUpdate([]);
     return () => {};
   }
 

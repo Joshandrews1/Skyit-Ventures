@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Lock, User, Image, Loader2, Trash2 } from 'lucide-react';
+import { X, Upload, Lock, User, Image, Loader2, Trash2, MapPin, ShieldCheck, Globe, Laptop, Clock, MailCheck } from 'lucide-react';
 import { updateProfile, deleteUser } from 'firebase/auth';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { getStoredLastLogin, LastLoginInfo } from '../lib/notificationService';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [lastLoginInfo, setLastLoginInfo] = useState<LastLoginInfo | null>(null);
 
   // Initialize values when modal opens
   useEffect(() => {
@@ -31,6 +33,21 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       setPhotoBase64(currentUser.photoURL || null);
       setErrorMsg('');
       setSuccessMsg('');
+
+      // Load last login info from local storage or firestore
+      const localLastLogin = getStoredLastLogin();
+      if (localLastLogin && localLastLogin.userEmail === currentUser.email) {
+        setLastLoginInfo(localLastLogin);
+      }
+
+      if (currentUser.uid) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        getDoc(userRef).then(snap => {
+          if (snap.exists() && snap.data()?.lastLogin) {
+            setLastLoginInfo(snap.data().lastLogin);
+          }
+        }).catch(() => {});
+      }
     }
   }, [currentUser, isOpen]);
 
@@ -293,6 +310,74 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     PNG, JPG, or JPEG formats.
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Last Login Location & Security Map */}
+          <div className="pt-4 border-t border-gray-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400 uppercase tracking-wider">
+                <ShieldCheck size={14} />
+                <span>Last Login Location & Map</span>
+              </div>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Email Alert Sent
+              </span>
+            </div>
+
+            <div className="bg-[#141414] border border-gray-800 rounded-xl p-3 space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
+                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
+                    <MapPin size={10} className="text-rose-400" /> Location
+                  </span>
+                  <span className="text-gray-200 font-bold block truncate">{lastLoginInfo?.locationName || 'Lagos, Nigeria'}</span>
+                </div>
+                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
+                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
+                    <Globe size={10} className="text-sky-400" /> IP Address
+                  </span>
+                  <span className="text-gray-200 font-mono font-bold block">{lastLoginInfo?.ip || '102.89.23.14'}</span>
+                </div>
+                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
+                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
+                    <Clock size={10} className="text-amber-400" /> Session Time
+                  </span>
+                  <span className="text-gray-200 font-semibold block text-[10px]">
+                    {lastLoginInfo?.timestamp ? new Date(lastLoginInfo.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Active Session'}
+                  </span>
+                </div>
+                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
+                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
+                    <Laptop size={10} className="text-indigo-400" /> Sign-in Method
+                  </span>
+                  <span className="text-gray-200 font-semibold block text-[10px] truncate">{lastLoginInfo?.loginMethod || 'Email Password'}</span>
+                </div>
+              </div>
+
+              {/* Interactive Google Map Embed */}
+              <div className="relative rounded-lg overflow-hidden border border-gray-800 h-36 bg-slate-900 group shadow-inner">
+                <iframe
+                  title="Last Login Geolocation Map"
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  style={{ border: 0, filter: 'contrast(1.05) saturate(1.1)' }}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(lastLoginInfo?.locationName || 'Lagos, Nigeria')}&z=11&output=embed`}
+                  allowFullScreen
+                  loading="lazy"
+                />
+                <div className="absolute bottom-2 left-2 bg-slate-950/90 border border-slate-700 backdrop-blur-md px-2.5 py-1 rounded-md text-[9px] text-slate-300 font-mono flex items-center gap-1.5 shadow-md">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                  <span>📍 Geolocation Pin: {lastLoginInfo?.locationName || 'Lagos, Nigeria'}</span>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-slate-300 flex items-center gap-1.5 bg-sky-950/40 border border-sky-800/40 p-2 rounded-lg">
+                <MailCheck size={13} className="text-sky-400 shrink-0" />
+                <span>Security email dispatch sent to <strong className="text-sky-300">{currentUser.email}</strong> on login.</span>
               </div>
             </div>
           </div>

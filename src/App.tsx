@@ -33,7 +33,7 @@ import { InteractiveTour } from './components/InteractiveTour';
 import { RecentlyViewedPage } from './components/RecentlyViewedPage';
 import { NotificationsPage } from './components/NotificationsPage';
 import { UserNotification } from './types';
-import { subscribeUserNotifications } from './lib/notificationService';
+import { subscribeUserNotifications, clearLocalNotifications } from './lib/notificationService';
 import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award, Heart, Settings, LogOut, Clock, Sun, Moon, Bell } from 'lucide-react';
 import { 
   ShoppingBag, 
@@ -462,6 +462,14 @@ export default function App() {
         setCurrentUser(null);
         setIsAdmin(false);
         setIsEditor(false);
+        setCart([]);
+        localStorage.removeItem('skyit_shopping_cart');
+        setWishlistIds([]);
+        localStorage.removeItem('skyit_wishlist');
+        setRecentlyViewedIds([]);
+        localStorage.removeItem('skyit_recently_viewed');
+        setNotifications([]);
+        clearLocalNotifications();
       }
     });
     return () => unsubscribe();
@@ -480,12 +488,25 @@ export default function App() {
       console.warn("Logout firebase trigger exception ignored", e);
     }
     localStorage.removeItem('skyit_sim_admin');
-    // Clear cart upon logout to differentiate guest vs logged in cart lists
+    
+    // Clear cart, wishlist, recently viewed & notifications upon logout for data security & privacy
     setCart([]);
     localStorage.removeItem('skyit_shopping_cart');
+
+    setWishlistIds([]);
+    localStorage.removeItem('skyit_wishlist');
+
+    setRecentlyViewedIds([]);
+    localStorage.removeItem('skyit_recently_viewed');
+
+    setNotifications([]);
+    clearLocalNotifications();
+
     setCurrentUser(null);
     setIsAdmin(false);
-    if (activeTab === 'admin') {
+    setIsEditor(false);
+
+    if (activeTab === 'admin' || activeTab === 'notifications' || activeTab === 'recently-viewed') {
       setActiveTab('shop');
     }
   };
@@ -610,13 +631,44 @@ export default function App() {
     }
   }, [wishlistToast]);
 
+  // Load user wishlist & recently viewed from Firestore when user logs in
+  useEffect(() => {
+    if (!currentUser) return;
+    let active = true;
+
+    const loadUserLists = async () => {
+      try {
+        const wishRef = doc(db, 'wishlists', currentUser.uid);
+        const wishSnap = await getDoc(wishRef);
+        if (active && wishSnap.exists() && Array.isArray(wishSnap.data()?.ids)) {
+          setWishlistIds(wishSnap.data()?.ids || []);
+        }
+
+        const rvRef = doc(db, 'recently_viewed', currentUser.uid);
+        const rvSnap = await getDoc(rvRef);
+        if (active && rvSnap.exists() && Array.isArray(rvSnap.data()?.ids)) {
+          setRecentlyViewedIds(rvSnap.data()?.ids || []);
+        }
+      } catch (err) {
+        console.warn("Failed loading user profile lists:", err);
+      }
+    };
+
+    loadUserLists();
+    return () => { active = false; };
+  }, [currentUser]);
+
   useEffect(() => {
     try {
       localStorage.setItem('skyit_wishlist', JSON.stringify(wishlistIds));
+      if (currentUser) {
+        const wishRef = doc(db, 'wishlists', currentUser.uid);
+        setDoc(wishRef, { ids: wishlistIds, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+      }
     } catch (e) {
       console.warn("Failed to save wishlist", e);
     }
-  }, [wishlistIds]);
+  }, [wishlistIds, currentUser]);
 
   const handleToggleWishlist = (product: Product, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -647,6 +699,10 @@ export default function App() {
       const updated = [productId, ...filtered].slice(0, 10);
       try {
         localStorage.setItem('skyit_recently_viewed', JSON.stringify(updated));
+        if (currentUser) {
+          const rvRef = doc(db, 'recently_viewed', currentUser.uid);
+          setDoc(rvRef, { ids: updated, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+        }
       } catch (e) {
         console.warn("Failed to save recently viewed", e);
       }
@@ -1136,8 +1192,8 @@ export default function App() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-[18px] sm:text-[22px] font-bold text-white tracking-tight font-display leading-tight">SkyIT <span className="text-[#0066ff]">Ventures</span></span>
-                <span className="text-[8.5px] sm:text-[9.5px] text-[#a0a8c2] uppercase tracking-[0.14em] font-semibold block">Solar & Security Systems</span>
+                <span className="text-[18px] sm:text-[22px] font-bold text-white tracking-tight font-display leading-tight">SkyIT<span className="hidden sm:inline text-[#0066ff]"> Ventures</span></span>
+                <span className="text-[8.5px] sm:text-[9.5px] text-[#a0a8c2] uppercase tracking-[0.14em] font-semibold hidden sm:block">Solar & Security Systems</span>
               </div>
             </div>
 
@@ -1735,33 +1791,79 @@ export default function App() {
                 </button>
               )}
 
-              <div className="pt-3 border-t border-white/10 flex items-center gap-3">
+              <div className="pt-3 border-t border-white/10 space-y-2">
                 {currentUser ? (
-                  <button 
-                    type="button"
-                    onClick={() => { setIsProfileOpen(true); setIsMobileMenuOpen(false); }}
-                    className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] border border-white/10 text-[#dee2f2] hover:bg-white/5 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <UserCheck size={18} />
-                    <span>Profile</span>
-                  </button>
+                  <div className="space-y-2">
+                    <div className="px-3 py-2 bg-white/5 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-[#171b27] border border-white/20 flex items-center justify-center text-[#b3c5ff] font-bold text-xs shrink-0 overflow-hidden">
+                          {currentUser.photoURL ? (
+                            <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{(currentUser.displayName || currentUser.email || '?').charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-[#dee2f2] truncate">
+                            {currentUser.displayName || currentUser.email?.split('@')[0]}
+                          </div>
+                          <div className="text-[10px] text-[#b3c5ff]">
+                            {isAdmin ? 'Administrator' : (isEditor ? 'Staff Editor' : 'Customer')}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleLogout();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                      >
+                        <LogOut size={14} />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        type="button"
+                        onClick={() => { setIsProfileOpen(true); setIsMobileMenuOpen(false); }}
+                        className="flex-1 py-3 px-3 rounded-xl text-center font-bold text-[13px] border border-white/10 text-[#dee2f2] hover:bg-white/5 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <UserCheck size={16} />
+                        <span>Profile</span>
+                      </button>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => { setIsCartOpen(true); setIsMobileMenuOpen(false); }}
+                        className="flex-1 py-3 px-3 rounded-xl text-center font-bold text-[13px] bg-[#0066ff] text-[#f8f7ff] shadow-lg hover:bg-[#0052cc] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <ShoppingBag size={16} />
+                        <span>Cart ({totalCartItems})</span>
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <button 
-                    type="button"
-                    onClick={() => { setIsLoginOpen(true); setIsMobileMenuOpen(false); }}
-                    className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] border border-white/10 text-[#dee2f2] hover:bg-white/5 transition-all cursor-pointer"
-                  >
-                    Login
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => { setIsLoginOpen(true); setIsMobileMenuOpen(false); }}
+                      className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] border border-white/10 text-[#dee2f2] hover:bg-white/5 transition-all cursor-pointer"
+                    >
+                      Login / Sign In
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => { setIsCartOpen(true); setIsMobileMenuOpen(false); }}
+                      className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] bg-[#0066ff] text-[#f8f7ff] shadow-lg hover:bg-[#0052cc] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingBag size={18} />
+                      <span>Cart ({totalCartItems})</span>
+                    </button>
+                  </div>
                 )}
-                <button 
-                  type="button"
-                  onClick={() => { setIsCartOpen(true); setIsMobileMenuOpen(false); }}
-                  className="flex-1 py-3 px-4 rounded-xl text-center font-bold text-[14px] bg-[#0066ff] text-[#f8f7ff] shadow-lg hover:bg-[#0052cc] transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <ShoppingBag size={18} />
-                  <span>Cart ({totalCartItems})</span>
-                </button>
               </div>
             </div>
           )}
@@ -2239,6 +2341,8 @@ export default function App() {
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
             onNavigateToShop={() => setActiveTab('shop')}
+            currentUser={currentUser}
+            onOpenLogin={() => setIsLoginOpen(true)}
           />
         )}
 
@@ -2247,7 +2351,9 @@ export default function App() {
           <NotificationsPage
             notifications={notifications}
             userEmail={currentUser?.email}
+            currentUser={currentUser}
             onNavigateTab={setActiveTab}
+            onOpenLogin={() => setIsLoginOpen(true)}
           />
         )}
 
@@ -2689,6 +2795,8 @@ export default function App() {
         onAddToCart={handleAddToCart}
         onViewProduct={handleViewProduct}
         onNavigateToShop={() => setActiveTab('shop')}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginOpen(true)}
       />
 
       {/* Floating Scroll to Top Button */}

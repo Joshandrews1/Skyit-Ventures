@@ -111,6 +111,7 @@ export interface UserNotification {
     status?: string;
     ip?: string;
     browser?: string;
+    location?: string;
   };
 }
 
