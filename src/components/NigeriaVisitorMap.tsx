@@ -63,6 +63,11 @@ const NIGERIAN_CITIES: NigerianCityNode[] = [
 
 export const NIGERIAN_COMMUNITIES: CommunityNode[] = [
   // Lagos State Communities
+  { id: 'lag_alagbole', parentCityId: 'lagos', communityName: 'Alagbole', stateName: 'Lagos State', lat: 6.6618, lng: 3.3481, xPct: 19.6, yPct: 76.5 },
+  { id: 'lag_akute', parentCityId: 'lagos', communityName: 'Akute', stateName: 'Lagos State', lat: 6.6680, lng: 3.3550, xPct: 19.8, yPct: 76.3 },
+  { id: 'lag_ojodu', parentCityId: 'lagos', communityName: 'Ojodu Berger', stateName: 'Lagos State', lat: 6.6420, lng: 3.3610, xPct: 19.8, yPct: 76.8 },
+  { id: 'lag_ogba', parentCityId: 'lagos', communityName: 'Ogba / Aguda', stateName: 'Lagos State', lat: 6.6310, lng: 3.3410, xPct: 19.7, yPct: 76.9 },
+  { id: 'lag_agege', parentCityId: 'lagos', communityName: 'Agege', stateName: 'Lagos State', lat: 6.6200, lng: 3.3280, xPct: 19.5, yPct: 77.0 },
   { id: 'lag_vi', parentCityId: 'lagos', communityName: 'Victoria Island', stateName: 'Lagos State', lat: 6.4281, lng: 3.4219, xPct: 20.2, yPct: 78.5 },
   { id: 'lag_lekki', parentCityId: 'lagos', communityName: 'Lekki Phase 1', stateName: 'Lagos State', lat: 6.4474, lng: 3.4723, xPct: 20.8, yPct: 78.3 },
   { id: 'lag_ikeja', parentCityId: 'lagos', communityName: 'Ikeja GRA', stateName: 'Lagos State', lat: 6.5912, lng: 3.3524, xPct: 19.8, yPct: 77.2 },
@@ -71,6 +76,8 @@ export const NIGERIAN_COMMUNITIES: CommunityNode[] = [
   { id: 'lag_ajah', parentCityId: 'lagos', communityName: 'Ajah / Sangotedo', stateName: 'Lagos State', lat: 6.4698, lng: 3.5852, xPct: 21.5, yPct: 78.2 },
   { id: 'lag_ikorodu', parentCityId: 'lagos', communityName: 'Ikorodu Central', stateName: 'Lagos State', lat: 6.6194, lng: 3.5105, xPct: 21.2, yPct: 76.9 },
   { id: 'lag_maryland', parentCityId: 'lagos', communityName: 'Maryland / Ojota', stateName: 'Lagos State', lat: 6.5654, lng: 3.3668, xPct: 19.9, yPct: 77.4 },
+  { id: 'lag_festac', parentCityId: 'lagos', communityName: 'Festac Town', stateName: 'Lagos State', lat: 6.4650, lng: 3.2820, xPct: 18.9, yPct: 78.3 },
+  { id: 'lag_abuleegba', parentCityId: 'lagos', communityName: 'Abule Egba', stateName: 'Lagos State', lat: 6.6480, lng: 3.2890, xPct: 19.1, yPct: 76.7 },
 
   // Abuja FCT Communities
   { id: 'abj_maitama', parentCityId: 'abuja', communityName: 'Maitama District', stateName: 'Federal Capital Territory', lat: 9.0882, lng: 7.4933, xPct: 48.5, yPct: 47.8 },
@@ -140,6 +147,7 @@ const playBeepSound = () => {
 export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, orders, timeRangeLabel }) => {
   const [activeCityId, setActiveCityId] = useState<string>('lagos');
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
+  const [mapTab, setMapTab] = useState<'communities' | 'cities'>('communities');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [zoomLevel, setZoomLevel] = useState<number>(6);
   const [centerCoords, setCenterCoords] = useState<{ lat: number; lng: number }>({ lat: 9.0820, lng: 8.6753 });
@@ -307,6 +315,13 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
     return NIGERIAN_COMMUNITIES.filter(comm => comm.parentCityId === activeCityNode.id && (communityStats[comm.id]?.visitsCount || 0) > 0);
   }, [activeCityNode, communityStats]);
 
+  const selectedCommunityNode = NIGERIAN_COMMUNITIES.find(c => c.id === selectedCommunityId);
+
+  // Coordinates calculation for map centering and location zoom
+  const activeLat = selectedCommunityNode?.lat ?? activeCityNode.lat;
+  const activeLng = selectedCommunityNode?.lng ?? activeCityNode.lng;
+  const activeZoom = selectedCommunityId ? 14 : zoomLevel;
+
   const handleSelectCity = (city: NigerianCityNode, zoomInToCommunity: boolean = true) => {
     setActiveCityId(city.id);
     setSelectedCommunityId(null);
@@ -323,7 +338,7 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
     setActiveCityId(comm.parentCityId);
     setSelectedCommunityId(comm.id);
     setCenterCoords({ lat: comm.lat, lng: comm.lng });
-    setZoomLevel(14); // Zoom directly into exact community streets
+    setZoomLevel(14); // Zoom directly into community node
     if (soundEnabled) {
       playBeepSound();
     }
@@ -492,8 +507,37 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
                   style={{ border: 0, filter: 'contrast(105%) brightness(95%)' }}
                   loading="lazy"
                   allowFullScreen
-                  src={`https://maps.google.com/maps?q=${activeCityNode.lat},${activeCityNode.lng}&z=${zoomLevel}&ie=UTF8&iwloc=&output=embed`}
+                  src={`https://maps.google.com/maps?q=${activeLat},${activeLng}&z=${activeZoom}&ie=UTF8&iwloc=&output=embed`}
                 />
+
+                {/* EXACT LOGGED MAP PIN ICON AT CENTER OF VIEWPORT */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-30 flex flex-col items-center">
+                  {/* Pulsing Radar Ring Effects */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-2 border-amber-400/90 animate-ping pointer-events-none" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-amber-400/40 pointer-events-none blur-xs" />
+
+                  {/* Floating Detailed Location Badge */}
+                  <div className="bg-slate-950/95 border-2 border-amber-400 text-white rounded-xl px-3 py-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md flex flex-col items-center text-center gap-0.5 mb-1.5 min-w-[160px] max-w-[260px] pointer-events-auto">
+                    <div className="flex items-center gap-1.5 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+                      <Compass size={12} className="text-amber-400 animate-pulse shrink-0" />
+                      <span>Location Pinpoint</span>
+                    </div>
+                    <span className="text-xs font-black font-sans text-white truncate max-w-full">
+                      {selectedCommunityNode?.communityName || activeCityNode.cityName}
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-300 font-bold">
+                      📍 {activeLat.toFixed(4)}&deg; N, {activeLng.toFixed(4)}&deg; E
+                    </span>
+                  </div>
+
+                  {/* Gold Standard Map Pin Icon */}
+                  <div className="relative flex flex-col items-center">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 border-2 border-white shadow-[0_0_30px_rgba(245,158,11,0.9)] flex items-center justify-center text-slate-950 font-black">
+                      <MapPin size={22} className="fill-slate-950 text-amber-300" />
+                    </div>
+                    <div className="w-3 h-3 bg-amber-400 rotate-45 -mt-1.5 border-r border-b border-white" />
+                  </div>
+                </div>
 
                 {/* OVERLAY BEEPS ON EMBEDDED GOOGLE MAP VIEW */}
                 <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
@@ -546,17 +590,19 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
                   )}
                 </div>
 
-                {/* Top Info Bar */}
-                <div className="absolute top-3 left-3 right-3 bg-slate-900/90 border border-slate-700/90 backdrop-blur-md rounded-xl p-3 shadow-xl flex items-center justify-between text-xs gap-3 z-30">
-                  <div className="flex items-center gap-2">
-                    <Key size={16} className="text-amber-400 shrink-0" />
-                    <span className="text-slate-200">
-                      Community Zoom Mode: <strong className="text-white font-bold">{activeCityNode.cityName}</strong> (Zoom {zoomLevel}x)
+                {/* Top Info Bar with Gold Standard Styling */}
+                <div className="absolute top-3 left-3 right-3 bg-slate-950/95 border border-amber-500/60 backdrop-blur-md rounded-xl p-3 shadow-2xl flex items-center justify-between text-xs gap-3 z-30">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Compass size={16} className="text-amber-400 shrink-0 animate-pulse" />
+                    <span className="text-slate-100 font-mono text-[11px] truncate">
+                      <strong className="text-amber-300 font-bold font-sans">Active Location Pin:</strong>{' '}
+                      <span className="text-white font-bold">{selectedCommunityNode ? selectedCommunityNode.communityName : activeCityNode.cityName}</span>{' '}
+                      <span className="text-slate-400">({activeLat.toFixed(4)}&deg;, {activeLng.toFixed(4)}&deg;)</span>
                     </span>
                   </div>
-                  <div className="text-[11px] text-amber-400 font-bold hidden sm:flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span>Google Maps Live</span>
+                  <div className="text-[11px] text-amber-300 font-black shrink-0 hidden sm:flex items-center gap-1.5 bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-500/40">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    <span>Geospatial Telemetry</span>
                   </div>
                 </div>
               </div>
@@ -582,10 +628,8 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
           </div>
         </div>
 
-        {/* RIGHT COLUMN: ACTIVE SELECTED CITY INSPECTOR & VISITED HOTSPOTS LIST */}
+        {/* RIGHT COLUMN: ACTIVE SELECTED LOCATION INSPECTOR */}
         <div className="lg:col-span-5 space-y-4">
-          
-          {/* Active Selected City Card */}
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/90 rounded-2xl p-5 shadow-lg space-y-4">
             <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
               <div>

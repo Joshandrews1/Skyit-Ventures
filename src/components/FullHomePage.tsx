@@ -396,7 +396,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
   const [selectedShopTab, setSelectedShopTab] = useState<'All' | 'Inverters' | 'Batteries' | 'Solar Panels' | 'Security Systems' | 'Accessories' | 'Industrial Solar'>('All');
 
   // Section 8: Logistics Tracking Input & Progress Animation State
-  const [trackingInputId, setTrackingInputId] = useState('SK-98231');
+  const [trackingInputId, setTrackingInputId] = useState('');
   const [activeTrackingStep, setActiveTrackingStep] = useState(0);
 
   // Auto-playing continuous loop for live deployment progress

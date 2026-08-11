@@ -129,6 +129,13 @@ export const TrackingDashboard: React.FC<TrackingDashboardProps> = ({
     };
 
     syncGuestOrders();
+
+    const handleOrdersCleared = () => {
+      setUserOrders([]);
+      setOrder(null);
+    };
+    window.addEventListener('skyit_orders_cleared', handleOrdersCleared);
+    return () => window.removeEventListener('skyit_orders_cleared', handleOrdersCleared);
   }, [currentUser, refreshToggle]);
 
   // Auto-refresh order tracking state every 4 seconds to catch real-time state changes!

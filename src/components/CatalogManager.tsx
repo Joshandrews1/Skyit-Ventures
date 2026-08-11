@@ -31,10 +31,18 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  AlertTriangle,
   Eye,
   FileText,
   CheckCircle2
 } from 'lucide-react';
+
+export interface UnmatchedItem {
+  extractedName: string;
+  extractedPrice: number;
+  rawTextSnippet: string;
+  reason: string;
+}
 
 export interface DetectedPriceUpdate {
   id: string;
@@ -168,6 +176,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
   const [batchDetectError, setBatchDetectError] = useState('');
   const [batchSuccessMsg, setBatchSuccessMsg] = useState('');
   const [detectedUpdates, setDetectedUpdates] = useState<DetectedPriceUpdate[]>([]);
+  const [unmatchedItems, setUnmatchedItems] = useState<UnmatchedItem[]>([]);
   const [isPublishingBatch, setIsPublishingBatch] = useState(false);
 
   // Individual product form values
@@ -575,6 +584,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
     setIsDetectingBatch(true);
     setBatchDetectError('');
     setBatchSuccessMsg('');
+    setUnmatchedItems([]);
 
     try {
       const catalogSummary = [
@@ -617,12 +627,17 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
         ...item,
         selected: true
       }));
+      const unmatchedList: UnmatchedItem[] = data.unmatched || [];
 
-      if (list.length === 0) {
-        setBatchDetectError("No matching store products or price changes were detected in the pasted text. Please verify product names.");
+      setDetectedUpdates(list);
+      setUnmatchedItems(unmatchedList);
+
+      if (list.length === 0 && unmatchedList.length === 0) {
+        setBatchDetectError("No products, solar packages, or price updates were detected in the pasted text.");
+      } else if (list.length === 0 && unmatchedList.length > 0) {
+        setBatchDetectError(`⚠️ None of the ${unmatchedList.length} product(s) in your text exist in your store catalog. See missing items list below.`);
       } else {
-        setDetectedUpdates(list);
-        setBatchSuccessMsg(`✨ AI detected ${list.length} item price match(es)! Review the changes below before publishing to the live catalog.`);
+        setBatchSuccessMsg(`✨ AI matched ${list.length} catalog item(s)! Review changes below before publishing to live store.`);
       }
     } catch (err: any) {
       console.error("Batch price detect error:", err);
@@ -849,7 +864,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
               {batchRawText && (
                 <button
                   type="button"
-                  onClick={() => { setBatchRawText(''); setDetectedUpdates([]); setBatchDetectError(''); setBatchSuccessMsg(''); }}
+                  onClick={() => { setBatchRawText(''); setDetectedUpdates([]); setUnmatchedItems([]); setBatchDetectError(''); setBatchSuccessMsg(''); }}
                   className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs font-bold bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700 cursor-pointer"
                 >
                   Clear Text
@@ -868,6 +883,54 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
               <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 rounded-xl text-xs flex items-center gap-2">
                 <CheckCircle2 size={15} className="shrink-0 text-emerald-400" />
                 <span>{batchSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Unmatched Products Notice Banner */}
+            {unmatchedItems.length > 0 && (
+              <div className="p-4 bg-amber-950/70 border-2 border-amber-500/80 rounded-2xl text-amber-100 text-xs space-y-3 shadow-xl animate-fadeIn">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle size={20} className="text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-amber-300 flex items-center gap-2">
+                      <span>⚠️ {unmatchedItems.length} Item(s) in your text are NOT in your catalog!</span>
+                    </h4>
+                    <p className="text-[11px] text-amber-200/90 mt-1 leading-relaxed">
+                      The product(s) or equipment listed below were detected in your pasted text, but could <strong>NOT be matched</strong> to any existing item in your store catalog. These items cannot be auto-updated. You can add them as new products using the <strong>Single Entry</strong> form above.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/90 border border-amber-500/40 rounded-xl p-3 space-y-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-amber-400 tracking-wider">
+                    Unmatched / Missing Catalog Items ({unmatchedItems.length}):
+                  </span>
+                  <div className="divide-y divide-amber-500/20 max-h-48 overflow-y-auto pr-1">
+                    {unmatchedItems.map((un, uIdx) => (
+                      <div key={uIdx} className="py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="font-medium text-white flex items-center gap-2">
+                          <span className="text-amber-400 font-bold">•</span>
+                          <span>{un.extractedName || 'Unknown Product'}</span>
+                          {un.rawTextSnippet && (
+                            <span className="text-[10px] text-slate-400 font-mono italic truncate max-w-xs">
+                              ("{un.rawTextSnippet}")
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {un.extractedPrice > 0 && (
+                            <span className="bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-md font-mono font-bold text-[11px]">
+                              Price: ₦{un.extractedPrice.toLocaleString()}
+                            </span>
+                          )}
+                          <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-md font-bold">
+                            Not in Catalog
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 

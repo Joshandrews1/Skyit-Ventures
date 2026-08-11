@@ -25,6 +25,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { dispatchLoginSecurityAlert } from '../lib/notificationService';
+import { logUserLoginPinpoint } from '../lib/visitorTracker';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -128,7 +129,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
       }
 
-      // Trigger fraud detection email and security notification
+      // Trigger fraud detection email and security notification & exact login pinpoint
       if (user.email) {
         dispatchLoginSecurityAlert(
           user.email,
@@ -136,6 +137,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           mode === 'signup' ? 'New Account Registration' : 'Email Password Login',
           user.uid
         ).catch(e => console.warn("Failed to dispatch login alert:", e));
+
+        logUserLoginPinpoint(user.email, user.displayName || name.trim()).catch(e => console.warn("Failed to log pinpoint:", e));
       }
 
       onLoginSuccess(user, isAdminUser);
@@ -182,7 +185,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
       }
 
-      // Trigger fraud detection email and security notification
+      // Trigger fraud detection email and security notification & exact login pinpoint
       if (user.email) {
         dispatchLoginSecurityAlert(
           user.email,
@@ -190,6 +193,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           'Google OAuth 2.0 Sign-In',
           user.uid
         ).catch(e => console.warn("Failed to dispatch google login alert:", e));
+
+        logUserLoginPinpoint(user.email, user.displayName || 'Google User').catch(e => console.warn("Failed to log google pinpoint:", e));
       }
 
       onLoginSuccess(user, isAdminUser);

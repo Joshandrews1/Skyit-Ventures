@@ -1,6 +1,7 @@
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { UserNotification, NotificationType } from '../types';
+import { getUserGeolocation, getAdminMatchedLocationForUser, getNeighborhoodFromCoords, fetchReverseGeocode } from './visitorTracker';
 
 const LOCAL_NOTIFS_KEY = 'skyit_local_notifications';
 
@@ -43,7 +44,8 @@ export interface LastLoginInfo {
   locationName: string;
   lat: number;
   lng: number;
-  userAgent: string;
+  userAgent?: string;
+  deviceInfo?: string;
 }
 
 export function getStoredLastLogin(): LastLoginInfo | null {
@@ -68,13 +70,20 @@ export async function dispatchLoginSecurityAlert(
   const notifId = `notif_login_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const browserInfo = typeof navigator !== 'undefined' ? navigator.userAgent : 'Web Browser';
 
-  // 1. Resolve Location & Geolocation Coordinates (with Lagos, Nigeria as fallback)
+  // 1. Resolve Location & Geolocation Coordinates (matching Admin Analytics pinpoints)
+  const adminMatched = getAdminMatchedLocationForUser(userEmail);
   let userIp = '102.89.23.14';
-  let locationName = 'Lagos, Nigeria';
-  let lat = 6.5244;
-  let lng = 3.3792;
+  let locationName = `${adminMatched.cityName}, ${adminMatched.stateName}`;
+  let lat = adminMatched.lat;
+  let lng = adminMatched.lng;
 
   try {
+    const coords = await getUserGeolocation();
+    if (coords && coords.lat && coords.lng) {
+      lat = coords.lat;
+      lng = coords.lng;
+    }
+
     const geoRes = await Promise.race([
       fetch('https://ipapi.co/json/').then(r => r.json()),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Geo timeout')), 2500))
@@ -83,7 +92,7 @@ export async function dispatchLoginSecurityAlert(
     if (geoRes && geoRes.city && geoRes.country_name) {
       locationName = `${geoRes.city}, ${geoRes.country_name}`;
       userIp = geoRes.ip || userIp;
-      if (typeof geoRes.latitude === 'number' && typeof geoRes.longitude === 'number') {
+      if (!coords && typeof geoRes.latitude === 'number' && typeof geoRes.longitude === 'number') {
         lat = geoRes.latitude;
         lng = geoRes.longitude;
       }
@@ -91,6 +100,13 @@ export async function dispatchLoginSecurityAlert(
   } catch (err) {
     console.log('[GEO_FETCH_FALLBACK] Using default location metadata for security alert.');
   }
+
+  const resolvedNeighborhood = await fetchReverseGeocode(lat, lng);
+  const communityName = resolvedNeighborhood.communityName;
+  const cityName = resolvedNeighborhood.cityName;
+  const stateName = resolvedNeighborhood.stateName;
+  const fullLocationString = `${communityName}, ${cityName}, ${stateName}`;
+  locationName = fullLocationString;
 
   const lastLoginData: LastLoginInfo = {
     timestamp,
@@ -145,14 +161,19 @@ export async function dispatchLoginSecurityAlert(
     userId: userId || '',
     userEmail: userEmail,
     title: '🔒 Security Alert: Account Login Detected',
-    message: `A new login was recorded for ${userEmail} from ${locationName} (${userIp}) using ${loginMethod || 'credentials'}. An email notification was sent to your inbox.`,
+    message: `A new login was recorded for ${userEmail} at ${communityName} (${cityName}, ${stateName}) from IP ${userIp} using ${loginMethod || 'credentials'}.`,
     type: 'security',
     read: false,
     createdAt: timestamp,
     metadata: {
       browser: browserInfo,
-      location: locationName,
-      ip: userIp
+      location: fullLocationString,
+      ip: userIp,
+      lat,
+      lng,
+      community: communityName,
+      cityName,
+      stateName
     }
   };
 

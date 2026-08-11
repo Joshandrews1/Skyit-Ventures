@@ -849,7 +849,9 @@ app.post("/api/admin/batch-detect-price-updates", async (req, res) => {
   }));
 
   const prompt = `You are an AI E-Commerce Price Matching Specialist.
-Given a list of existing store catalog products/packages and a block of pasted raw text (supplier pricelist, text message, quote, or invoice notes), detect which products in the store catalog are present in the text and extract their new updated prices.
+Given a list of existing store catalog products/packages and a block of pasted raw text (supplier pricelist, text message, quote, or invoice notes), detect:
+1. Which products in the store catalog are present in the text and extract their new updated prices ('detected').
+2. Which products, equipment, or items mentioned in the text do NOT match any product in our store catalog ('unmatched').
 
 EXISTING CATALOG ITEMS (${catalogSummary.length} items):
 ${JSON.stringify(catalogSummary, null, 2)}
@@ -868,8 +870,12 @@ INSTRUCTIONS:
    - Calculate newOriginalPrice and newSellingPrice. If only a single price is mentioned, newOriginalPrice is that price, newDiscountPercent is 0, newSellingPrice = newOriginalPrice.
    - Extract the exact snippet/line from the pasted text where the match occurred (matchedTextSnippet).
    - Rate matching confidence as "high", "medium", or "low".
-3. ONLY include items that clearly correspond to an existing store catalog item.
-4. If no items match or no prices are found, return an empty array [].`;
+3. For any product, solar equipment, inverter, battery, camera, or item mentioned in the text that DOES NOT match any existing item in our store catalog:
+   - Place it in the 'unmatched' list.
+   - Extract 'extractedName' (the name of the item from the text).
+   - Extract 'extractedPrice' (the price mentioned in the text, or 0 if none).
+   - Extract 'rawTextSnippet' (the exact text line).
+   - Set 'reason' to "Product not found in store catalog".`;
 
   try {
     const response = await generateContentWithFallback(ai, {
@@ -879,37 +885,60 @@ INSTRUCTIONS:
         temperature: 0.2,
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.STRING, description: "Catalog product or package ID" },
-              isPackage: { type: Type.BOOLEAN, description: "True if solar package" },
-              matchedName: { type: Type.STRING, description: "Catalog item display name" },
-              category: { type: Type.STRING, description: "Catalog item category" },
-              currentOriginalPrice: { type: Type.NUMBER, description: "Current store baseline price" },
-              currentDiscountPercent: { type: Type.NUMBER, description: "Current store discount percent" },
-              currentSellingPrice: { type: Type.NUMBER, description: "Current store selling price" },
-              newOriginalPrice: { type: Type.NUMBER, description: "Detected new original baseline price" },
-              newDiscountPercent: { type: Type.NUMBER, description: "Detected new discount percent" },
-              newSellingPrice: { type: Type.NUMBER, description: "Calculated new final selling price" },
-              matchedTextSnippet: { type: Type.STRING, description: "Raw text snippet where match occurred" },
-              confidence: { type: Type.STRING, description: "high, medium, or low" }
+          type: Type.OBJECT,
+          properties: {
+            detected: {
+              type: Type.ARRAY,
+              description: "Items that matched existing store catalog products/packages",
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING, description: "Catalog product or package ID" },
+                  isPackage: { type: Type.BOOLEAN, description: "True if solar package" },
+                  matchedName: { type: Type.STRING, description: "Catalog item display name" },
+                  category: { type: Type.STRING, description: "Catalog item category" },
+                  currentOriginalPrice: { type: Type.NUMBER, description: "Current store baseline price" },
+                  currentDiscountPercent: { type: Type.NUMBER, description: "Current store discount percent" },
+                  currentSellingPrice: { type: Type.NUMBER, description: "Current store selling price" },
+                  newOriginalPrice: { type: Type.NUMBER, description: "Detected new original baseline price" },
+                  newDiscountPercent: { type: Type.NUMBER, description: "Detected new discount percent" },
+                  newSellingPrice: { type: Type.NUMBER, description: "Calculated new final selling price" },
+                  matchedTextSnippet: { type: Type.STRING, description: "Raw text snippet where match occurred" },
+                  confidence: { type: Type.STRING, description: "high, medium, or low" }
+                },
+                required: [
+                  "id", "matchedName", "category", 
+                  "currentOriginalPrice", "currentDiscountPercent", "currentSellingPrice", 
+                  "newOriginalPrice", "newDiscountPercent", "newSellingPrice", 
+                  "matchedTextSnippet", "confidence"
+                ]
+              }
             },
-            required: [
-              "id", "matchedName", "category", 
-              "currentOriginalPrice", "currentDiscountPercent", "currentSellingPrice", 
-              "newOriginalPrice", "newDiscountPercent", "newSellingPrice", 
-              "matchedTextSnippet", "confidence"
-            ]
-          }
+            unmatched: {
+              type: Type.ARRAY,
+              description: "Products or items in the text that do not exist in the store catalog",
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  extractedName: { type: Type.STRING, description: "Name of unmatched item in text" },
+                  extractedPrice: { type: Type.NUMBER, description: "Price of unmatched item if present" },
+                  rawTextSnippet: { type: Type.STRING, description: "Line or snippet in text" },
+                  reason: { type: Type.STRING, description: "Explanation why item was not matched" }
+                },
+                required: ["extractedName", "extractedPrice", "rawTextSnippet", "reason"]
+              }
+            }
+          },
+          required: ["detected", "unmatched"]
         }
       }
     });
 
-    const bodyText = response?.text?.trim() || "[]";
-    const detectedList = JSON.parse(bodyText);
-    res.json({ detected: detectedList });
+    const bodyText = response?.text?.trim() || '{"detected":[],"unmatched":[]}';
+    const parsedData = JSON.parse(bodyText);
+    const detectedList = parsedData.detected || [];
+    const unmatchedList = parsedData.unmatched || [];
+    res.json({ detected: detectedList, unmatched: unmatchedList });
   } catch (err: any) {
     console.error("[BATCH_DETECT_PRICES_ERROR]", err);
     res.status(500).json({ error: err?.message || "Failed to parse price list with Gemini AI." });

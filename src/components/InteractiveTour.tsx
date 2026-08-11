@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, 
@@ -319,7 +320,7 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
 
   const StepIcon = currentStep.icon;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-[200000] pointer-events-none">
         {/* Full Dim / Click-catcher Overlay */}
@@ -455,6 +456,7 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
           </motion.div>
         </div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

@@ -63,7 +63,7 @@ import {
   Package
 } from 'lucide-react';
 
-import { logSiteVisit } from './lib/visitorTracker';
+import { logSiteVisit, logUserLoginPinpoint } from './lib/visitorTracker';
 
 const AdminLoginGate: React.FC<{ onUnlockAdmin: () => void; onOpenLogin: () => void }> = ({ onUnlockAdmin, onOpenLogin }) => {
   const [pin, setPin] = useState('');
@@ -454,6 +454,13 @@ export default function App() {
             lastLoginAt: nowStr,
             createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime).toISOString() : nowStr
           }, { merge: true });
+
+          // 5. Log high-precision user login pinpoint to site_visits (read by both Admin Map and User Profile Map)
+          const sessionLoginKey = `skyit_pinpoint_logged_${user.uid}_${nowStr.slice(0, 13)}`;
+          if (!sessionStorage.getItem(sessionLoginKey) && user.email) {
+            sessionStorage.setItem(sessionLoginKey, 'true');
+            logUserLoginPinpoint(user.email, user.displayName || undefined);
+          }
         } catch (err) {
           console.warn("User directory synchronization ignored: ", err);
         }

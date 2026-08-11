@@ -80,3 +80,19 @@ export function getCachedOrderIds(): string[] {
     return [];
   }
 }
+
+/**
+ * Clears all cached orders and guest order IDs from localStorage.
+ */
+export function clearAllCachedOrders() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('skyit_cached_orders');
+    localStorage.removeItem('skyit_guest_order_ids');
+    localStorage.removeItem('pending_order_payload');
+    sessionStorage.removeItem('pending_order_payload');
+    window.dispatchEvent(new Event('skyit_orders_cleared'));
+  } catch (err) {
+    console.error("Failed to clear cached orders from localStorage:", err);
+  }
+}

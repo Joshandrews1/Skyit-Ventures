@@ -55,7 +55,15 @@ export const AdminAnalyticsPanel: React.FC<AdminAnalyticsPanelProps> = ({ orders
           timestamp: data.timestamp || new Date().toISOString(),
           page: data.page || 'home',
           device: data.device || 'desktop',
-          referrer: data.referrer || 'direct'
+          referrer: data.referrer || 'direct',
+          cityName: data.cityName,
+          stateName: data.stateName,
+          communityName: data.communityName,
+          lat: data.lat,
+          lng: data.lng,
+          isLogin: data.isLogin,
+          userEmail: data.userEmail,
+          userName: data.userName
         });
       });
       setFirestoreVisits(list);
@@ -96,13 +104,37 @@ export const AdminAnalyticsPanel: React.FC<AdminAnalyticsPanelProps> = ({ orders
         const sessNum = Math.floor(i / 2.5);
         const deviceType = i % 3 === 0 ? 'mobile' : i % 7 === 0 ? 'tablet' : 'desktop';
 
+        const isLoginSample = i % 8 === 0;
+        const sampleEmail = i % 16 === 0 ? 'jeemestore@gmail.com' : i % 24 === 0 ? 'adeleke.m@lagoscorp.ng' : 'chinedu@okaforholding.com';
+        
+        // Sample exact login pinpoints across major Nigerian cities
+        const sampleLocations = [
+          { lat: 6.4281, lng: 3.4219, cityName: 'Victoria Island', stateName: 'Lagos State', communityName: 'Ademola Adetokunbo Way' },
+          { lat: 6.6018, lng: 3.3515, cityName: 'Ikeja', stateName: 'Lagos State', communityName: 'Computer Village' },
+          { lat: 9.0765, lng: 7.3986, cityName: 'Maitama', stateName: 'FCT Abuja', communityName: 'Transcorp Hilton Axis' },
+          { lat: 4.8156, lng: 7.0498, cityName: 'Port Harcourt', stateName: 'Rivers State', communityName: 'GRA Phase 2' },
+          { lat: 7.3775, lng: 3.9470, cityName: 'Bodija', stateName: 'Oyo State', communityName: 'Bodija Estate' },
+          { lat: 12.0022, lng: 8.5920, cityName: 'Kano City', stateName: 'Kano State', communityName: 'Nassarawa District' },
+          { lat: 6.3350, lng: 5.6037, cityName: 'Benin City', stateName: 'Edo State', communityName: 'GRA Benin' },
+          { lat: 10.5105, lng: 7.4165, cityName: 'Kaduna South', stateName: 'Kaduna State', communityName: 'Barnawa Layout' }
+        ];
+        const loc = sampleLocations[i % sampleLocations.length];
+
         combined.push({
           id: `seed_visit_${i}`,
           sessionId: `sess_historical_${sessNum}`,
           timestamp: ts,
-          page: i % 4 === 0 ? 'shop' : i % 5 === 0 ? 'quote' : 'home',
+          page: isLoginSample ? 'user_login' : (i % 4 === 0 ? 'shop' : i % 5 === 0 ? 'quote' : 'home'),
           device: deviceType,
-          referrer: i % 2 === 0 ? 'google' : 'direct'
+          referrer: i % 2 === 0 ? 'google' : 'direct',
+          isLogin: isLoginSample,
+          userEmail: isLoginSample ? sampleEmail : undefined,
+          userName: isLoginSample ? sampleEmail.split('@')[0] : undefined,
+          lat: loc.lat,
+          lng: loc.lng,
+          cityName: loc.cityName,
+          stateName: loc.stateName,
+          communityName: loc.communityName
         });
       }
     }

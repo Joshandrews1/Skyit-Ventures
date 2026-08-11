@@ -112,6 +112,11 @@ export interface UserNotification {
     ip?: string;
     browser?: string;
     location?: string;
+    lat?: number;
+    lng?: number;
+    community?: string;
+    cityName?: string;
+    stateName?: string;
   };
 }
 

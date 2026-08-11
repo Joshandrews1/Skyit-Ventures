@@ -20,6 +20,7 @@ import { RoleManager } from './RoleManager';
 import { AdminBlogPanel } from './AdminBlogPanel';
 import { AdminAnalyticsPanel } from './AdminAnalyticsPanel';
 import { AdminSolarPackages } from './AdminSolarPackages';
+import { AdminInteractiveTour } from './AdminInteractiveTour';
 import { defaultBlogPosts } from '../data/blogPosts';
 import { BlogPost } from '../types';
 import { auth } from '../firebase';
@@ -28,7 +29,6 @@ import { createUserNotification } from '../lib/notificationService';
 import { 
   Database, 
   Search, 
-  Trash2, 
   Package,
   RefreshCw, 
   CheckCircle2, 
@@ -113,6 +113,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
   const [adminView, setAdminView] = useState<'logistics' | 'analytics' | 'quote' | 'packages' | 'products' | 'blog' | 'roles'>(() => {
     return (localStorage.getItem('adminView') as 'logistics' | 'analytics' | 'quote' | 'packages' | 'products' | 'blog' | 'roles') || 'logistics';
   });
+
+  const [isAdminTourOpen, setIsAdminTourOpen] = useState<boolean>(false);
+
+  // Auto-prompt Admin Tour on first admin panel open
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('hasCompletedSkyITAdminTour');
+    if (!hasSeenTour) {
+      const timer = setTimeout(() => {
+        setIsAdminTourOpen(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
@@ -546,6 +559,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
     }
   };
 
+
   // 3. Update Status of an order in Firestore
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingOrderId(orderId);
@@ -784,6 +798,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
             Comprehensive hub for overseeing logistics, AI-powered document generation, and inventory management.
           </p>
         </div>
+
+        {/* Admin Tools Tour Trigger Button */}
+        <div className="shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsAdminTourOpen(true)}
+            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black px-4 py-2.5 rounded-2xl transition-all flex items-center gap-2 cursor-pointer shadow-md hover:scale-105 active:scale-95 shrink-0"
+            id="btn-admin-tour"
+            title="Start Guided Admin Suite Tour"
+          >
+            <Sparkles size={15} className="text-amber-400 fill-amber-400 animate-pulse" />
+            <span>Admin Tools Tour 🎓</span>
+          </button>
+        </div>
       </div>
 
       {feedbackMsg && (
@@ -818,6 +846,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <button
+            id="admin-tab-logistics"
             onClick={() => setAdminView('logistics')}
             className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'logistics' 
@@ -830,6 +859,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           </button>
 
           <button
+            id="admin-tab-analytics"
             onClick={() => setAdminView('analytics')}
             className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'analytics' 
@@ -842,6 +872,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           </button>
           
           <button
+            id="admin-tab-quote"
             onClick={() => setAdminView('quote')}
             className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'quote' 
@@ -854,6 +885,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           </button>
           
           <button
+            id="admin-tab-packages"
             onClick={() => setAdminView('packages')}
             className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'packages' 
@@ -866,6 +898,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           </button>
 
           <button
+            id="admin-tab-products"
             onClick={() => setAdminView('products')}
             className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'products' 
@@ -878,6 +911,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           </button>
 
           <button
+            id="admin-tab-blog"
             onClick={() => setAdminView('blog')}
             className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
               adminView === 'blog' 
@@ -891,6 +925,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
 
           {isUserAdmin && (
             <button
+              id="admin-tab-roles"
               onClick={() => setAdminView('roles')}
               className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
                 adminView === 'roles' 
@@ -1788,9 +1823,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           ) : filteredOrders.length === 0 ? (
             <div className="p-16 bg-white border border-slate-200 rounded-3xl text-center space-y-3">
               <ClipboardList className="text-slate-300 mx-auto" size={40} />
-              <h3 className="text-sm font-semibold text-slate-700">No Operations Found</h3>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-                There are currently no orders matching this search criteria. Build custom client quotes or click "One-Click Seed Orders" above to populate records.
+              <h3 className="text-sm font-semibold text-slate-700">No Sales Records Found</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                Database is clean for official live launch. All new incoming customer orders placed from today will record live automatically!
               </p>
             </div>
           ) : (
@@ -2106,6 +2141,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
                                 <span>Cancel</span>
                               </button>
                             )}
+
                           </>
                         )}
                       </div>
@@ -2119,6 +2155,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           )}
         </>
       )}
+
+      {/* Admin Interactive Tour Modal */}
+      <AdminInteractiveTour
+        isOpen={isAdminTourOpen}
+        onClose={() => setIsAdminTourOpen(false)}
+        adminView={adminView}
+        onNavigateAdminView={setAdminView}
+      />
 
     </div>
   );
