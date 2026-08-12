@@ -26,6 +26,7 @@ import {
 import { UserNotification, NotificationType } from '../types';
 import { getAdminMatchedLocationForUser, getNeighborhoodFromCoords } from '../lib/visitorTracker';
 import { markNotificationAsRead, markAllNotificationsAsRead, deleteNotification } from '../lib/notificationService';
+import { LocationPermissionModal } from './LocationPermissionModal';
 
 interface NotificationsPageProps {
   notifications: UserNotification[];
@@ -49,6 +50,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   const [detailMapZoom, setDetailMapZoom] = useState<number>(17);
   const [isExpandedMapOpen, setIsExpandedMapOpen] = useState<boolean>(false);
   const [copiedCoords, setCopiedCoords] = useState<boolean>(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -307,6 +309,16 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
                       </button>
                     </div>
 
+                    {/* Verify Live Location Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsLocationModalOpen(true)}
+                      className="bg-slate-950 hover:bg-slate-800 text-amber-300 border border-amber-500/50 font-extrabold px-3 py-1.5 rounded-xl text-[11px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 transition-all"
+                    >
+                      <MapPin size={13} className="text-amber-400" />
+                      <span>Verify Live Location</span>
+                    </button>
+
                     {/* Expand Fullscreen Button */}
                     <button
                       type="button"
@@ -538,27 +550,29 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-8 shadow-2xl relative overflow-hidden">
         {/* Glow effect background */}
         <div className="absolute -right-12 -top-12 w-64 h-64 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
         <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl text-slate-950 font-black shadow-lg shadow-amber-500/20">
-                <Bell size={26} />
+          <div className="space-y-2 min-w-0 flex-1">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className="p-2.5 sm:p-3 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0">
+                <Bell size={24} className="sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                  Notifications & Activity Center
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                    Notifications & Activity Center
+                  </h1>
                   {unreadCount > 0 && (
-                    <span className="bg-amber-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse">
+                    <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider animate-pulse shrink-0 whitespace-nowrap">
                       {unreadCount} Unread
                     </span>
                   )}
-                </h1>
-                <p className="text-slate-300 text-sm mt-1">
+                </div>
+                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed break-words">
                   {userEmail 
                     ? `Live security alerts, login detection, and activity updates for ${userEmail}` 
                     : 'Track login fraud detection alerts, order status updates, and system activities'}
@@ -568,12 +582,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
           </div>
 
           {/* Quick Actions */}
-          <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          <div className="flex items-center justify-center sm:justify-start w-full md:w-auto gap-3 shrink-0 flex-wrap">
             {!userEmail && onOpenLogin && (
               <button
                 type="button"
                 onClick={onOpenLogin}
-                className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95"
+                className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95"
               >
                 <ShieldAlert size={16} />
                 <span>Sign In to Access Notifications</span>
@@ -583,7 +597,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
               <button
                 type="button"
                 onClick={() => markAllNotificationsAsRead(userEmail)}
-                className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-amber-500/10 active:scale-95"
+                className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-amber-500/10 active:scale-95"
               >
                 <CheckCheck size={16} />
                 <span>Mark All Read</span>
@@ -850,6 +864,15 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
           </div>
         </div>
       </div>
+      {/* Just-In-Time Location Permission Modal */}
+      <LocationPermissionModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        reason="security"
+        onLocationGranted={(coords) => {
+          console.log("Verified location coords granted:", coords);
+        }}
+      />
     </div>
   );
 };

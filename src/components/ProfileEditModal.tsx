@@ -5,6 +5,7 @@ import { doc, setDoc, deleteDoc, getDoc, collection, query, where, getDocs } fro
 import { auth, db } from '../firebase';
 import { getStoredLastLogin, LastLoginInfo } from '../lib/notificationService';
 import { getUserGeolocation, getAdminMatchedLocationForUser, getNeighborhoodFromCoords } from '../lib/visitorTracker';
+import { LocationPermissionModal } from './LocationPermissionModal';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [lastLoginInfo, setLastLoginInfo] = useState<LastLoginInfo | null>(null);
   const [isFullMapModalOpen, setIsFullMapModalOpen] = useState(false);
+  const [isLocModalOpen, setIsLocModalOpen] = useState(false);
 
   // Initialize values when modal opens
   useEffect(() => {
@@ -394,15 +396,25 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
           {/* Last Login Location & Security Map */}
           <div className="pt-4 border-t border-gray-800 space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400 uppercase tracking-wider">
                 <ShieldCheck size={14} />
                 <span>Last Login Location & Map</span>
               </div>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Email Alert Sent
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsLocModalOpen(true)}
+                  className="text-[10px] text-amber-300 font-extrabold bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                >
+                  <MapPin size={11} className="text-amber-400" />
+                  <span>Enable Live Location</span>
+                </button>
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Email Alert Sent
+                </span>
+              </div>
             </div>
 
             <div className="bg-[#141414] border border-gray-800 rounded-xl p-3 space-y-3">
@@ -644,6 +656,24 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Just-In-Time Location Permission Modal */}
+      <LocationPermissionModal
+        isOpen={isLocModalOpen}
+        onClose={() => setIsLocModalOpen(false)}
+        reason="security"
+        onLocationGranted={(coords) => {
+          const resolved = getNeighborhoodFromCoords(coords.lat, coords.lng);
+          setLastLoginInfo(prev => ({
+            locationName: `${resolved.communityName}, ${resolved.cityName}, ${resolved.stateName}`,
+            ip: prev?.ip || 'Verified Remote IP',
+            timestamp: new Date().toISOString(),
+            loginMethod: prev?.loginMethod || 'Live Verified GPS',
+            lat: coords.lat,
+            lng: coords.lng
+          }));
+        }}
+      />
     </div>
   );
 };

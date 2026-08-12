@@ -10,6 +10,8 @@ import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { getOrCreateGuestUid, cacheOrderDetails } from '../lib/guestCache';
 import { createUserNotification } from '../lib/notificationService';
+import { getNeighborhoodFromCoords } from '../lib/visitorTracker';
+import { LocationPermissionModal } from './LocationPermissionModal';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'flutterwave' | 'cod'>('flutterwave');
   const [allowGuestCheckout, setAllowGuestCheckout] = useState<boolean>(true);
   const [isSettingsLoading, setIsSettingsLoading] = useState<boolean>(true);
+  const [isLogisticsLocModalOpen, setIsLogisticsLocModalOpen] = useState<boolean>(false);
   
   // Form Values
   const [customer, setCustomer] = useState<CustomerDetails>({
@@ -476,7 +479,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 {/* Row 4: Detailed Physical Address */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">Detailed Shipping Address</label>
+                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                    <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">Detailed Shipping Address</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsLogisticsLocModalOpen(true)}
+                      className="text-[10px] text-amber-700 hover:text-amber-900 font-extrabold bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <MapPin size={11} className="text-amber-600" />
+                      <span>Auto-Detect Delivery Hub</span>
+                    </button>
+                  </div>
                   <textarea 
                     required
                     rows={3}
@@ -736,6 +749,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </div>
 
       </div>
+
+      {/* Just-In-Time Location Permission Modal for Logistics */}
+      <LocationPermissionModal
+        isOpen={isLogisticsLocModalOpen}
+        onClose={() => setIsLogisticsLocModalOpen(false)}
+        reason="logistics"
+        onLocationGranted={(coords) => {
+          const resolved = getNeighborhoodFromCoords(coords.lat, coords.lng);
+          setCustomer(prev => ({
+            ...prev,
+            city: resolved.stateName || prev.city,
+            address: prev.address ? `${prev.address} (${resolved.communityName}, ${resolved.cityName})` : `${resolved.communityName}, ${resolved.cityName}, ${resolved.stateName}`
+          }));
+        }}
+      />
     </div>
   );
 };
