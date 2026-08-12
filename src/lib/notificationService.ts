@@ -1,7 +1,7 @@
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { UserNotification, NotificationType } from '../types';
-import { getUserGeolocation, getAdminMatchedLocationForUser, getNeighborhoodFromCoords, fetchReverseGeocode } from './visitorTracker';
+import { getUserGeolocation, getUserGeolocationIfGranted, getAdminMatchedLocationForUser, getNeighborhoodFromCoords, fetchReverseGeocode } from './visitorTracker';
 
 const LOCAL_NOTIFS_KEY = 'skyit_local_notifications';
 
@@ -78,7 +78,7 @@ export async function dispatchLoginSecurityAlert(
   let lng = adminMatched.lng;
 
   try {
-    const coords = await getUserGeolocation();
+    const coords = await getUserGeolocationIfGranted();
     if (coords && coords.lat && coords.lng) {
       lat = coords.lat;
       lng = coords.lng;

@@ -4,7 +4,7 @@ import { updateProfile, deleteUser } from 'firebase/auth';
 import { doc, setDoc, deleteDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { getStoredLastLogin, LastLoginInfo } from '../lib/notificationService';
-import { getUserGeolocation, getAdminMatchedLocationForUser, getNeighborhoodFromCoords } from '../lib/visitorTracker';
+import { getUserGeolocationIfGranted, getAdminMatchedLocationForUser, getNeighborhoodFromCoords } from '../lib/visitorTracker';
 import { LocationPermissionModal } from './LocationPermissionModal';
 
 interface ProfileEditModalProps {
@@ -108,8 +108,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         }).catch(() => {});
       }
 
-      // 3. Fallback to live browser geolocation if recorded
-      getUserGeolocation().then(coords => {
+      // 3. Fallback to live browser geolocation if ALREADY recorded/granted
+      getUserGeolocationIfGranted().then(coords => {
         if (coords) {
           setLastLoginInfo(prev => {
             if (prev?.lat && prev?.lng && (prev.lat !== adminMatched.lat || prev.lng !== adminMatched.lng)) {

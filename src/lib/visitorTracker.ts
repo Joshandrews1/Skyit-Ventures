@@ -55,6 +55,25 @@ export const getUserGeolocation = (): Promise<{ lat: number; lng: number } | nul
   });
 };
 
+// Returns coordinates ONLY if geolocation permission is ALREADY granted by user
+// This ensures background visitors or page loads NEVER prompt the browser permission dialog automatically
+export const getUserGeolocationIfGranted = async (): Promise<{ lat: number; lng: number } | null> => {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as any });
+      if (permissionStatus.state !== 'granted') {
+        return null; // Do NOT trigger browser permission popup on visit!
+      }
+    } else {
+      return null;
+    }
+  } catch (e) {
+    return null;
+  }
+  return getUserGeolocation();
+};
+
 // Log a site visit event to Firestore
 export const logSiteVisit = async (pageName: string = 'home'): Promise<void> => {
   try {
@@ -69,7 +88,8 @@ export const logSiteVisit = async (pageName: string = 'home'): Promise<void> => 
       device = 'mobile';
     }
 
-    const coords = await getUserGeolocation();
+    // Only fetch coordinates if user has ALREADY granted permission previously
+    const coords = await getUserGeolocationIfGranted();
 
     const visitData: Record<string, any> = {
       sessionId,
@@ -261,8 +281,8 @@ export const logUserLoginPinpoint = async (
       device = 'mobile';
     }
 
-    // Attempt real browser geolocation first
-    const coords = await getUserGeolocation();
+    // Only attempt real browser geolocation if already granted
+    const coords = await getUserGeolocationIfGranted();
 
     let finalLat: number;
     let finalLng: number;

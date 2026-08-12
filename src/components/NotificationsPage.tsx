@@ -238,6 +238,32 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
           {(selectedNotifDetail.type === 'security' || selectedNotifDetail.metadata?.location) && (
             <div className="space-y-4">
               
+              {/* Security Location Permission Banner Callout */}
+              <div className="bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-slate-900 border-2 border-amber-500/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/40 shrink-0 mt-0.5">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>Security & Live Location Footprint</span>
+                    </h4>
+                    <p className="text-xs text-slate-200 leading-relaxed max-w-2xl">
+                      Allowing location access on SkyIT verifies your active login coordinates on the map, helping our automated fraud detection shield your account against unauthorized access attempts.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 shrink-0 active:scale-95"
+                >
+                  <MapPin size={14} className="fill-slate-950 text-amber-400" />
+                  <span>Allow Location Access</span>
+                </button>
+              </div>
+
               {/* Geolocation Footprint Telemetry Badges */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-amber-500/30 space-y-1">
@@ -583,6 +609,14 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
 
           {/* Quick Actions */}
           <div className="flex items-center justify-center sm:justify-start w-full md:w-auto gap-3 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsLocationModalOpen(true)}
+              className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/60 font-extrabold px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 active:scale-95"
+            >
+              <MapPin size={15} className="text-amber-400" />
+              <span>Enable Security Location</span>
+            </button>
             {!userEmail && onOpenLogin && (
               <button
                 type="button"
