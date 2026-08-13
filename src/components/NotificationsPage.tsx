@@ -38,6 +38,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   const [copiedCoords, setCopiedCoords] = useState<boolean>(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isDetailMenuOpen, setIsDetailMenuOpen] = useState<boolean>(false);
+  const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
 
   // Sync prop changes with internal state
   useEffect(() => {
@@ -341,18 +342,20 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[#b3c5ff] transition-all cursor-pointer active:scale-95"
-          >
-            <CheckCheck size={14} />
-            <span>Mark all read</span>
-          </button>
+          {itemsList.length > 0 && itemsList.some(n => !n.read) && (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[#b3c5ff] transition-all cursor-pointer active:scale-95"
+            >
+              <CheckCheck size={14} />
+              <span>Mark all read</span>
+            </button>
+          )}
           {itemsList.length > 0 && (
             <button
               type="button"
-              onClick={handleClearAll}
+              onClick={() => setShowClearConfirm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-xs font-semibold text-rose-400 transition-all cursor-pointer active:scale-95"
             >
               <Trash2 size={14} />
@@ -471,6 +474,44 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Clear All Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#171b27] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto text-rose-400">
+              <Trash2 size={28} />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-white">Clear All Notifications?</h3>
+              <p className="text-sm text-[#8c90a0]">
+                Are you sure you want to delete all notifications? This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-semibold text-white transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleClearAll();
+                  setShowClearConfirm(false);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

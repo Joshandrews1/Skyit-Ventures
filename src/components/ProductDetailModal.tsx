@@ -42,6 +42,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isAdded, setIsAdded] = useState<boolean>(false);
 
   // Inline edit state
+  const [adminModeOn, setAdminModeOn] = useState<boolean>(() => localStorage.getItem('skyit_admin_mode_enabled') === 'true');
+
+  useEffect(() => {
+    setAdminModeOn(localStorage.getItem('skyit_admin_mode_enabled') === 'true');
+  }, [product]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editName, setEditName] = useState(product?.name || '');
   const [editCategory, setEditCategory] = useState(product?.category || 'Solar Panels');
@@ -314,7 +319,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   const formatNaira = (val: number) => {
-    return "₦" + Math.floor(val).toLocaleString();
+    return "₦" + Math.floor(val).toLocaleString('en-US').replace(/[\s\u00A0\u202F]+/g, '');
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -377,7 +382,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       <div className="bg-white rounded-2xl max-w-6xl mx-auto w-full shadow-sm relative flex flex-col border border-slate-200">
         
         {/* Close Button -> Back Button */}
-        <div className="flex justify-between items-center px-4 sm:px-6 py-4 border-b border-slate-200 bg-white rounded-t-2xl">
+        <div className="flex flex-wrap justify-between items-center gap-3 px-4 sm:px-6 py-4 border-b border-slate-200 bg-white rounded-t-2xl">
           <button 
             onClick={onClose}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-semibold text-sm cursor-pointer hover:bg-slate-50 px-3 py-1.5 rounded-lg border border-transparent hover:border-slate-200"
@@ -386,7 +391,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             Back to Catalog
           </button>
 
-          {isAdmin && (
+          {isAdmin && (adminModeOn || localStorage.getItem('skyit_admin_mode_enabled') === 'true') && (
             <button
               onClick={() => setIsEditMode(prev => !prev)}
               className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider py-1.5 px-3.5 rounded-xl border transition-all cursor-pointer shadow-2xs ${

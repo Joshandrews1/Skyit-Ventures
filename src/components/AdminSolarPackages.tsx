@@ -331,21 +331,21 @@ export const AdminSolarPackages: React.FC = () => {
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-brand/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2 flex-1">
             <div className="inline-flex items-center gap-2 bg-brand/20 border border-brand/30 rounded-full px-3 py-1 text-[11px] font-bold tracking-wider uppercase text-sky-300">
               <Zap size={13} className="text-amber-400" />
               <span>Official Promo Pricing Engine</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-display font-extrabold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-extrabold text-white tracking-tight">
               Solar Package Costs & Specifications
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
               Manage system prices, battery specs, solar panel quantities, and load capabilities live. Any price adjustment saved here updates quotes and checkout across the store instantly.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 shrink-0 pt-2 lg:pt-0">
             <button
               onClick={handleOpenCreateModal}
               className="px-4 py-2.5 rounded-2xl bg-brand hover:bg-brand-dark text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-brand/20 transition-all cursor-pointer active:scale-95"
@@ -792,11 +792,11 @@ export const AdminSolarPackages: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-700 block">Package Description</label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Summary description for quote generator and product details..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand/20 focus:outline-hidden"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand/20 focus:outline-hidden resize-y min-h-[70px]"
                 />
               </div>
 

@@ -232,8 +232,6 @@ export function subscribeUserNotifications(
   userId: string | undefined,
   onUpdate: (notifications: UserNotification[]) => void
 ): () => void {
-  const localNotifs = getLocalNotifications();
-
   // If no authenticated user email or id, return empty array to protect user privacy
   if (!userEmail && !userId) {
     onUpdate([]);
@@ -246,24 +244,20 @@ export function subscribeUserNotifications(
     const q = query(notifsRef, where('userEmail', '==', userEmail));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const remoteNotifs: UserNotification[] = [];
-      snapshot.forEach(docSnap => {
-        remoteNotifs.push(docSnap.data() as UserNotification);
-      });
-
-      // Merge remote & local by ID
+      const currentLocal = getLocalNotifications();
       const notifMap = new Map<string, UserNotification>();
       
-      // Add local notifications relevant to this user or guest
-      localNotifs.forEach(n => {
-        if (!n.userEmail || n.userEmail === userEmail || (userId && n.userId === userId)) {
+      // Preserve local-only notifications that don't match this user's email
+      currentLocal.forEach(n => {
+        if (!n.userEmail || (n.userEmail && n.userEmail !== userEmail)) {
           notifMap.set(n.id, n);
         }
       });
 
-      // Override with remote ones
-      remoteNotifs.forEach(n => {
-        notifMap.set(n.id, n);
+      // Add active notifications from Firestore for this user
+      snapshot.forEach(docSnap => {
+        const notif = docSnap.data() as UserNotification;
+        notifMap.set(notif.id, notif);
       });
 
       const combined = Array.from(notifMap.values()).sort(
@@ -274,14 +268,16 @@ export function subscribeUserNotifications(
       onUpdate(combined);
     }, (error) => {
       console.warn("Firestore notification snapshot warning, falling back to local:", error);
-      const filtered = localNotifs.filter(n => !n.userEmail || n.userEmail === userEmail || n.userId === userId);
+      const currentLocal = getLocalNotifications();
+      const filtered = currentLocal.filter(n => !n.userEmail || n.userEmail === userEmail || (userId && n.userId === userId));
       onUpdate(filtered);
     });
 
     return unsubscribe;
   } catch (err) {
     console.warn("Failed to subscribe user notifications:", err);
-    const filtered = localNotifs.filter(n => !n.userEmail || n.userEmail === userEmail || n.userId === userId);
+    const currentLocal = getLocalNotifications();
+    const filtered = currentLocal.filter(n => !n.userEmail || n.userEmail === userEmail || (userId && n.userId === userId));
     onUpdate(filtered);
     return () => {};
   }

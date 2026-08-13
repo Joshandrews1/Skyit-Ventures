@@ -400,13 +400,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                               {item.subtitle}
                             </p>
 
-                            <div className="flex items-baseline gap-2 pt-1 font-mono">
-                              <span className="text-base font-black text-amber-300">
-                                ₦{item.price.toLocaleString('en-US').replace(/\s+/g, '')}
+                            <div className="flex items-baseline gap-2 pt-1 font-sans">
+                              <span className="text-base font-black text-amber-300 tracking-tight">
+                                ₦{item.price.toLocaleString('en-US').replace(/[\s\u00A0\u202F]+/g, '')}
                               </span>
                               {item.originalPrice && item.originalPrice > item.price && (
                                 <span className="text-xs text-slate-500 line-through">
-                                  ₦{item.originalPrice.toLocaleString('en-US').replace(/\s+/g, '')}
+                                  ₦{item.originalPrice.toLocaleString('en-US').replace(/[\s\u00A0\u202F]+/g, '')}
                                 </span>
                               )}
                             </div>

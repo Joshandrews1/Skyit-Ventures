@@ -953,7 +953,7 @@ export const AdminBlogPanel: React.FC<AdminBlogPanelProps> = ({
                 placeholder="Crisp short summary highlighting key takeaways..."
                 value={formData.excerpt}
                 onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand shadow-2xs"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand shadow-2xs resize-y min-h-[60px]"
               />
             </div>
 
@@ -966,7 +966,7 @@ export const AdminBlogPanel: React.FC<AdminBlogPanelProps> = ({
                 placeholder="Write the comprehensive article here using markdown headers, bullet points, and technical specs..."
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand font-mono leading-relaxed shadow-2xs"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand font-mono leading-relaxed shadow-2xs resize-y min-h-[160px]"
               />
             </div>
 

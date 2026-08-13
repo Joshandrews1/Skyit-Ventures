@@ -1189,7 +1189,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
               onChange={(e) => setAiDraft(e.target.value)}
               placeholder="e.g. Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, original price ₦1,850,000, features 20% promotional discount..."
               rows={3}
-              className="w-full bg-slate-950/70 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 rounded-xl p-3 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors resize-none leading-relaxed font-sans"
+              className="w-full bg-slate-950/70 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 rounded-xl p-3 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors resize-y min-h-[80px] leading-relaxed font-sans"
             />
             
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1282,7 +1282,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide a compelling commercial and engineering description of the product and its target performance environment..."
               rows={3}
-              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 p-2.5 rounded-xl focus:border-brand focus:outline-hidden leading-relaxed"
+              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 p-2.5 rounded-xl focus:border-brand focus:outline-hidden leading-relaxed resize-y min-h-[70px]"
               required
             />
           </div>

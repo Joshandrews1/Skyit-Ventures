@@ -674,7 +674,7 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                   <div className="bg-[#0066ff]/10 border border-[#0066ff]/30 p-4 rounded-xl text-center space-y-2">
                     <div className="text-[10px] uppercase font-bold text-[#0066ff] tracking-widest">Recommended Package</div>
                     <h5 className="font-display font-black text-white text-base">{recommendedPackage.name}</h5>
-                    <div className="text-sm font-black text-white font-mono">₦{recommendedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</div>
+                    <div className="text-sm font-black text-white font-sans tracking-tight">₦{recommendedPackage.price.toLocaleString('en-US').replace(/[\s\u00A0\u202F]+/g, '')}</div>
                     <p className="text-[11px] text-[#c2c6d8] leading-normal">{recommendedPackage.description}</p>
                   </div>
 
@@ -936,8 +936,8 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
                   {/* Pricing Header */}
                   <div className="py-1">
                     <span className="text-[10px] font-bold text-[#8e95b0] uppercase tracking-widest block">Deployment Cost</span>
-                    <span className="text-lg sm:text-xl font-mono font-black text-white leading-none">
-                      ₦{pkg.price.toLocaleString('en-US').replace(/\s+/g, '')}
+                    <span className="text-lg sm:text-xl font-sans tracking-tight font-black text-white leading-none">
+                      ₦{pkg.price.toLocaleString('en-US').replace(/[\s\u00A0\u202F]+/g, '')}
                     </span>
                   </div>
 

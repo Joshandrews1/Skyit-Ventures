@@ -1030,7 +1030,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
               value={narrativeInput}
               onChange={(e) => setNarrativeInput(e.target.value)}
               placeholder="Paste unstructured notes from lead engineer or clients here... (e.g., 'Sized a 5kva system for Chief Adenuga in Delta, 1 fridge, 3 lighting fixtures, wants tubular cells, total is ₦1.9M...')"
-              className="w-full h-32 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-800 placeholder-slate-400 resize-none font-sans"
+              className="w-full h-32 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden text-slate-800 placeholder-slate-400 resize-y min-h-[96px] font-sans"
               disabled={isGeneratingQuote}
             />
 
@@ -1272,7 +1272,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
                   <textarea
                     value={quoteResult.proposalText}
                     onChange={(e) => setQuoteResult({ ...quoteResult, proposalText: e.target.value })}
-                    className="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-brand text-slate-800 font-sans resize-none"
+                    className="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-brand text-slate-800 font-sans resize-y min-h-[60px]"
                   />
                 </div>
 
@@ -1886,7 +1886,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
                             <textarea 
                               value={editAddress}
                               onChange={(e) => setEditAddress(e.target.value)}
-                              className="w-full bg-white border border-slate-205 rounded-lg p-2 text-[11px] text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-brand h-12"
+                              className="w-full bg-white border border-slate-205 rounded-lg p-2 text-[11px] text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-brand h-12 resize-y min-h-[48px]"
                               placeholder="Installation Address"
                             />
                           </div>
