@@ -33,6 +33,7 @@ interface FullHomePageProps {
   onOpenWishlist?: () => void;
   blogPosts?: BlogPost[];
   onSelectBlogPost?: (post: BlogPost) => void;
+  onTrackOrder?: (orderId: string) => void;
 }
 
 export const FullHomePage: React.FC<FullHomePageProps> = ({
@@ -61,6 +62,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
   onOpenWishlist,
   blogPosts,
   onSelectBlogPost,
+  onTrackOrder,
 }) => {
   // Navigation & Search Controls State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -399,6 +401,16 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
   const [trackingInputId, setTrackingInputId] = useState('');
   const [activeTrackingStep, setActiveTrackingStep] = useState(0);
 
+  const handleTrackOrderSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = trackingInputId.trim();
+    if (onTrackOrder) {
+      onTrackOrder(trimmed);
+    } else {
+      onNavigate('tracker');
+    }
+  };
+
   // Auto-playing continuous loop for live deployment progress
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -435,7 +447,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
       
       <main>
         {/* Section 2: Hero & Load Calculator */}
-        <section className="relative min-h-[850px] flex flex-col items-center justify-center pt-16 pb-12 px-2.5 sm:px-10 overflow-x-clip">
+        <section className="relative min-h-[850px] flex flex-col items-center justify-center pt-16 pb-12 px-2.5 sm:px-10">
           <div className="relative z-10 max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
             {/* Left Hero Text */}
@@ -601,270 +613,28 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
             ) : null}
           </div>
 
-          {/* Solar Packages Sizing Widget */}
-          <div id="tour-home-packages" className="relative z-10 mt-16 w-full max-w-7xl glass-card rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 space-y-5 sm:space-y-6">
-            {/* Header & Tech Switcher Bar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
-              <div className="space-y-1">
-                <h3 className="text-xl sm:text-2xl font-black text-[#b3c5ff]">Solar Packages</h3>
-                <p className="text-xs sm:text-sm text-[#c2c6d8]">Select battery technology & package to inspect load capacity and system specs.</p>
-              </div>
-              
-              {/* Battery Tech Switcher */}
-              <div className="flex bg-[#303541] p-1 rounded-xl gap-1 shrink-0 self-start md:self-auto w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCalcTech('lithium');
-                    setCalcPkgId(SOLAR_PACKAGES.lithium[0].id);
-                  }}
-                  className={`flex-1 sm:flex-none py-2 px-3 sm:px-4 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                    calcTech === 'lithium' ? 'bg-[#0066ff] text-white shadow-md' : 'text-[#c2c6d8] hover:text-white'
-                  }`}
-                >
-                  Lithium Tech (5)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCalcTech('tubular');
-                    setCalcPkgId(SOLAR_PACKAGES.tubular[0].id);
-                  }}
-                  className={`flex-1 sm:flex-none py-2 px-3 sm:px-4 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                    calcTech === 'tubular' ? 'bg-[#0066ff] text-white shadow-md' : 'text-[#c2c6d8] hover:text-white'
-                  }`}
-                >
-                  Tubular Tech (5)
-                </button>
-              </div>
-            </div>
-
-            {/* Package Selector Pills Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5 w-full">
-              {currentTechPackages.map((pkg) => {
-                const isSelected = pkg.id === currentCalcPackage.id;
-                return (
-                  <button
-                    key={pkg.id}
-                    type="button"
-                    onClick={() => setCalcPkgId(pkg.id)}
-                    className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                      isSelected
-                        ? 'bg-[#0066ff]/25 border-[#0066ff] text-white shadow-lg ring-2 ring-[#0066ff]/60 scale-[1.02]'
-                        : 'bg-[#182030] border-white/10 hover:border-[#b3c5ff]/40 text-[#dee2f2]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs font-black text-blue-300">{pkg.kva}</span>
-                      {isSelected && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
-                    </div>
-                    <span className="text-xs font-bold truncate w-full">{pkg.name.replace(/\(Lithium\)|\(Standard\)|\(Extended\)|\(Premium\)/g, '').trim()}</span>
-                    <span className="text-[11px] font-black text-emerald-400">₦{(pkg.price / 1000000).toFixed(2)}M</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Full Width Package Details Panel */}
-            <div className="w-full bg-gradient-to-br from-[#1b2438] via-[#131926] to-[#0c101a] rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 border-2 border-[#0066ff]/40 shadow-2xl shadow-blue-950/50 flex flex-col justify-between space-y-4 sm:space-y-6 relative overflow-hidden group">
-              {/* Glowing Background Accent Sphere */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#0066ff]/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative z-10 flex justify-between items-start flex-wrap gap-3">
-                <div className="space-y-0.5">
-                  <span className="text-[11px] leading-[16px] text-blue-400 uppercase font-extrabold tracking-widest flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                    Estimated System Capacity
-                  </span>
-                  <div className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                    {currentCalcPackage.kva}
-                  </div>
-                </div>
-                <div className="text-left sm:text-right">
-                  <span className="text-[10px] sm:text-[11px] leading-[16px] text-slate-400 uppercase font-bold tracking-wider block">Recommended Inverter System</span>
-                  <div className="text-sm sm:text-lg font-extrabold text-blue-200 max-w-xs">{currentCalcPackage.name}</div>
-                </div>
-              </div>
-
-              {/* Package Specs, Battery Used & Powered Appliances */}
-              <div className="relative z-10 bg-[#0b0e17]/90 rounded-xl sm:rounded-2xl p-3.5 sm:p-6 border border-blue-500/30 shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-                  <div>
-                    <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider block">Official Package Price</span>
-                    <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">₦{currentCalcPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={(e) => handleAddPackageToCart(currentCalcPackage, e)}
-                      className="flex-1 sm:flex-initial justify-center px-4 sm:px-6 py-3 rounded-xl bg-[#0066ff] hover:bg-[#0052cc] text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-blue-600/30 hover:scale-[1.02] active:scale-95"
-                    >
-                      <span>Order Package Now</span>
-                      <span className="material-symbols-outlined text-base">shopping_cart</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (onConsultPackage) {
-                          onConsultPackage(currentCalcPackage);
-                        } else {
-                          onNavigate('ai');
-                        }
-                      }}
-                      className="px-3.5 py-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 hover:scale-[1.02] shrink-0"
-                      title="Consult AI Assistant about this package"
-                    >
-                      <span className="material-symbols-outlined text-amber-400 text-base">auto_awesome</span>
-                      <span className="hidden xl:inline">AI Advisor</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Battery & Panel Specs Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                  <div className="bg-[#151b28] p-3.5 rounded-xl border border-blue-500/20 flex items-start gap-3 shadow-sm">
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-                      <span className="material-symbols-outlined text-xl">battery_charging_full</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Battery Included</span>
-                      <span className="text-xs sm:text-sm font-bold text-white">{currentCalcPackage.batteryInfo}</span>
-                    </div>
-                  </div>
-                  <div className="bg-[#151b28] p-3.5 rounded-xl border border-amber-500/20 flex items-start gap-3 shadow-sm">
-                    <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400">
-                      <span className="material-symbols-outlined text-xl">solar_power</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Solar Panels Included</span>
-                      <span className="text-xs sm:text-sm font-bold text-white">{currentCalcPackage.panels}x Solar Panels</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Usage Profile Modes Switcher (Max, Average, Daytime Solar, Night Battery) */}
-                <div className="pt-2">
-                  <PackageUsageModeSelector pkg={currentCalcPackage} theme="dark" />
-                </div>
-              </div>
-
-              {/* Notice for Custom Packages above 10kVA */}
-              <div className="relative z-10 bg-gradient-to-r from-[#0066ff]/20 via-[#131926] to-[#0066ff]/20 border border-[#0066ff]/40 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-md">
-                <div className="space-y-0.5">
-                  <span className="text-xs font-extrabold text-blue-300 uppercase tracking-wider flex items-center justify-center sm:justify-start gap-1">
-                    <span className="material-symbols-outlined text-amber-400 text-sm">precision_manufacturing</span>
-                    Need Power Above 10kVA? (15kVA - 100kVA+ Custom Systems)
-                  </span>
-                  <p className="text-xs text-slate-300">
-                    We custom-engineer commercial high-voltage solar systems, factory mini-grids, and estate power arrays.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('quote')}
-                  className="shrink-0 bg-[#222938] hover:bg-[#0066ff] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all border border-white/10 hover:border-transparent cursor-pointer active:scale-95 flex items-center gap-1 shadow-md"
-                >
-                  <span>Request Custom Mega-Quote</span>
-                  <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                </button>
-              </div>
-              
-              <div className="relative z-10">
-                <div className="h-3 w-full bg-[#131926] rounded-full overflow-hidden p-0.5 border border-white/5">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-500 shadow-sm" 
-                    style={{ width: `${Math.min(100, Math.max(20, ((parseFloat(currentCalcPackage.kva) || 1.5) / 10) * 100))}%` }}
-                  />
-                </div>
-                <div className="mt-2.5 flex justify-between text-xs font-bold text-slate-400">
-                  <span>1.5 kVA Starter</span>
-                  <span className="text-blue-300">{currentCalcPackage.kva} Package Capacity</span>
-                  <span>10.0 kVA Max Standard</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Live Metrics Bar */}
-          <div className="relative z-10 mt-12 w-full max-w-5xl flex flex-wrap justify-center gap-8 sm:gap-12 py-6 border-y border-white/5">
-            <div className="flex flex-col items-center text-center">
-              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
-                <AnimatedStatCounter target={8.4} decimals={1} suffix=" MW+" duration={2000} />
-              </span>
-              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Clean Power Generated</span>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
-                <AnimatedStatCounter target={1240} decimals={0} formatComma={true} suffix="+" duration={2200} />
-              </span>
-              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Industrial Sites Active</span>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
-                <AnimatedStatCounter target={99.9} decimals={1} suffix="%" duration={2000} />
-              </span>
-              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Uptime Reliability</span>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
-                <AnimatedStatCounter target={24} secondTarget={7} suffix="" duration={1800} />
-              </span>
-              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Monitoring Active</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 3: Technical Pillars */}
-        <section className="py-20 sm:py-24 px-4 sm:px-10 max-w-[1440px] mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
-              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">bolt</span>
-              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">MPPT Inverters</h4>
-              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">High-efficiency tracking for 30% more energy harvest than PWM systems.</p>
-            </div>
-            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
-              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">battery_charging_full</span>
-              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">LFP Lithium</h4>
-              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">Premium LiFePO4 cells with 6000+ cycle life and 10-year warranty design.</p>
-            </div>
-            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
-              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">wb_sunny</span>
-              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">Mono Panels</h4>
-              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">Tier-1 Monocrystalline PERC panels for peak performance in low light.</p>
-            </div>
-            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
-              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">local_shipping</span>
-              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">Nationwide</h4>
-              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">Secure logistics and expert installation teams across all Nigerian states.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 6: Interactive Energy Audit Tool */}
-        <section className="py-20 sm:py-24 px-4 sm:px-10">
-          <div id="tour-home-audit" className="max-w-[1440px] mx-auto glass-card rounded-[3rem] p-6 sm:p-12 relative border border-white/10 shadow-2xl">
-            <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#0066ff]/10 to-transparent pointer-events-none"></div>
-            
+          {/* Section 2: Interactive Precision Energy Audit Tool (Primary Hero Sizing Tool) */}
+          <div id="tour-home-audit" className="relative z-10 mt-16 w-full max-w-7xl glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 space-y-6 border border-white/10 shadow-2xl">
             {/* Calculator Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-white/10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-white/10">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0066ff]/20 text-[#b3c5ff] border border-[#0066ff]/30 text-xs font-bold uppercase tracking-wider mb-2">
                   <span className="material-symbols-outlined text-sm">tune</span>
                   SkyIT Precision Sizing Engine
                 </div>
-                <h2 className="text-[28px] sm:text-[34px] leading-[36px] sm:leading-[42px] font-black text-[#dee2f2]">
+                <h2 className="text-[26px] sm:text-[32px] leading-[34px] sm:leading-[40px] font-black text-[#dee2f2]">
                   Precision Energy Audit
                 </h2>
-                <p className="text-[14px] sm:text-[15px] text-[#c2c6d8] mt-1">
+                <p className="text-[13px] sm:text-[15px] text-[#c2c6d8] mt-1">
                   Adjust appliance quantities below to calculate your realistic power demand and instantly find your best solar package match.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-12 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
-              {/* Left Column: Appliance Load Selector & Pro Engineer Controls */}
-              <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-24 self-start">
+              {/* Left Column: Appliance Load Selector & Presets */}
+              <div className="lg:col-span-7 space-y-5 lg:sticky lg:top-24 self-start">
                 
                 {/* Simultaneous Load Explanation Notice */}
                 <div className="p-3.5 rounded-2xl bg-[#171b27] border border-[#0066ff]/30 flex items-start gap-3">
@@ -948,8 +718,8 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                 </div>
               </div>
 
-              {/* Right Column: Live Calculation Output & Best Matched Package Order Card */}
-              <div className="lg:col-span-5 bg-[#303541] rounded-3xl p-4 sm:p-8 space-y-5 flex flex-col justify-between shadow-2xl border border-white/10">
+              {/* Right Column: Live Calculation Output & Best Matched Package */}
+              <div className="lg:col-span-5 bg-[#303541] rounded-3xl p-4 sm:p-7 space-y-5 flex flex-col justify-between shadow-2xl border border-white/10">
                 <div className="space-y-4 text-center sm:text-left">
                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                     <div>
@@ -1153,10 +923,84 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
               </div>
 
             </div>
+
+            {/* Link Bar: View All Solar Packages */}
+            <div className="pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-center sm:text-left space-y-0.5">
+                <span className="text-xs font-bold text-[#b3c5ff] uppercase tracking-wider block">Prefer Pre-Configured Turnkey Solar Packages?</span>
+                <p className="text-xs text-[#c2c6d8]">Explore our standard Lithium & Tubular solar packages with complete price & hardware breakdowns.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectCategory('Solar Packages');
+                  onNavigate('shop');
+                }}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-[#0066ff] to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 active:scale-95 shrink-0"
+              >
+                <span className="material-symbols-outlined text-base">inventory_2</span>
+                <span>View All Solar Packages in Shop</span>
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Live Metrics Bar */}
+          <div className="relative z-10 mt-12 w-full max-w-5xl flex flex-wrap justify-center gap-8 sm:gap-12 py-6 border-y border-white/5">
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
+                <AnimatedStatCounter target={8.4} decimals={1} suffix=" MW+" duration={2000} />
+              </span>
+              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Clean Power Generated</span>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
+                <AnimatedStatCounter target={1240} decimals={0} formatComma={true} suffix="+" duration={2200} />
+              </span>
+              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Industrial Sites Active</span>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
+                <AnimatedStatCounter target={99.9} decimals={1} suffix="%" duration={2000} />
+              </span>
+              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Uptime Reliability</span>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[20px] sm:text-[24px] font-extrabold text-[#dee2f2]">
+                <AnimatedStatCounter target={24} secondTarget={7} suffix="" duration={1800} />
+              </span>
+              <span className="text-[12px] leading-[16px] uppercase text-[#b3c5ff] font-bold mt-1">Monitoring Active</span>
+            </div>
           </div>
         </section>
 
-        {/* Section 5: Hardware Shop */}
+        {/* Section 3: Technical Pillars */}
+        <section className="py-20 sm:py-24 px-4 sm:px-10 max-w-[1440px] mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
+              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">bolt</span>
+              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">MPPT Inverters</h4>
+              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">High-efficiency tracking for 30% more energy harvest than PWM systems.</p>
+            </div>
+            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
+              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">battery_charging_full</span>
+              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">LFP Lithium</h4>
+              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">Premium LiFePO4 cells with 6000+ cycle life and 10-year warranty design.</p>
+            </div>
+            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
+              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">wb_sunny</span>
+              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">Mono Panels</h4>
+              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">Tier-1 Monocrystalline PERC panels for peak performance in low light.</p>
+            </div>
+            <div className="glass-card p-8 rounded-3xl space-y-4 hover:translate-y-[-8px] transition-all duration-300">
+              <span className="material-symbols-outlined text-4xl text-[#b3c5ff]">local_shipping</span>
+              <h4 className="text-[24px] leading-[32px] font-bold text-[#dee2f2]">Nationwide</h4>
+              <p className="text-[16px] leading-[24px] text-[#c2c6d8]">Secure logistics and expert installation teams across all Nigerian states.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4: Hardware Shop */}
         <section id="tour-home-shop" className="py-16 sm:py-20 px-4 sm:px-10 max-w-[1440px] mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
             <div>
@@ -1331,7 +1175,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
             <p className="text-[15px] sm:text-[18px] leading-[22px] sm:leading-[28px] text-[#c2c6d8] mt-2">Real-time logistics monitoring for your hardware delivery.</p>
           </div>
           <div id="tour-home-tracking" className="max-w-3xl mx-auto glass-card rounded-2xl sm:rounded-[2.5rem] p-3.5 sm:p-12 space-y-6 sm:space-y-8">
-            <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
+            <form onSubmit={handleTrackOrderSubmit} className="flex flex-col md:flex-row gap-3 sm:gap-4">
               <input 
                 type="text"
                 value={trackingInputId}
@@ -1340,12 +1184,12 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                 placeholder="Enter Tracking ID (e.g., SK-98231)"
               />
               <button 
-                onClick={() => onNavigate('tracker')}
+                type="submit"
                 className="bg-[#0066ff] text-[#f8f7ff] px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold text-[14px] leading-[20px] cursor-pointer hover:bg-[#0052cc] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shrink-0"
               >
                 <span>Track Order</span>
               </button>
-            </div>
+            </form>
 
             {/* Live Status Badge Banner */}
             <div className="bg-[#0e131e]/90 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-5 flex flex-col gap-2.5 text-left">

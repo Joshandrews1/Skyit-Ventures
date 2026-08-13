@@ -287,15 +287,15 @@ export function subscribeUserNotifications(
   }
 }
 
-// Mark a single notification as read
-export async function markNotificationAsRead(notificationId: string) {
+// Mark a single notification as read or unread
+export async function markNotificationAsRead(notificationId: string, read: boolean = true) {
   const current = getLocalNotifications();
-  const updated = current.map(n => n.id === notificationId ? { ...n, read: true } : n);
+  const updated = current.map(n => n.id === notificationId ? { ...n, read } : n);
   saveLocalNotifications(updated);
 
   try {
     const docRef = doc(db, 'user_notifications', notificationId);
-    await updateDoc(docRef, { read: true });
+    await updateDoc(docRef, { read });
   } catch (e) {
     console.warn("Firestore markRead warning:", e);
   }
@@ -338,5 +338,24 @@ export async function deleteNotification(notificationId: string) {
     await deleteDoc(docRef);
   } catch (e) {
     console.warn("Firestore deleteNotification warning:", e);
+  }
+}
+
+// Clear all notifications for a user or guest
+export async function clearAllNotifications(userEmail?: string) {
+  const current = getLocalNotifications();
+  const updated = userEmail ? current.filter(n => n.userEmail && n.userEmail !== userEmail) : [];
+  saveLocalNotifications(updated);
+
+  if (userEmail) {
+    try {
+      const q = query(collection(db, 'user_notifications'), where('userEmail', '==', userEmail));
+      const snap = await getDocs(q);
+      snap.forEach(async (d) => {
+        await deleteDoc(doc(db, 'user_notifications', d.id)).catch(() => {});
+      });
+    } catch (e) {
+      console.warn("Firestore clearAllNotifications warning:", e);
+    }
   }
 }

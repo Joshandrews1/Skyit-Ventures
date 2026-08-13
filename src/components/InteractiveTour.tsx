@@ -87,21 +87,12 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
       icon: Search
     },
     {
-      id: 'home-packages',
-      targetId: 'tour-home-packages',
-      title: 'System Sizing & Battery Selector ⚡',
-      description: 'Compare Lithium-ion vs Tubular battery configurations. Inspect live system capacities, solar array requirements, and backup runtimes for 1.5kVA to 10kVA setups.',
-      tab: 'home',
-      badge: '3. Solar Capacity Sizer',
-      icon: Zap
-    },
-    {
       id: 'home-audit',
       targetId: 'tour-home-audit',
-      title: 'Precision Load Audit & PDF Export 🧮',
-      description: 'Calculate household power loads by adjusting appliance counts (bulbs, fans, TV, fridge, AC). Get instant KVA recommendations and download official PDF audit specs.',
+      title: 'Precision Load Audit & System Sizer 🧮',
+      description: 'Calculate household power loads by adjusting appliance counts (bulbs, fans, TV, fridge, AC). Get instant KVA recommendations, matched packages, and download official PDF audit specs.',
       tab: 'home',
-      badge: '4. Energy Load Audit',
+      badge: '3. Energy Load Audit',
       icon: Calculator
     },
     {
@@ -124,12 +115,13 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({
     },
     {
       id: 'notifications-center',
+      targetId: 'tour-notifications-btn',
+      mobileTargetId: 'tour-notifications-btn',
       title: 'Notifications & Activity Center 🔔',
       description: 'Access real-time order status changes, delivery milestones, login security alerts, and custom customer notifications in one dedicated activity center.',
       tab: 'notifications',
       badge: '7. Activity Center',
-      icon: Bell,
-      noOverlay: true
+      icon: Bell
     },
     {
       id: 'login-fraud-protection',

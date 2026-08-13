@@ -33,7 +33,7 @@ import { InteractiveTour } from './components/InteractiveTour';
 import { RecentlyViewedPage } from './components/RecentlyViewedPage';
 import { NotificationsPage } from './components/NotificationsPage';
 import { UserNotification } from './types';
-import { subscribeUserNotifications, clearLocalNotifications } from './lib/notificationService';
+import { subscribeUserNotifications, clearLocalNotifications, markAllNotificationsAsRead } from './lib/notificationService';
 import { Compass, ClipboardList, LayoutDashboard, Info, ChevronDown, Phone, Home, BookOpen, UserCheck, Award, Heart, Settings, LogOut, Clock, Sun, Moon, Bell } from 'lucide-react';
 import { 
   ShoppingBag, 
@@ -1381,7 +1381,12 @@ export default function App() {
               {/* Wishlist Button (Desktop/Tablet Header - Hidden on Mobile) */}
               <button 
                 type="button"
-                onClick={() => setIsWishlistModalOpen(true)}
+                onClick={() => {
+                  setIsWishlistModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                  setIsUserDropdownOpen(false);
+                  setIsCartOpen(false);
+                }}
                 className="relative text-[#c2c6d8] hover:text-[#b3c5ff] p-2 rounded-xl border border-white/10 bg-[#171b27] hover:border-white/20 transition-all cursor-pointer hidden sm:flex items-center justify-center active:scale-95"
                 title="View Wishlist"
               >
@@ -1396,7 +1401,15 @@ export default function App() {
               {/* Notifications Activity Bell Button */}
               <button 
                 type="button"
-                onClick={() => { setActiveTab('notifications'); setSelectedProduct(null); }}
+                id="tour-notifications-btn"
+                onClick={() => { 
+                  setActiveTab('notifications'); 
+                  markAllNotificationsAsRead(currentUser?.email);
+                  setSelectedProduct(null); 
+                  setIsMobileMenuOpen(false);
+                  setIsUserDropdownOpen(false);
+                  setIsCartOpen(false);
+                }}
                 className={`relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
                   activeTab === 'notifications'
                     ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md shadow-amber-400/20'
@@ -1417,7 +1430,11 @@ export default function App() {
               <button 
                 type="button"
                 id="tour-cart-btn"
-                onClick={() => setIsCartOpen(true)}
+                onClick={() => {
+                  setIsCartOpen(true);
+                  setIsMobileMenuOpen(false);
+                  setIsUserDropdownOpen(false);
+                }}
                 className="relative bg-[#0066ff] text-white p-2 sm:px-4 sm:py-2 rounded-xl font-bold active:scale-95 duration-150 shadow-lg cursor-pointer hover:bg-[#0052cc] transition-all flex items-center gap-1.5 text-[13px]"
                 title="View Cart"
               >
@@ -1435,7 +1452,14 @@ export default function App() {
                 <div className="relative hidden sm:block pl-2 border-l border-white/10">
                   <button
                     type="button"
-                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    onClick={() => {
+                      const nextState = !isUserDropdownOpen;
+                      setIsUserDropdownOpen(nextState);
+                      if (nextState) {
+                        setIsMobileMenuOpen(false);
+                        setIsCartOpen(false);
+                      }
+                    }}
                     className="flex items-center gap-2 cursor-pointer p-1 rounded-xl hover:bg-white/5 transition-colors"
                   >
                     <div className="w-8 h-8 rounded-full bg-[#171b27] border border-white/20 flex items-center justify-center text-[#b3c5ff] font-bold text-xs shadow-inner overflow-hidden">
@@ -1462,6 +1486,8 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             setIsUserDropdownOpen(false);
+                            setIsMobileMenuOpen(false);
+                            setIsCartOpen(false);
                             setActiveTab('notifications');
                             setSelectedProduct(null);
                           }}
@@ -1481,6 +1507,8 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             setIsUserDropdownOpen(false);
+                            setIsMobileMenuOpen(false);
+                            setIsCartOpen(false);
                             setIsProfileOpen(true);
                           }}
                           className="w-full text-left px-3 py-2 text-xs text-[#dee2f2] hover:bg-white/5 flex items-center gap-2 cursor-pointer transition-colors"
@@ -1492,6 +1520,8 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             setIsUserDropdownOpen(false);
+                            setIsMobileMenuOpen(false);
+                            setIsCartOpen(false);
                             setActiveTab('admin');
                             setSelectedProduct(null);
                           }}
@@ -1506,6 +1536,8 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             setIsUserDropdownOpen(false);
+                            setIsMobileMenuOpen(false);
+                            setIsCartOpen(false);
                             handleLogout();
                           }}
                           className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer transition-colors font-bold"
@@ -1531,8 +1563,13 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsMobileMenuOpen(!isMobileMenuOpen);
-                  setIsMobileSearchExpanded(false);
+                  const nextState = !isMobileMenuOpen;
+                  setIsMobileMenuOpen(nextState);
+                  if (nextState) {
+                    setIsUserDropdownOpen(false);
+                    setIsCartOpen(false);
+                    setIsMobileSearchExpanded(false);
+                  }
                 }}
                 className="lg:hidden text-[#c2c6d8] hover:text-[#b3c5ff] p-2 rounded-xl border border-white/10 bg-[#171b27] transition-all active:scale-95 cursor-pointer flex items-center justify-center"
                 aria-label="Toggle navigation menu"
@@ -1947,6 +1984,13 @@ export default function App() {
               onSelectBlogPost={(post) => {
                 setSelectedBlogPost(post);
                 setActiveTab('blog');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onTrackOrder={(orderId) => {
+                if (orderId) {
+                  setTrackedOrderId(orderId);
+                }
+                setActiveTab('tracker');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             />
