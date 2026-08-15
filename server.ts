@@ -875,6 +875,9 @@ INSTRUCTIONS:
    - Extract 'extractedName' (the name of the item from the text).
    - Extract 'extractedPrice' (the price mentioned in the text, or 0 if none).
    - Extract 'rawTextSnippet' (the exact text line).
+   - Infer 'suggestedCategory' (one of: 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Smart Home', 'Accessories').
+   - Provide a professional 1-2 sentence 'suggestedDescription'.
+   - Extract any evident specs as key-value pairs in 'suggestedSpecs' (e.g. {"Capacity": "550W", "Brand": "Felicity", "Warranty": "2 Years"}).
    - Set 'reason' to "Product not found in store catalog".`;
 
   try {
@@ -923,6 +926,8 @@ INSTRUCTIONS:
                   extractedName: { type: Type.STRING, description: "Name of unmatched item in text" },
                   extractedPrice: { type: Type.NUMBER, description: "Price of unmatched item if present" },
                   rawTextSnippet: { type: Type.STRING, description: "Line or snippet in text" },
+                  suggestedCategory: { type: Type.STRING, description: "Inferred category e.g. Solar Panels, Inverters, Batteries, Security Systems, Accessories" },
+                  suggestedDescription: { type: Type.STRING, description: "AI generated professional product overview" },
                   reason: { type: Type.STRING, description: "Explanation why item was not matched" }
                 },
                 required: ["extractedName", "extractedPrice", "rawTextSnippet", "reason"]
@@ -1133,6 +1138,43 @@ We evaluated your power configuration profile for your home/office in **${city |
   }
 });
 
+// Helper: Classify query intent for zero-latency simple answers and selective catalog inclusion
+function classifyChatIntent(message: string, hasImages: boolean, historyLength: number) {
+  if (hasImages) {
+    return { isSimple: false, isGreeting: false };
+  }
+  
+  const cleanMsg = message.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
+
+  // Instant simple greetings (5ms response time)
+  const simpleGreetings = [
+    'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+    'hello there', 'hi there', 'greetings', 'welcome', 'howdy', 'yo', 'good day',
+    'thanks', 'thank you', 'thank u', 'okay', 'ok', 'alright', 'got it', 'great'
+  ];
+  if (simpleGreetings.includes(cleanMsg)) {
+    return { isSimple: true, isGreeting: true };
+  }
+
+  // Keywords that require catalog / package / pricing / load sizing lookup
+  const catalogKeywords = [
+    'price', 'cost', 'naira', '₦', 'package', 'kva', 'kw', 'inverter', 'battery', 
+    'panel', 'buy', 'recommend', 'how much', 'load', 'ac', 'air conditioner', 'fridge', 
+    'freezer', 'tv', 'pump', 'catalog', 'order', 'stock', 'cheap', 'tubular', 'lithium', 
+    'quote', 'sizing', 'cctv', 'camera', 'install', 'setup', 'purchase', 'discount',
+    'tub-', 'li-', 'prod-', 'what do you sell', 'which package', 'which system',
+    'recommendation', 'budget', 'solar system', 'how many panels', 'how many batteries'
+  ];
+
+  const needsCatalog = catalogKeywords.some(keyword => cleanMsg.includes(keyword));
+
+  if (!needsCatalog && historyLength < 3 && cleanMsg.length < 150) {
+    return { isSimple: true, isGreeting: false };
+  }
+
+  return { isSimple: false, isGreeting: false };
+}
+
 // API: SkyIT Gemini Advisor Chat Assistant
 app.post("/api/chat", async (req, res) => {
   const { message, history, summary, userName } = req.body;
@@ -1144,21 +1186,39 @@ app.post("/api/chat", async (req, res) => {
   const isGuest = !userName || userName === "Guest" || userName === "Customer";
   const userDisplayName = isGuest ? "Customer" : userName;
 
+  const hasImages = Array.isArray(req.body.images) && req.body.images.length > 0;
+  const historyList = Array.isArray(history) ? history : [];
+  const intent = classifyChatIntent(message, hasImages, historyList.length);
+
+  // FAST-PATH 1: Instant Greetings (<10ms latency)
+  if (intent.isGreeting) {
+    const greetingReply = isGuest 
+      ? "Hello! 👋 Welcome to **SkyIT Ventures**. I am your AI Solar, Energy & Smart Security Specialist.\n\nHow can I help you today? Ask me about our hybrid solar packages, CCTV surveillance camera installations, smart security locks, or tell me about your appliances for a custom load calculation!"
+      : `Hello, ${userDisplayName}! 👋 Welcome back to **SkyIT Ventures**. I am your AI Solar, Energy & Smart Security Specialist.\n\nHow can I assist you today? Ask me about our hybrid solar packages, CCTV surveillance systems, smart locks, component prices, or custom energy & security setups!`;
+
+    return res.json({
+      reply: greetingReply,
+      recommendedProductIds: [],
+      recommendedPackageIds: [],
+      summary: summary || ""
+    });
+  }
+
   // If Gemini key is missing, provide a friendly rich technical fallback
   if (!ai) {
     return res.json({
-      reply: `${isGuest ? "Hello" : `Hello, ${userDisplayName}`}! I am your **SkyIT Ventures Energy Specialist**. 😊
-
-I am currently running in local offline safety backup mode. Based on our solar system catalog, I can guide you on:
+      reply: `${isGuest ? "Hello" : `Hello, ${userDisplayName}`}! I am your **SkyIT Ventures Energy & Security Specialist**. 😊
+ 
+I am currently running in local offline safety backup mode. Based on our product catalog, I can guide you on:
 
 📦 **Complete Solar Inverter System Packages**:
 - **1.5KVA - 5.0KVA Deep-Cycle Tubular Packages** (from ₦948,000) for budget-friendly household lighting, TVs, freezers, and AC support.
 - **4.0KVA - 10.0KVA Wall-Mount Lithium Packages** (from ₦2,700,000) for high surge capability, fast charging, and heavy AC/commercial loads.
 
-⚡ **Components & Security**:
-- Monocrystalline 550W Panels, Smart Pure Sine Hybrid Inverters, Lithium PowerWall batteries, and 4K CCTV systems.
+📹 **Smart Security & Surveillance**:
+- 4K Night-Vision CCTV Systems, Solar Security Cameras, IP/WiFi Cameras, NVR/DVR Storage, Smart Biometric Locks, and Access Control.
 
-Tell me about your building, appliances, or AC units so I can calculate your exact system size!`,
+Tell me about your building, appliances, or security needs so I can recommend the perfect setup!`,
       recommendedProductIds: ["prod-1", "prod-5"],
       recommendedPackageIds: ["tub-1.5", "li-4.0"],
       summary: summary || ""
@@ -1166,6 +1226,35 @@ Tell me about your building, appliances, or AC units so I can calculate your exa
   }
 
   try {
+    // FAST-PATH 2: General Educational / Conversational Queries (Lean System Prompt, no catalog payload)
+    if (intent.isSimple) {
+      const simpleSystemInstruction = `You are a Senior Technical Consultant and Solar Architect representing SkyIT Ventures.
+${isGuest ? 'Address the customer warmly.' : `The customer is named ${userDisplayName}. Address them naturally.`}
+Provide a clear, expert, and engaging response in markdown. Focus on technical clarity, solar principles, and practical advice. Keep it concise without dumping product price lists unless asked.`;
+
+      const simpleResponse = await generateContentWithFallback(ai, {
+        model: "gemini-3.1-flash-lite",
+        contents: [
+          ...historyList.map(h => ({
+            role: h.sender === "user" ? "user" : "model",
+            parts: [{ text: h.text }]
+          })),
+          { role: "user", parts: [{ text: message }] }
+        ],
+        config: {
+          systemInstruction: simpleSystemInstruction
+        }
+      });
+
+      return res.json({
+        reply: simpleResponse.text || "I am happy to explain solar energy concepts! What specific details or appliances would you like to discuss?",
+        recommendedProductIds: [],
+        recommendedPackageIds: [],
+        summary: summary || ""
+      });
+    }
+
+    // FULL CATALOG PATH: For Product, Price, Sizing, and Package Recommendations
     const activeProductsList = (req.body.products && Array.isArray(req.body.products)) ? req.body.products : mockProducts;
     const catalogBrief = activeProductsList.map((p: any) => {
       return `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}, Price: ₦${p.price} (Original: ₦${p.originalPrice}), Rating: ${p.rating}, Description: ${p.description}`;
@@ -1176,10 +1265,11 @@ Tell me about your building, appliances, or AC units so I can calculate your exa
       return `PACKAGE ID: ${pkg.id} | NAME: ${pkg.name} | TECH: ${pkg.tech.toUpperCase()} | CAPACITY: ${pkg.kva} | PRICE: ₦${pkg.price.toLocaleString()} | BATTERY: ${pkg.batteryInfo} | PANELS: ${pkg.panels} x Monocrystalline Panels | CABLE: ${pkg.cableSize} | AC SUPPORT: ${pkg.acSupport} | SUITABLE APPLIANCES: ${pkg.loadSummary.join(', ')} | OVERVIEW: ${pkg.description}`;
     }).join("\n");
 
-    const systemPrompt = `You are a Senior Technical Consultant and Solar Architect representing SkyIT Ventures. 
+    const systemPrompt = `You are a Lead Senior Technical Consultant, Solar Architect & Smart Security Solutions Specialist representing SkyIT Ventures. 
     ${isGuest ? 'The current user is a Guest (not logged in). Do NOT attempt to name them or say "Guest" or "Customer" as a greeting name. Greet them neutrally (e.g., "Hello!", "Welcome!").' : `The customer you are conversing with is named ${userDisplayName}. Address them naturally by their first name when greeting them or in conversation.`}
 
-    Your mission is to provide premium technical advice, evaluate customer electrical/security setups, calculate load sizing (Watts, KVA, surge factors for ACs/pumps), and recommend matching items or pre-configured Solar Inverter Packages from our official SkyIT catalogs.
+    Your mission is to provide premium technical advice for BOTH Clean Solar Energy Systems and Smart Security Technologies (CCTV surveillance cameras, IP/4K night vision cameras, solar security cameras, NVR/DVR storage, smart door locks, video doorbells, access control, motion sensors, and electric fencing).
+    You evaluate customer electrical and security setups, calculate load sizing (Watts, KVA, surge factors for ACs/pumps), and recommend matching items or pre-configured Solar Inverter Packages from our official SkyIT catalogs.
 
     --- OFFICIAL INDIVIDUAL PRODUCTS CATALOG ---
     ${catalogBrief}
@@ -1188,20 +1278,24 @@ Tell me about your building, appliances, or AC units so I can calculate your exa
     ${solarPackagesBrief}
 
     CRITICAL RULES & SIZING GUIDELINES:
-    1. DIAGNOSE BEFORE SUGGESTING: Do NOT immediately dump full product lists when the user gives a generic greeting or vague message. Ask 1-2 quick diagnostic questions about their appliances (e.g., number of ACs, freezers, TVs, pumps) or property type to calculate their exact KVA requirement first.
-    2. EXPERT LOAD SIZING:
-       - Light load (Lighting, TV, Fans, Sound): Recommend 1.5KVA Tubular (tub-1.5) or 2.5KVA.
-       - Medium load (Inverter Fridge, Deep Freezer, Pump, TV, Fans): Recommend 3.5KVA (tub-3.5-std / tub-3.5-ext) or 4.0KVA Lithium (li-4.0).
+    1. DIAGNOSE BEFORE SUGGESTING: Do NOT immediately dump full product lists when the user gives a generic greeting or vague message. Ask 1-2 quick diagnostic questions about their electrical appliances or property security needs (e.g., number of rooms to cover with CCTV, gate locks, ACs, freezers) to calculate their exact requirement first.
+    2. SMART SECURITY & CCTV SPECIALIST GUIDANCE:
+       - You are an expert on all security products (CCTV camera systems, IP/WiFi cameras, solar-powered security cameras, 4K night vision, NVR/DVR recorders, smart biometric door locks, video doorbells, motion alarms, electric fencing).
+       - When users ask about security, advise them on camera angles, storage capacity (NVR hard drives), and coverage for residential or commercial properties.
+       - Highlight how SkyIT Solar Inverter Systems pair perfectly with CCTV & Security systems to provide uninterrupted 24/7 power backup so surveillance never drops during grid power outages.
+    3. EXPERT LOAD SIZING:
+       - Light load (Lighting, TV, Fans, Sound, CCTV NVR): Recommend 1.5KVA Tubular (tub-1.5) or 2.5KVA.
+       - Medium load (Inverter Fridge, Deep Freezer, Pump, TV, Fans, CCTV System): Recommend 3.5KVA (tub-3.5-std / tub-3.5-ext) or 4.0KVA Lithium (li-4.0).
        - Heavy load with 1 AC (1HP/1.5HP Inverter AC) + Freezer/Microwave: Recommend 5.0KVA Tubular Premium (tub-5.0-pre) or 4.0KVA / 6.0KVA Lithium (li-4.0 / li-6.0-10). Lithium is preferred for AC surge currents.
        - Heavy load with Multiple ACs + Microwave + Freezers + Water Pump: Recommend 6.0KVA Lithium (li-6.0-15) or 10.0KVA Lithium (li-10.0-hyb / li-10.0-non).
-    3. TUBULAR VS LITHIUM ADVICE:
+    4. TUBULAR VS LITHIUM ADVICE:
        - Deep-cycle Tubular packages (tub-*) offer budget-friendly entry/standard backup.
        - LFP Lithium-ion packages (li-*) offer fast 2-hour recharge, 10+ year lifespan, higher discharge efficiency, and superior handling of inductive AC surge startup currents.
-    4. RECOMMENDATIONS:
+    5. RECOMMENDATIONS:
        - Ground all pricing strictly in Nigerian Naira (₦).
-       - When recommending individual catalog products, include their exact IDs in "recommendedProductIds".
+       - When recommending individual catalog products (inverters, batteries, solar panels, CCTV cameras, smart locks, accessories), include their exact IDs in "recommendedProductIds".
        - When recommending pre-configured Solar Packages, include their exact package IDs (e.g., "tub-1.5", "tub-3.5-std", "tub-5.0-pre", "li-4.0", "li-6.0-10", "li-6.0-15", "li-10.0-hyb", "li-10.0-non") in "recommendedPackageIds".
-    5. REPRESENT WITHOUT LOCATION: Represent SkyIT Ventures professionally. Do not explicitly state that you are physically located in any specific city unless asked, but represent our brand.
+    6. REPRESENT WITHOUT LOCATION: Represent SkyIT Ventures professionally. Do not explicitly state that you are physically located in any specific city unless asked, but represent our brand.
 
     You must respond strictly in JSON format matching this schema:
     {
@@ -1214,11 +1308,9 @@ Tell me about your building, appliances, or AC units so I can calculate your exa
     let currentSummary = summary || "";
 
     // Sliding window summary-based optimization for extreme token-saving cost-reduction.
-    // If history length is 4 or more, we summarize older parts.
-    if (history && Array.isArray(history) && history.length >= 4) {
-      // Summarize if we don't have a summary, or periodically to keep memory fresh (e.g. historical length increments of 4)
-      if (!currentSummary || history.length % 4 === 0) {
-        const messagesToSummarize = history.slice(0, history.length - 2);
+    if (historyList.length >= 4) {
+      if (!currentSummary || historyList.length % 4 === 0) {
+        const messagesToSummarize = historyList.slice(0, historyList.length - 2);
         const textToSummarize = messagesToSummarize
           .map((m: any) => `${m.sender === "user" ? "Customer" : "Consultant"}: ${m.text}`)
           .join("\n");
@@ -1244,11 +1336,8 @@ Tell me about your building, appliances, or AC units so I can calculate your exa
       systemInstruction += `\n\n[SUMMARY OF PRECEDING CHAT TURNS FOR CONTEXT UNIFICATION]:\n${currentSummary}\nAlign your technical sizing parameters and specs with this summarized background.`;
     }
 
-    // Prepare contents array containing only the sliding window (recent items) plus the ongoing user query
     const contentsArray: any[] = [];
-    const historyToUse = (history && Array.isArray(history) && history.length >= 4)
-      ? history.slice(history.length - 2)
-      : (history || []);
+    const historyToUse = historyList.length >= 4 ? historyList.slice(historyList.length - 2) : historyList;
 
     for (const h of historyToUse) {
       contentsArray.push({

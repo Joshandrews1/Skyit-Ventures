@@ -34,15 +34,35 @@ import {
   AlertTriangle,
   Eye,
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  X,
+  Upload,
+  PlusCircle,
+  Wand2,
+  Play,
+  Save,
+  Clock
 } from 'lucide-react';
 
 export interface UnmatchedItem {
   extractedName: string;
   extractedPrice: number;
   rawTextSnippet: string;
+  suggestedCategory?: string;
+  suggestedDescription?: string;
+  suggestedSpecs?: Record<string, string>;
   reason: string;
+  isAdded?: boolean;
 }
+
+export const CATEGORY_STOCK_IMAGES: Record<string, string> = {
+  'Solar Panels': 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800',
+  'Inverters': 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?w=800',
+  'Batteries': 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=800',
+  'Security Systems': 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=800',
+  'Smart Home': 'https://images.unsplash.com/photo-1558002038-1055907df827?w=800',
+  'Accessories': 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800',
+};
 
 export interface DetectedPriceUpdate {
   id: string;
@@ -170,6 +190,9 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
   // Mode Switcher state for Admin Catalog Workspace
   const [bulkEditMode, setBulkEditMode] = useState<boolean>(false);
 
+  // Active Unmatched Item being edited in the Single Entry Form
+  const [activeUnmatchedIndex, setActiveUnmatchedIndex] = useState<number | null>(null);
+
   // AI Batch Price Updater states
   const [batchRawText, setBatchRawText] = useState('');
   const [isDetectingBatch, setIsDetectingBatch] = useState(false);
@@ -178,6 +201,27 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
   const [detectedUpdates, setDetectedUpdates] = useState<DetectedPriceUpdate[]>([]);
   const [unmatchedItems, setUnmatchedItems] = useState<UnmatchedItem[]>([]);
   const [isPublishingBatch, setIsPublishingBatch] = useState(false);
+  const [queueLastSaved, setQueueLastSaved] = useState<string>('');
+
+  // Quick Add Modal state for unmatched items in Bulk mode
+  const [quickAddModalItem, setQuickAddModalItem] = useState<UnmatchedItem | null>(null);
+  const [modalName, setModalName] = useState('');
+  const [modalCategory, setModalCategory] = useState('Solar Panels');
+  const [modalOriginalPrice, setModalOriginalPrice] = useState(0);
+  const [modalDiscountPercent, setModalDiscountPercent] = useState(0);
+  const [modalDescription, setModalDescription] = useState('');
+  const [modalStock, setModalStock] = useState(15);
+  const [modalAllowCOD, setModalAllowCOD] = useState(true);
+  const [modalImage, setModalImage] = useState('');
+  const [modalExtraImages, setModalExtraImages] = useState<string[]>([]);
+  const [modalFeatures, setModalFeatures] = useState<string[]>(['', '', '']);
+  const [modalSpecs, setModalSpecs] = useState<{ key: string; value: string }[]>([
+    { key: 'Brand', value: 'SkyIT Certified' },
+    { key: 'Warranty', value: '2 Years' }
+  ]);
+  const [modalIsSaving, setModalIsSaving] = useState(false);
+  const [modalError, setModalError] = useState('');
+  const [modalCompressing, setModalCompressing] = useState(false);
 
   // Individual product form values
   const [name, setName] = useState('');
@@ -213,9 +257,79 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
     }
   };
 
+  // Auto-dismiss popup notifications after 6 seconds
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(''), 6500);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(''), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMsg]);
+
+  useEffect(() => {
+    if (batchSuccessMsg) {
+      const timer = setTimeout(() => setBatchSuccessMsg(''), 6500);
+      return () => clearTimeout(timer);
+    }
+  }, [batchSuccessMsg]);
+
+  useEffect(() => {
+    if (batchDetectError) {
+      const timer = setTimeout(() => setBatchDetectError(''), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [batchDetectError]);
+
   useEffect(() => {
     fetchProductsOnce();
+
+    // Restore saved supplier batch and unmatched queue from localStorage
+    try {
+      const savedBatch = localStorage.getItem('skyit_admin_supplier_batch_v1');
+      if (savedBatch) {
+        const parsed = JSON.parse(savedBatch);
+        if (parsed && Array.isArray(parsed.unmatchedItems) && parsed.unmatchedItems.length > 0) {
+          setUnmatchedItems(parsed.unmatchedItems);
+          if (Array.isArray(parsed.detectedUpdates)) setDetectedUpdates(parsed.detectedUpdates);
+          if (typeof parsed.batchRawText === 'string') setBatchRawText(parsed.batchRawText);
+          if (typeof parsed.activeUnmatchedIndex === 'number') setActiveUnmatchedIndex(parsed.activeUnmatchedIndex);
+          if (parsed.savedAt) {
+            const date = new Date(parsed.savedAt);
+            setQueueLastSaved(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not restore supplier batch:", e);
+    }
   }, []);
+
+  // Automatically persist supplier batch & unmatched items queue whenever modified
+  useEffect(() => {
+    if (unmatchedItems.length > 0 || detectedUpdates.length > 0 || batchRawText.trim().length > 0) {
+      try {
+        const now = Date.now();
+        const payload = {
+          batchRawText,
+          detectedUpdates,
+          unmatchedItems,
+          activeUnmatchedIndex,
+          savedAt: now
+        };
+        localStorage.setItem('skyit_admin_supplier_batch_v1', JSON.stringify(payload));
+        const date = new Date(now);
+        setQueueLastSaved(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } catch (e) {
+        console.warn("Storage auto-save error:", e);
+      }
+    }
+  }, [unmatchedItems, detectedUpdates, batchRawText, activeUnmatchedIndex]);
 
   // Helper: Client-side canvas compression & scaling
   const compressImage = (file: File): Promise<string> => {
@@ -449,6 +563,67 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
         ? "🎉 Product details successfully updated and saved!" 
         : "🎉 Product successfully published into Live Catalog database!"
       );
+
+      // If this product was loaded from the unmatched supplier queue, mark it as completed
+      if (activeUnmatchedIndex !== null && unmatchedItems[activeUnmatchedIndex]) {
+        const publishedItem = unmatchedItems[activeUnmatchedIndex];
+        const updatedList = unmatchedItems.map((u, i) => 
+          (i === activeUnmatchedIndex || u.extractedName === publishedItem.extractedName) 
+            ? { ...u, isAdded: true } 
+            : u
+        );
+        setUnmatchedItems(updatedList);
+
+        // Find next remaining unmatched item
+        const nextRemainingIndex = updatedList.findIndex(u => !u.isAdded);
+        if (nextRemainingIndex !== -1) {
+          const nextItem = updatedList[nextRemainingIndex];
+          setActiveUnmatchedIndex(nextRemainingIndex);
+          setName(nextItem.extractedName || '');
+          const nextCat = nextItem.suggestedCategory || 'Solar Panels';
+          setCategory(nextCat);
+          const nextOrig = nextItem.extractedPrice > 0 ? nextItem.extractedPrice : 50000;
+          setOriginalPrice(nextOrig);
+          setDiscountPercent(0);
+          setDescription(
+            nextItem.suggestedDescription || 
+            `High-performance ${nextItem.extractedName} engineered for reliable residential and commercial power solutions across Nigeria.`
+          );
+          setStock(15);
+          setAllowCOD(true);
+          setImagePreview(''); // Blank for verified photo
+          setExtraImages([]);
+          setNewExtraUrl('');
+          setFeatures([
+            'Heavy-duty industrial build quality',
+            'Optimized for Nigerian tropical climate & power conditions',
+            'Full manufacturer warranty and SkyIT technical support'
+          ]);
+          if (nextItem.suggestedSpecs && Object.keys(nextItem.suggestedSpecs).length > 0) {
+            setSpecs(Object.entries(nextItem.suggestedSpecs).map(([key, value]) => ({ key, value: String(value) })));
+          } else {
+            setSpecs([
+              { key: 'Brand', value: 'SkyIT Certified' },
+              { key: 'Warranty', value: '2 Years' }
+            ]);
+          }
+          setAiDraft('');
+          setEditingProduct(null);
+          await fetchProductsOnce();
+          if (onProductUploaded) onProductUploaded();
+          setTimeout(() => {
+            const formEl = document.getElementById('single-product-form');
+            if (formEl) {
+              formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 60);
+          setSuccessMsg(`🎉 "${publishedItem.extractedName}" saved! Now loaded next supplier item: "${nextItem.extractedName}". Please upload its verified image.`);
+          return;
+        } else {
+          setActiveUnmatchedIndex(null);
+          setSuccessMsg(`🎉 All unmatched supplier items have been successfully customized and published to the live store catalog!`);
+        }
+      }
       
       // Clear form
       setName('');
@@ -571,7 +746,12 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
     const mappedSpecs = Object.entries(prod.specs || {}).map(([key, value]) => ({ key, value }));
     setSpecs(mappedSpecs.length ? mappedSpecs : [{ key: 'Brand', value: '' }, { key: 'Warranty', value: '' }]);
     
-    window.scrollTo({ top: 300, behavior: 'smooth' });
+    setTimeout(() => {
+      const formEl = document.getElementById('single-product-form');
+      if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
   };
 
   // AI Batch Price Updates Handlers
@@ -741,6 +921,222 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
     }
   };
 
+  // Load an unmatched supplier item directly into the Single Entry Form
+  const handleLoadUnmatchedIntoSingleForm = (itemIndex: number) => {
+    const item = unmatchedItems[itemIndex];
+    if (!item) return;
+
+    setActiveUnmatchedIndex(itemIndex);
+    setEditingProduct(null); // Clear edit mode for existing catalog item
+    setBulkEditMode(false); // Switch to single form view
+
+    // Pre-populate all extracted fields into the Single Entry Form
+    setName(item.extractedName || '');
+    const cat = item.suggestedCategory || 'Solar Panels';
+    setCategory(cat);
+    const orig = item.extractedPrice > 0 ? item.extractedPrice : 50000;
+    setOriginalPrice(orig);
+    setDiscountPercent(0);
+    setDescription(
+      item.suggestedDescription || 
+      `High-performance ${item.extractedName} engineered for reliable residential and commercial power solutions across Nigeria.`
+    );
+    setStock(15);
+    setAllowCOD(true);
+    setImagePreview(''); // Blank so admin uploads the true photo
+    setExtraImages([]);
+    setNewExtraUrl('');
+    setFeatures([
+      'Heavy-duty industrial build quality',
+      'Optimized for Nigerian tropical climate & power conditions',
+      'Full manufacturer warranty and SkyIT technical support'
+    ]);
+
+    if (item.suggestedSpecs && Object.keys(item.suggestedSpecs).length > 0) {
+      setSpecs(Object.entries(item.suggestedSpecs).map(([key, value]) => ({ key, value: String(value) })));
+    } else {
+      setSpecs([
+        { key: 'Brand', value: 'SkyIT Certified' },
+        { key: 'Warranty', value: '2 Years' }
+      ]);
+    }
+
+    setErrorMsg('');
+    setSuccessMsg(`Loaded "${item.extractedName}" from your supplier list! Please upload the verified product photo below and click Publish.`);
+    setTimeout(() => {
+      const formEl = document.getElementById('single-product-form');
+      if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
+
+  const handleResumeNextUnmatched = () => {
+    const nextIdx = unmatchedItems.findIndex(u => !u.isAdded);
+    if (nextIdx !== -1) {
+      handleLoadUnmatchedIntoSingleForm(nextIdx);
+    } else {
+      setSuccessMsg("All unmatched supplier items have already been published!");
+    }
+  };
+
+  const handleClearSupplierQueue = () => {
+    if (window.confirm("Are you sure you want to clear this supplier items queue? Any unsaved progress in this queue will be removed.")) {
+      setUnmatchedItems([]);
+      setActiveUnmatchedIndex(null);
+      setDetectedUpdates([]);
+      setBatchRawText('');
+      setQueueLastSaved('');
+      localStorage.removeItem('skyit_admin_supplier_batch_v1');
+      setSuccessMsg("Supplier items queue cleared.");
+    }
+  };
+
+  // Quick Add Modal & Handlers for Unmatched Items (Admin must verify & supply product photo)
+  const handleOpenQuickAddModal = (item: UnmatchedItem) => {
+    setQuickAddModalItem(item);
+    setModalName(item.extractedName || '');
+    const cat = item.suggestedCategory || 'Solar Panels';
+    setModalCategory(cat);
+    setModalOriginalPrice(item.extractedPrice > 0 ? item.extractedPrice : 50000);
+    setModalDiscountPercent(0);
+    setModalDescription(
+      item.suggestedDescription || 
+      `High-performance ${item.extractedName} engineered for reliable residential and commercial power solutions across Nigeria.`
+    );
+    setModalStock(15);
+    setModalAllowCOD(true);
+    setModalImage(''); // Intentionally blank so admin uploads the true product photo
+    setModalExtraImages([]);
+    setModalFeatures([
+      'Heavy-duty industrial build quality',
+      'Optimized for Nigerian tropical climate & power conditions',
+      'Full manufacturer warranty and SkyIT technical support'
+    ]);
+    
+    if (item.suggestedSpecs && Object.keys(item.suggestedSpecs).length > 0) {
+      setModalSpecs(Object.entries(item.suggestedSpecs).map(([key, value]) => ({ key, value: String(value) })));
+    } else {
+      setModalSpecs([
+        { key: 'Brand', value: 'SkyIT Certified' },
+        { key: 'Warranty', value: '2 Years' }
+      ]);
+    }
+    setModalError('');
+  };
+
+  const handleModalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setModalCompressing(true);
+    setModalError('');
+    try {
+      const optimizedBase64 = await compressImage(file);
+      setModalImage(optimizedBase64);
+    } catch (err: any) {
+      setModalError("Image error: " + (err?.message || "Invalid file"));
+    } finally {
+      setModalCompressing(false);
+    }
+  };
+
+  const handleAddModalSpec = () => setModalSpecs(prev => [...prev, { key: '', value: '' }]);
+  const handleRemoveModalSpec = (idx: number) => setModalSpecs(prev => prev.filter((_, i) => i !== idx));
+  const handleModalSpecChange = (idx: number, field: 'key' | 'value', val: string) => {
+    setModalSpecs(prev => {
+      const copy = [...prev];
+      copy[idx][field] = val;
+      return copy;
+    });
+  };
+
+  const handleAddModalFeature = () => setModalFeatures(prev => [...prev, '']);
+  const handleRemoveModalFeature = (idx: number) => setModalFeatures(prev => prev.filter((_, i) => i !== idx));
+  const handleModalFeatureChange = (idx: number, val: string) => {
+    setModalFeatures(prev => {
+      const copy = [...prev];
+      copy[idx] = val;
+      return copy;
+    });
+  };
+
+  const handleSaveModalProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalName.trim()) {
+      setModalError("Product name is required.");
+      return;
+    }
+    if (modalOriginalPrice <= 0) {
+      setModalError("Base price must be greater than 0.");
+      return;
+    }
+    if (!modalImage.trim()) {
+      setModalError("Please upload or provide a verified photo for this product.");
+      return;
+    }
+    const finalPrice = Math.round(modalOriginalPrice * (1 - modalDiscountPercent / 100));
+    if (finalPrice <= 0) {
+      setModalError("Calculated selling price must be greater than 0.");
+      return;
+    }
+
+    setModalIsSaving(true);
+    setModalError('');
+
+    try {
+      const newId = `custom-${Date.now()}`;
+      const mappedSpecsObject: Record<string, string> = {};
+      modalSpecs.forEach(s => {
+        if (s.key.trim() && s.value.trim()) {
+          mappedSpecsObject[s.key.trim()] = s.value.trim();
+        }
+      });
+      const filteredFeatures = modalFeatures.filter(f => f.trim() !== '');
+
+      const payload: Product = {
+        id: newId,
+        name: modalName.trim(),
+        description: modalDescription.trim() || `High-performance ${modalName.trim()} engineered for reliable solar and energy backup applications.`,
+        category: modalCategory,
+        price: finalPrice,
+        originalPrice: modalOriginalPrice,
+        discountPercent: modalDiscountPercent,
+        stock: modalStock,
+        rating: 5.0,
+        ratingCount: 1,
+        image: modalImage.trim(),
+        images: [modalImage.trim(), ...modalExtraImages].filter(Boolean),
+        features: filteredFeatures.length > 0 ? filteredFeatures : ["Heavy-duty performance guarantees", "Premium quality build design"],
+        specs: mappedSpecsObject,
+        allowCOD: modalAllowCOD
+      };
+
+      await setDoc(doc(db, 'products', newId), payload);
+      await logAuditEvent(
+        'CREATE_PRODUCT_FROM_BULK',
+        newId,
+        'product',
+        `Added unmatched product from AI Bulk Price list: ${modalName.trim()} (Price: ₦${finalPrice.toLocaleString()})`
+      );
+
+      // Live update states
+      setCustomProducts(prev => [payload, ...prev]);
+      setUnmatchedItems(prev => prev.map(u => 
+        (u.extractedName === quickAddModalItem?.extractedName || u.rawTextSnippet === quickAddModalItem?.rawTextSnippet)
+          ? { ...u, isAdded: true }
+          : u
+      ));
+      if (onProductUploaded) onProductUploaded();
+      setBatchSuccessMsg(`🎉 Successfully uploaded "${modalName.trim()}" with verified photo to your live store!`);
+      setQuickAddModalItem(null);
+    } catch (err: any) {
+      console.error("Failed to add product from bulk:", err);
+      setModalError("Failed to save product: " + (err.message || String(err)));
+    } finally {
+      setModalIsSaving(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 pt-4">
       
@@ -874,62 +1270,111 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
 
             {/* Notifications */}
             {batchDetectError && (
-              <div className="p-3 bg-rose-500/20 border border-rose-500/40 text-rose-200 rounded-xl text-xs flex items-center gap-2">
-                <AlertCircle size={15} className="shrink-0 text-rose-400" />
-                <span>{batchDetectError}</span>
+              <div className="p-3.5 bg-rose-950/80 border-2 border-rose-500 text-rose-100 rounded-2xl text-xs flex items-center justify-between gap-2 shadow-lg animate-fadeIn">
+                <div className="flex items-center gap-2.5">
+                  <AlertCircle size={18} className="shrink-0 text-rose-400 stroke-[2.5]" />
+                  <span className="font-bold">{batchDetectError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBatchDetectError('')}
+                  className="text-rose-300 hover:text-white p-1 rounded-lg hover:bg-rose-900/50 cursor-pointer shrink-0"
+                >
+                  <X size={14} />
+                </button>
               </div>
             )}
             {batchSuccessMsg && (
-              <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 rounded-xl text-xs flex items-center gap-2">
-                <CheckCircle2 size={15} className="shrink-0 text-emerald-400" />
-                <span>{batchSuccessMsg}</span>
+              <div className="p-3.5 bg-[#0e131e] border-2 border-emerald-400 text-emerald-200 rounded-2xl text-xs flex items-center justify-between gap-2 shadow-lg animate-fadeIn">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 size={18} className="shrink-0 text-emerald-400 stroke-[2.5]" />
+                  <span className="font-bold text-white">{batchSuccessMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBatchSuccessMsg('')}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer shrink-0"
+                >
+                  <X size={14} />
+                </button>
               </div>
             )}
 
-            {/* Unmatched Products Notice Banner */}
+            {/* Unmatched Products Notice Banner & Action Deck */}
             {unmatchedItems.length > 0 && (
-              <div className="p-4 bg-amber-950/70 border-2 border-amber-500/80 rounded-2xl text-amber-100 text-xs space-y-3 shadow-xl animate-fadeIn">
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle size={20} className="text-amber-400 shrink-0 mt-0.5" />
+              <div className="p-4 sm:p-5 bg-gradient-to-b from-amber-950/90 via-slate-950 to-slate-950 border-2 border-amber-500/80 rounded-3xl text-amber-100 text-xs space-y-4 shadow-2xl animate-fadeIn">
+                <div className="flex items-start gap-3 pb-3 border-b border-amber-500/30">
+                  <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-300 shrink-0">
+                    <AlertTriangle size={22} className="text-amber-400" />
+                  </div>
                   <div>
-                    <h4 className="font-extrabold text-sm text-amber-300 flex items-center gap-2">
-                      <span>⚠️ {unmatchedItems.length} Item(s) in your text are NOT in your catalog!</span>
+                    <h4 className="font-extrabold text-sm sm:text-base text-amber-300 flex items-center gap-2">
+                      <span>⚠️ {unmatchedItems.length} Supplier Item(s) NOT in Your Catalog</span>
                     </h4>
-                    <p className="text-[11px] text-amber-200/90 mt-1 leading-relaxed">
-                      The product(s) or equipment listed below were detected in your pasted text, but could <strong>NOT be matched</strong> to any existing item in your store catalog. These items cannot be auto-updated. You can add them as new products using the <strong>Single Entry</strong> form above.
+                    <p className="text-xs text-amber-100/90 mt-1 leading-relaxed">
+                      These products were extracted from your supplier list but do not exist in your store yet. To ensure product imagery is 100% accurate, click <strong className="text-amber-300 font-extrabold">"Customize & Upload"</strong> on each item to review pre-filled AI details, upload the verified product photo, and publish live.
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-slate-950/90 border border-amber-500/40 rounded-xl p-3 space-y-2">
-                  <span className="text-[10px] uppercase font-mono font-bold text-amber-400 tracking-wider">
-                    Unmatched / Missing Catalog Items ({unmatchedItems.length}):
-                  </span>
-                  <div className="divide-y divide-amber-500/20 max-h-48 overflow-y-auto pr-1">
-                    {unmatchedItems.map((un, uIdx) => (
-                      <div key={uIdx} className="py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="font-medium text-white flex items-center gap-2">
-                          <span className="text-amber-400 font-bold">•</span>
-                          <span>{un.extractedName || 'Unknown Product'}</span>
-                          {un.rawTextSnippet && (
-                            <span className="text-[10px] text-slate-400 font-mono italic truncate max-w-xs">
-                              ("{un.rawTextSnippet}")
+                {/* Interactive Unmatched Items List */}
+                <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                  {unmatchedItems.map((un, uIdx) => {
+                    const isAdded = !!un.isAdded;
+                    const cat = un.suggestedCategory || 'Solar Panels';
+
+                    return (
+                      <div 
+                        key={uIdx} 
+                        className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                          isAdded 
+                            ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-100 shadow-md' 
+                            : 'bg-slate-900/90 border-slate-700 hover:border-amber-400/60 shadow-md'
+                        }`}
+                      >
+                        {/* Item Details */}
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-sm sm:text-base text-white tracking-wide">{un.extractedName || 'Unknown Product'}</span>
+                            <span className="text-[10px] font-extrabold uppercase bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-md font-mono shadow-xs">
+                              {cat}
                             </span>
+                            {un.extractedPrice > 0 && (
+                              <span className="bg-slate-950 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-md font-mono font-black text-xs">
+                                ₦{un.extractedPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          {un.rawTextSnippet && (
+                            <p className="text-[11px] text-slate-300 font-mono italic truncate max-w-lg">
+                              Supplier Line: "{un.rawTextSnippet}"
+                            </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {un.extractedPrice > 0 && (
-                            <span className="bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-md font-mono font-bold text-[11px]">
-                              Price: ₦{un.extractedPrice.toLocaleString()}
+
+                        {/* Action Control */}
+                        <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                          {isAdded ? (
+                            <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 px-3.5 py-2 rounded-xl text-xs font-black font-mono">
+                              <CheckCircle2 size={16} className="text-emerald-400" />
+                              <span>Live in Catalog</span>
                             </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleLoadUnmatchedIntoSingleForm(uIdx)}
+                              className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 shadow-lg cursor-pointer active:scale-95 uppercase tracking-wider"
+                              title="Switch to Single Entry form with pre-filled details to verify photo and save to catalog"
+                            >
+                              <Plus size={16} className="stroke-[3]" />
+                              <span>Customize in Single Entry</span>
+                              <ArrowRight size={14} className="stroke-[2.5]" />
+                            </button>
                           )}
-                          <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-md font-bold">
-                            Not in Catalog
-                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1146,25 +1591,6 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
         </div>
         ) : (
         <>
-          {/* Quick Banner to switch to Bulk Mode */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-slate-900 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md">
-            <div className="flex items-center gap-2.5 text-slate-200">
-              <Sparkles size={18} className="text-amber-400 fill-amber-400 shrink-0" />
-              <div>
-                <span className="font-extrabold text-white block">Updating multiple product prices at once?</span>
-                <span className="text-[11px] text-slate-300">Paste your raw supplier price list or invoice to auto-detect and update catalog prices in seconds.</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setBulkEditMode(true)}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-4 py-2 rounded-xl text-xs uppercase tracking-wide shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-            >
-              <span>Switch to Bulk Price Mode</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-
         {/* Gemini Catalog AI Assistant Card */}
         <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
@@ -1218,28 +1644,255 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
           </div>
         </div>
 
+        {/* Unmatched Supplier Items Queue Banner (when unmatched items exist) */}
+        {unmatchedItems.length > 0 && (() => {
+          const addedCount = unmatchedItems.filter(u => u.isAdded).length;
+          const totalCount = unmatchedItems.length;
+          const progressPct = totalCount > 0 ? Math.round((addedCount / totalCount) * 100) : 0;
+          const remainingCount = totalCount - addedCount;
+
+          return (
+            <div className="bg-gradient-to-b from-amber-950/95 via-slate-950 to-slate-950 border-2 border-amber-500 rounded-3xl p-4 sm:p-5 shadow-2xl text-xs space-y-4 animate-fadeIn ring-1 ring-amber-500/20">
+              {/* Header & Main Actions */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-amber-500/30">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-amber-400 text-slate-950 shadow-md shrink-0 font-black">
+                    <AlertTriangle size={20} className="stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h4 className="font-black text-sm sm:text-base text-amber-300 tracking-wide">
+                        Unmatched Supplier Items Queue
+                      </h4>
+                      <span className="bg-amber-400 text-slate-950 font-black text-[11px] px-2.5 py-0.5 rounded-md font-mono shadow-xs">
+                        {addedCount}/{totalCount} Added ({progressPct}%)
+                      </span>
+                      {queueLastSaved && (
+                        <span className="inline-flex items-center gap-1 bg-slate-900 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold font-mono">
+                          <Save size={11} className="text-emerald-400" />
+                          <span>Auto-saved at {queueLastSaved}</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-amber-100/90 mt-0.5 leading-relaxed">
+                      Your supplier batch progress is saved automatically. Select any item to upload its verified image and publish to store.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions Deck */}
+                <div className="flex items-center gap-2 flex-wrap self-start lg:self-auto">
+                  {remainingCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleResumeNextUnmatched}
+                      className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 uppercase tracking-wider shrink-0"
+                      title="Load next uncompleted supplier item into the form"
+                    >
+                      <Play size={13} className="fill-slate-950 stroke-[2.5]" />
+                      <span>Resume Next ({remainingCount} Left)</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setBulkEditMode(true)}
+                    className="bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-amber-200 border border-amber-500/50 px-3.5 py-2 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <ArrowRight size={14} className="rotate-180 stroke-[2.5]" />
+                    <span>Return to Bulk Updater</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleClearSupplierQueue}
+                    className="bg-slate-950 hover:bg-rose-950/80 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-500/50 p-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                    title="Clear saved queue"
+                  >
+                    <Trash2 size={14} />
+                    <span className="hidden sm:inline">Clear Queue</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Visual Progress Bar */}
+              <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                <div 
+                  className="bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 h-full rounded-full transition-all duration-500 shadow-sm"
+                  style={{ width: `${Math.max(progressPct, 2)}%` }}
+                />
+              </div>
+
+              {/* Interactive Horizontal / Grid Queue Items */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                {unmatchedItems.map((item, idx) => {
+                  const isCurrent = activeUnmatchedIndex === idx;
+                  const isAdded = !!item.isAdded;
+                  const cat = item.suggestedCategory || 'Product';
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => !isAdded && handleLoadUnmatchedIntoSingleForm(idx)}
+                      disabled={isAdded}
+                      className={`text-left p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 shadow-md ${
+                        isCurrent
+                          ? 'bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-300 font-extrabold shadow-lg scale-[1.01]'
+                          : isAdded
+                            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300 opacity-60 cursor-not-allowed'
+                            : 'bg-slate-900/90 border-slate-700 hover:border-amber-400/80 text-white hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="truncate flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                            isCurrent ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-amber-300 border border-amber-400/30'
+                          }`}>
+                            {cat}
+                          </span>
+                          <span className={`text-xs font-black truncate ${isCurrent ? 'text-slate-950' : 'text-white'}`}>
+                            {item.extractedName}
+                          </span>
+                        </div>
+                        {item.extractedPrice > 0 && (
+                          <span className={`text-xs font-mono font-black block mt-1 ${
+                            isCurrent ? 'text-slate-950' : 'text-emerald-400'
+                          }`}>
+                            ₦{item.extractedPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="shrink-0">
+                        {isAdded ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2 py-0.5 rounded-md text-[10px] font-black font-mono">
+                            <CheckCircle2 size={13} className="text-emerald-400" />
+                            <span>Added</span>
+                          </span>
+                        ) : isCurrent ? (
+                          <span className="text-[10px] uppercase tracking-wider bg-slate-950 text-amber-300 font-black px-2 py-1 rounded-md shadow-xs">
+                            Editing Now
+                          </span>
+                        ) : (
+                          <div className="w-7 h-7 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 group-hover:text-amber-400 group-hover:border-amber-400">
+                            <ArrowRight size={14} className="stroke-[2.5]" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Quick Banner to switch to Bulk Mode */}
+        <div className="bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-slate-900 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md">
+          <div className="flex items-center gap-2.5 text-slate-200">
+            <Sparkles size={18} className="text-amber-400 fill-amber-400 shrink-0" />
+            <div>
+              <span className="font-extrabold text-white block">Updating multiple product prices at once?</span>
+              <span className="text-[11px] text-slate-300">Paste your raw supplier price list or invoice to auto-detect and update catalog prices in seconds.</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBulkEditMode(true)}
+            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-4 py-2 rounded-xl text-xs uppercase tracking-wide shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+          >
+            <span>Switch to Bulk Price Mode</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+
         {/* Core Manual & AI Controlled Form */}
-        <form onSubmit={handlePublish} className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-3xs space-y-6">
+        <form id="single-product-form" onSubmit={handlePublish} className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-3xs space-y-6 scroll-mt-24">
           <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
             <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-              <Package size={16} className={editingProduct ? "text-amber-500 animate-pulse" : "text-brand"} />
-              <span>{editingProduct ? `Edit Product: ${editingProduct.name}` : "Product Identity & Pricing Form"}</span>
+              <Package size={16} className={
+                activeUnmatchedIndex !== null 
+                  ? "text-amber-500 animate-bounce" 
+                  : editingProduct 
+                    ? "text-amber-500 animate-pulse" 
+                    : "text-brand"
+              } />
+              <span>
+                {activeUnmatchedIndex !== null && unmatchedItems[activeUnmatchedIndex]
+                  ? `Customizing Supplier Item (${activeUnmatchedIndex + 1} of ${unmatchedItems.length}): ${unmatchedItems[activeUnmatchedIndex].extractedName}`
+                  : editingProduct 
+                    ? `Edit Product: ${editingProduct.name}` 
+                    : "Product Identity & Pricing Form"
+                }
+              </span>
             </h3>
-            <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-slate-400">
-              {editingProduct ? "✏️ Edit Mode Active" : "Complete Manual Control"}
+            <span className={`text-[10px] uppercase font-mono tracking-wider font-bold px-2 py-0.5 rounded-md ${
+              activeUnmatchedIndex !== null
+                ? "bg-amber-100 text-amber-900 border border-amber-300"
+                : editingProduct
+                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  : "text-slate-400"
+            }`}>
+              {activeUnmatchedIndex !== null 
+                ? "✨ Unmatched Item Queue Active" 
+                : editingProduct 
+                  ? "✏️ Edit Mode Active" 
+                  : "Complete Manual Control"
+              }
             </span>
           </div>
 
-          {/* Messages */}
-          {successMsg && (
-            <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-2xl text-xs flex gap-2 items-center">
-              <Check size={14} className="shrink-0 bg-emerald-500 text-white rounded-full p-0.5" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-          {errorMsg && (
-            <div className="p-3 bg-rose-50 text-rose-800 border border-rose-100 rounded-2xl text-xs">
-              ⚠️ {errorMsg}
+          {/* Floating High-Contrast Toast Notifications for Admin */}
+          {(successMsg || errorMsg) && (
+            <div className="fixed bottom-6 right-6 z-50 max-w-md w-[calc(100vw-3rem)] space-y-3 pointer-events-auto animate-bounce-subtle">
+              {successMsg && (
+                <div className="p-4 bg-[#0e131e] border-2 border-emerald-400 text-white rounded-2xl shadow-2xl flex items-start gap-3 ring-4 ring-emerald-500/20 animate-fadeIn">
+                  <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/40 shrink-0">
+                    <CheckCircle2 size={20} className="stroke-[2.5]" />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-1">
+                    <div className="text-[11px] uppercase tracking-wider font-black text-emerald-400">
+                      Catalog System Notification
+                    </div>
+                    <div className="text-xs font-bold text-slate-100 mt-0.5 leading-snug break-words">
+                      {successMsg}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSuccessMsg('')}
+                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                    title="Dismiss Notification"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="p-4 bg-[#0e131e] border-2 border-rose-500 text-white rounded-2xl shadow-2xl flex items-start gap-3 ring-4 ring-rose-500/20 animate-fadeIn">
+                  <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-400/40 shrink-0">
+                    <AlertTriangle size={20} className="stroke-[2.5]" />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-1">
+                    <div className="text-[11px] uppercase tracking-wider font-black text-rose-400">
+                      Action Required
+                    </div>
+                    <div className="text-xs font-bold text-rose-100 mt-0.5 leading-snug break-words">
+                      {errorMsg}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setErrorMsg('')}
+                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                    title="Dismiss Notification"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1904,6 +2557,288 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
         </div>
       </div>
 
+      {/* QUICK PRODUCT CREATOR MODAL FOR UNMATCHED ITEMS (ZERO CONTEXT LOSS) */}
+      {quickAddModalItem && (
+        <div className="fixed inset-0 z-[250] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div 
+            className="bg-slate-900 border-2 border-amber-500/80 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden my-auto text-slate-100 animate-fadeIn flex flex-col max-h-[92vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-amber-500/30 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-400 text-slate-950 shadow-md shrink-0">
+                  <Sparkles size={20} className="fill-slate-950" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                    <span>Add Unmatched Product to Catalog</span>
+                  </h3>
+                  <p className="text-xs text-amber-300 font-mono mt-0.5 truncate max-w-md">
+                    Item: {quickAddModalItem.extractedName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickAddModalItem(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+                title="Close & Return to Bulk List"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Form Scrollable Body */}
+            <form onSubmit={handleSaveModalProduct} className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1 text-left">
+              {modalError && (
+                <div className="p-3 bg-rose-500/20 border border-rose-500/50 text-rose-200 rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0 text-rose-400" />
+                  <span>{modalError}</span>
+                </div>
+              )}
+
+              {/* Row 1: Name & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Product Name</label>
+                  <input
+                    type="text"
+                    value={modalName}
+                    onChange={(e) => setModalName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl p-2.5 text-xs text-white focus:outline-hidden font-bold"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Category</label>
+                  <select
+                    value={modalCategory}
+                    onChange={(e) => setModalCategory(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl p-2.5 text-xs text-amber-300 font-bold focus:outline-hidden"
+                  >
+                    <option value="Solar Panels">Solar Panels</option>
+                    <option value="Inverters">Inverters</option>
+                    <option value="Batteries">Batteries</option>
+                    <option value="Security Systems">Security Systems</option>
+                    <option value="Smart Home">Smart Home</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Pricing */}
+              <div className="grid grid-cols-3 gap-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Base Price (₦)</label>
+                  <input
+                    type="number"
+                    value={modalOriginalPrice || ''}
+                    onChange={(e) => setModalOriginalPrice(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-white rounded-xl p-2 focus:border-amber-400 focus:outline-hidden"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="95"
+                    value={modalDiscountPercent || '0'}
+                    onChange={(e) => setModalDiscountPercent(Math.min(95, Math.max(0, parseInt(e.target.value) || 0)))}
+                    className="w-full bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-rose-300 rounded-xl p-2 focus:border-amber-400 focus:outline-hidden"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">Computed Selling (₦)</label>
+                  <div className="w-full bg-slate-900 border border-emerald-500/30 text-xs font-mono font-black text-emerald-400 rounded-xl p-2 flex items-center">
+                    ₦{Math.round(modalOriginalPrice * (1 - modalDiscountPercent / 100)).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Description */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Product Overview / Description</label>
+                  <span className="text-[10px] text-amber-300 font-bold">✨ Pre-populated by AI</span>
+                </div>
+                <textarea
+                  value={modalDescription}
+                  onChange={(e) => setModalDescription(e.target.value)}
+                  rows={3}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 text-xs text-slate-200 p-2.5 rounded-xl focus:outline-hidden leading-relaxed"
+                />
+              </div>
+
+              {/* Row 4: Stock & COD */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Initial Stock Qty</label>
+                  <input
+                    type="number"
+                    value={modalStock}
+                    onChange={(e) => setModalStock(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full bg-slate-950 border border-slate-700 text-xs font-mono rounded-xl p-2 text-white focus:border-amber-400 focus:outline-hidden font-bold"
+                  />
+                </div>
+                <div className="space-y-1 flex flex-col justify-end">
+                  <label className="flex items-center gap-2 cursor-pointer bg-slate-950 border border-slate-700 hover:border-slate-600 rounded-xl p-2.5 select-none">
+                    <input
+                      type="checkbox"
+                      checked={modalAllowCOD}
+                      onChange={(e) => setModalAllowCOD(e.target.checked)}
+                      className="w-4 h-4 text-amber-400 rounded accent-amber-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-200">Allow Cash on Delivery (COD)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Row 5: Product Image (Admin Photo Upload Required) */}
+              <div className={`space-y-2 bg-slate-950 p-4 rounded-2xl border-2 transition-all ${
+                modalImage ? 'border-emerald-500/50' : 'border-amber-500/70'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-black uppercase text-amber-300 tracking-wider flex items-center gap-1.5">
+                      <ImageIcon size={14} className="text-amber-400" />
+                      <span>Verified Product Image *</span>
+                    </label>
+                    <span className="text-[10px] bg-amber-400/20 border border-amber-400/40 text-amber-300 font-bold px-2 py-0.5 rounded-md">
+                      Required
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Upload accurate product photo or paste link
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3.5 pt-1">
+                  <div className="w-20 h-20 rounded-2xl bg-slate-900 border-2 border-slate-700 overflow-hidden shrink-0 flex items-center justify-center relative">
+                    {modalImage ? (
+                      <img src={modalImage} alt="Product preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center p-2 text-slate-500 flex flex-col items-center">
+                        <ImageIcon size={22} className="text-amber-400/60 mb-1" />
+                        <span className="text-[9px] font-bold uppercase text-amber-300/80">No Photo</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black px-4 py-2 rounded-xl shadow-md cursor-pointer flex items-center gap-2 active:scale-95 transition-all uppercase tracking-wider">
+                        <Upload size={14} className="stroke-[3]" />
+                        <span>{modalCompressing ? 'Compressing...' : 'Upload Photo'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleModalImageUpload}
+                          className="hidden"
+                          disabled={modalCompressing}
+                        />
+                      </label>
+
+                      {modalImage && (
+                        <button
+                          type="button"
+                          onClick={() => setModalImage('')}
+                          className="text-xs bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-500/50 px-3 py-2 rounded-xl transition-all cursor-pointer font-bold flex items-center gap-1.5"
+                        >
+                          <Trash2 size={13} />
+                          <span>Clear</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={modalImage}
+                      onChange={(e) => setModalImage(e.target.value)}
+                      placeholder="Or paste direct image URL (https://...)"
+                      className="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 font-mono rounded-xl p-2 focus:border-amber-400 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 6: Specifications */}
+              <div className="space-y-2 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Specifications</label>
+                  <button
+                    type="button"
+                    onClick={handleAddModalSpec}
+                    className="text-[10px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus size={12} /> Add Spec
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                  {modalSpecs.map((sp, sIdx) => (
+                    <div key={sIdx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. Brand, Capacity, Voltage"
+                        value={sp.key}
+                        onChange={(e) => handleModalSpecChange(sIdx, 'key', e.target.value)}
+                        className="w-1/3 bg-slate-900 border border-slate-700 text-xs text-white rounded-lg p-1.5 focus:border-amber-400 focus:outline-hidden font-bold"
+                      />
+                      <input
+                        type="text"
+                        placeholder="e.g. 550W, 48V, 2 Years"
+                        value={sp.value}
+                        onChange={(e) => handleModalSpecChange(sIdx, 'value', e.target.value)}
+                        className="flex-1 bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-lg p-1.5 focus:border-amber-400 focus:outline-hidden font-mono"
+                      />
+                      {modalSpecs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveModalSpec(sIdx)}
+                          className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Footer Controls */}
+              <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-slate-800 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setQuickAddModalItem(null)}
+                  className="w-full sm:w-auto text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer"
+                >
+                  Cancel & Return to Bulk List
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={modalIsSaving || modalCompressing}
+                  className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 uppercase tracking-wider"
+                >
+                  {modalIsSaving ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin text-slate-950" />
+                      <span>Saving & Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} className="text-slate-950 stroke-[3]" />
+                      <span>Save & Add to Live Catalog</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -175,6 +175,13 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  // Hook to reset messages when guest user or signed out
+  useEffect(() => {
+    if (!currentUser) {
+      setMessages([]);
+    }
+  }, [currentUser]);
+
   // Hook to subscribe to user's chat history threads real-time
   useEffect(() => {
     if (!currentUser) {
@@ -211,12 +218,20 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
       if (activeThreadId) {
         const active = loadedThreads.find(t => t.id === activeThreadId);
         if (active) {
-          setMessages(active.messages);
+          setMessages(active.messages || []);
           setCurrentThreadSummary(active.summary || '');
         }
+      } else if (!hasRestoredRef.current && loadedThreads.length > 0) {
+        hasRestoredRef.current = true;
+        const savedActiveId = localStorage.getItem(`skyit_active_thread_${currentUser.uid}`);
+        const threadToRestore = (savedActiveId && loadedThreads.find(t => t.id === savedActiveId)) || loadedThreads[0];
+        if (threadToRestore) {
+          setActiveThreadId(threadToRestore.id);
+          setMessages(threadToRestore.messages || []);
+          setCurrentThreadSummary(threadToRestore.summary || '');
+          localStorage.setItem(`skyit_active_thread_${currentUser.uid}`, threadToRestore.id);
+        }
       } else if (!hasRestoredRef.current) {
-        // Start on clean new chat interface when mounting (navigating into the AI advisor)
-        // This allows users to check past chats manually from the sidebar list instead of forcing auto-load.
         hasRestoredRef.current = true;
       }
     }, (err) => {
@@ -228,7 +243,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
 
   const suggestPrompts = [
     { text: "Compare Tubular & Lithium Cells", icon: <Compass size={14} className="text-[#adc6ff]" /> },
-    { text: "Best security kits for 4-bedroom flat", icon: <Lightbulb size={14} className="text-[#dab9ff]" /> },
+    { text: "Best CCTV & smart security kits for home or office", icon: <Lightbulb size={14} className="text-[#dab9ff]" /> },
     { text: "Size a 5KVA Home Inverter Package", icon: <FileText size={14} className="text-emerald-400" /> }
   ];
 
@@ -416,24 +431,22 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
       });
     };
 
-    // Instant optimistic first save (saves user message immediately, protecting against page exit)
+    // Instant non-blocking optimistic background save (does not delay /api/chat fetch)
     if (currentUser && currentId) {
-      try {
-        const titleText = updatedMessages[0]?.text 
-          ? (updatedMessages[0].text.length > 35 ? updatedMessages[0].text.substring(0, 35) + '...' : updatedMessages[0].text) 
-          : "Saved Chat";
+      const titleText = updatedMessages[0]?.text 
+        ? (updatedMessages[0].text.length > 35 ? updatedMessages[0].text.substring(0, 35) + '...' : updatedMessages[0].text) 
+        : "Saved Chat";
 
-        await setDoc(doc(db, 'chat_threads', currentId), {
-          id: currentId,
-          userId: currentUser.uid,
-          title: titleText,
-          messages: cleanMessagesForFirestore(updatedMessages),
-          summary: currentThreadSummary || '',
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      } catch (dbErr) {
+      setDoc(doc(db, 'chat_threads', currentId), {
+        id: currentId,
+        userId: currentUser.uid,
+        title: titleText,
+        messages: cleanMessagesForFirestore(updatedMessages),
+        summary: currentThreadSummary || '',
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch((dbErr) => {
         console.warn("[Firestore] Instant chat thread persistence failed:", dbErr);
-      }
+      });
     }
 
     try {
@@ -1225,9 +1238,9 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
 
               {/* Live generating state placeholder */}
               {isLoading && (
-                <div className="flex items-center gap-2.5 text-slate-350 text-xs bg-white/[0.02] border border-white/5 p-3 px-4 rounded-xl w-fit">
+                <div className="flex items-center gap-2.5 text-slate-300 text-xs bg-white/[0.03] border border-white/10 p-3 px-4 rounded-xl w-fit shadow-xs">
                   <Loader2 className="animate-spin text-[#adc6ff]" size={14} />
-                  <span className="font-sans">SkyIT backend model calculations in progress...</span>
+                  <span className="font-medium tracking-wide">AI Advisor is thinking...</span>
                 </div>
               )}
               

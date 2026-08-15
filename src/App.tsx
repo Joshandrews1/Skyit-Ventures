@@ -63,73 +63,8 @@ import {
   Package
 } from 'lucide-react';
 
+import { AdminLoginCard } from './components/AdminLoginCard';
 import { logSiteVisit, logUserLoginPinpoint } from './lib/visitorTracker';
-
-const AdminLoginGate: React.FC<{ onUnlockAdmin: () => void; onOpenLogin: () => void }> = ({ onUnlockAdmin, onOpenLogin }) => {
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanPin = pin.trim();
-    if (cleanPin === '1234' || cleanPin === 'skyit2026' || cleanPin === '7777' || cleanPin === 'admin') {
-      onUnlockAdmin();
-    } else {
-      setError('Invalid Admin Passcode. Try 1234 or skyit2026');
-    }
-  };
-
-  return (
-    <div className="min-h-[600px] flex items-center justify-center py-12 px-4 bg-[#0e131e]">
-      <div className="max-w-md w-full bg-[#171b27] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
-          <ShieldAlert size={32} />
-        </div>
-        
-        <div>
-          <h2 className="text-2xl font-bold text-[#dee2f2]">Admin Control Deck</h2>
-          <p className="text-sm text-[#8e95b0] mt-1">
-            Restricted logistics, product catalog management, and quote generation terminal.
-          </p>
-        </div>
-
-        <form onSubmit={handlePinSubmit} className="space-y-4">
-          <div className="text-left">
-            <label className="block text-xs font-bold text-[#b3c5ff] uppercase tracking-wider mb-2">
-              Enter Security Passcode / PIN
-            </label>
-            <input
-              type="password"
-              value={pin}
-              onChange={(e) => { setPin(e.target.value); setError(''); }}
-              placeholder="Enter PIN (e.g. 1234 or skyit2026)"
-              className="w-full bg-[#0e131e] border border-white/10 rounded-xl px-4 py-3 text-[#dee2f2] focus:border-[#0066ff] focus:outline-none text-center font-mono text-lg tracking-widest placeholder:text-slate-600 placeholder:text-sm placeholder:tracking-normal"
-            />
-            {error && <p className="text-xs text-rose-400 font-medium mt-1.5">{error}</p>}
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white font-bold py-3.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg shadow-blue-500/20 active:scale-[0.98]"
-          >
-            Unlock Admin Terminal
-          </button>
-        </form>
-
-        <div className="pt-4 border-t border-white/10 space-y-3">
-          <p className="text-xs text-[#8e95b0]">OR authenticate with administrator email credentials</p>
-          <button
-            type="button"
-            onClick={onOpenLogin}
-            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-[#dee2f2] font-bold py-3 px-4 rounded-xl transition-all cursor-pointer text-xs"
-          >
-            Log in as Admin (jeemestore)
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default function App() {
   // Navigation State
@@ -171,19 +106,27 @@ export default function App() {
     }
   }, [blogPosts]);
 
-  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed' | 'notifications') => {
+  const setActiveTab = (tab: 'home' | 'shop' | 'quote' | 'ai' | 'tracker' | 'admin' | 'contact' | 'about' | 'blog' | 'owner' | 'recently-viewed' | 'notifications', pushToHistory = true) => {
     _setActiveTab(tab);
     setSelectedProduct(null); // Clear selected product modal on navigation
+    setSelectedBlogPost(null); // Clear selected blog post on navigation
+    setIsCartOpen(false);
+    setIsMobileMenuOpen(false);
     localStorage.setItem('activeTab', tab);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
     
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('tab') !== tab) {
-      params.set('tab', tab);
-      if (tab !== 'shop' && tab !== 'home') {
-        params.delete('product'); // Clear selected product when navigating away
+    if (pushToHistory) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') !== tab) {
+        params.set('tab', tab);
+        if (tab !== 'shop' && tab !== 'home') {
+          params.delete('product'); // Clear selected product when navigating away
+        }
+        if (tab !== 'blog') {
+          params.delete('post');
+        }
+        window.history.pushState({ tab }, '', `?${params.toString()}`);
       }
-      window.history.pushState({ tab }, '', `?${params.toString()}`);
     }
   };
 
@@ -874,12 +817,46 @@ export default function App() {
     return productsWithRealRatings.find(p => p.id === selectedProduct.id) || selectedProduct;
   }, [selectedProduct, productsWithRealRatings]);
 
-  // Handle Browser Back Button for Full-Page Product View and Tabs
+  // Handle Mobile Browser Back Button & Unified History Navigation
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
-      
-      // Handle product modal
+
+      // 1. Intercept active drawers / overlays (close top overlay on mobile back button tap)
+      if (isCartOpen) {
+        setIsCartOpen(false);
+        return;
+      }
+      if (isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+        return;
+      }
+      if (isCheckoutOpen) {
+        setIsCheckoutOpen(false);
+        return;
+      }
+      if (isWishlistModalOpen) {
+        setIsWishlistModalOpen(false);
+        return;
+      }
+      if (isLoginOpen) {
+        setIsLoginOpen(false);
+        return;
+      }
+      if (isProfileOpen) {
+        setIsProfileOpen(false);
+        return;
+      }
+      if (isPolicyOpen) {
+        setIsPolicyOpen(false);
+        return;
+      }
+      if (isAiSearchModalOpen) {
+        setIsAiSearchModalOpen(false);
+        return;
+      }
+
+      // 2. Handle product modal based on URL parameter
       const productIdParam = params.get('product');
       if (productIdParam && products.length > 0) {
         const p = products.find(prod => prod.id === productIdParam);
@@ -888,21 +865,42 @@ export default function App() {
         setSelectedProduct(null);
       }
 
-      // Handle tabs
+      // 3. Handle blog post detail based on URL parameter
+      const postParam = params.get('post') || params.get('article');
+      if (postParam && blogPosts.length > 0) {
+        const match = blogPosts.find(p => p.slug === postParam || p.id === postParam);
+        setSelectedBlogPost(match || null);
+      } else if (!postParam && selectedBlogPost) {
+        setSelectedBlogPost(null);
+      }
+
+      // 4. Handle tab navigation across ALL supported tabs
+      const validTabs = ['home', 'shop', 'quote', 'ai', 'tracker', 'admin', 'contact', 'about', 'blog', 'owner', 'recently-viewed', 'notifications'];
       const tabParam = params.get('tab') as any;
-      if (['shop', 'quote', 'ai', 'tracker', 'admin', 'contact'].includes(tabParam)) {
+      if (validTabs.includes(tabParam)) {
         _setActiveTab(tabParam);
         localStorage.setItem('activeTab', tabParam);
-      } else if (!tabParam && !params.get('product')) {
-        // Fallback or default
-        _setActiveTab('shop');
-        localStorage.setItem('activeTab', 'shop');
+      } else if (!tabParam && !productIdParam) {
+        _setActiveTab('home');
+        localStorage.setItem('activeTab', 'home');
       }
     };
-    
+
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [products]); // Re-evaluate if products load
+  }, [
+    isCartOpen, 
+    isMobileMenuOpen, 
+    isCheckoutOpen, 
+    isWishlistModalOpen, 
+    isLoginOpen, 
+    isProfileOpen, 
+    isPolicyOpen, 
+    isAiSearchModalOpen, 
+    selectedBlogPost, 
+    products, 
+    blogPosts
+  ]);
 
   // Initial load check for product in URL
   useEffect(() => {
@@ -1178,7 +1176,7 @@ export default function App() {
       {/* Main Global Dark Premium Navbar */}
       {activeTab !== 'ai' && (
         <header className="docked full-width top-0 sticky z-[100] border-b border-white/10 bg-[#0e131e]/95 backdrop-blur-xl shadow-md font-sans text-[#dee2f2]">
-          <div className="flex justify-between items-center px-3 sm:px-8 py-3 max-w-[1440px] mx-auto w-full gap-2 sm:gap-4">
+          <div className="flex justify-between items-center px-3 sm:px-5 xl:px-8 py-2.5 sm:py-3 max-w-[1440px] mx-auto w-full gap-2 sm:gap-3 lg:gap-4 xl:gap-6">
             
             {/* Logo Branding */}
             <div 
@@ -1189,9 +1187,9 @@ export default function App() {
                 setSelectedProduct(null);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group shrink-0"
             >
-              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
+              <div className="relative w-8 h-8 sm:w-9 sm:h-9 xl:w-10 xl:h-10 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
                 <img 
                   src="https://firebasestorage.googleapis.com/v0/b/gen-lang-client-0122140096.firebasestorage.app/o/skyit%20logo.png?alt=media&token=639a434a-2fc0-4063-ac43-4ca872cb99ae" 
                   alt="SkyIT Ventures Logo" 
@@ -1200,20 +1198,20 @@ export default function App() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-[18px] sm:text-[22px] font-bold text-white tracking-tight font-display leading-tight">SkyIT<span className="hidden sm:inline text-[#0066ff]"> Ventures</span></span>
-                <span className="text-[8.5px] sm:text-[9.5px] text-[#a0a8c2] uppercase tracking-[0.14em] font-semibold hidden sm:block">Solar & Security Systems</span>
+                <span className="text-[17px] sm:text-[19px] xl:text-[22px] font-bold text-white tracking-tight font-display leading-tight">SkyIT<span className="hidden sm:inline text-[#0066ff]"> Ventures</span></span>
+                <span className="text-[8px] xl:text-[9.5px] text-[#a0a8c2] uppercase tracking-[0.14em] font-semibold hidden xl:block">Solar & Security Systems</span>
               </div>
             </div>
 
             {/* Desktop Navigation links */}
-            <nav className="hidden lg:flex items-center gap-6 text-[14px] font-medium text-[#c2c6d8]">
+            <nav className="hidden lg:flex items-center gap-3.5 xl:gap-6 2xl:gap-8 text-[13px] xl:text-[14px] font-medium text-[#c2c6d8] whitespace-nowrap">
               {/* Shop Hardware Dropdown */}
-              <div className="relative" onMouseLeave={() => setIsShopMenuOpen(false)}>
+              <div className="relative shrink-0" onMouseLeave={() => setIsShopMenuOpen(false)}>
                 <button 
                   type="button"
                   onClick={() => { setSelectedCategory('All'); setActiveTab('shop'); setSelectedProduct(null); }}
                   onMouseEnter={() => setIsShopMenuOpen(true)}
-                  className={`hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1 ${activeTab === 'shop' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                  className={`hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1 whitespace-nowrap ${activeTab === 'shop' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
                 >
                   <span>Shop Hardware</span>
                   <ChevronDown size={14} />
@@ -1247,7 +1245,7 @@ export default function App() {
               <button 
                 type="button"
                 onClick={() => { setActiveTab('quote'); setSelectedProduct(null); }}
-                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'quote' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 whitespace-nowrap shrink-0 ${activeTab === 'quote' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
               >
                 Packages
               </button>
@@ -1255,16 +1253,16 @@ export default function App() {
               <button 
                 type="button"
                 onClick={() => { setActiveTab('ai'); setSelectedProduct(null); }}
-                className="hover:text-[#b3c5ff] transition-colors cursor-pointer flex items-center gap-1.5 text-amber-400 font-bold py-1"
+                className="hover:text-[#b3c5ff] transition-colors cursor-pointer flex items-center gap-1.5 text-amber-400 font-bold py-1 whitespace-nowrap shrink-0"
               >
-                <Sparkles size={14} className="text-amber-400 fill-amber-400" />
-                <span>AI Advisor</span>
+                <Sparkles size={14} className="text-amber-400 fill-amber-400 shrink-0" />
+                <span className="whitespace-nowrap">AI Advisor</span>
               </button>
 
               <button 
                 type="button"
                 onClick={() => { setActiveTab('tracker'); setSelectedProduct(null); }}
-                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'tracker' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 whitespace-nowrap shrink-0 ${activeTab === 'tracker' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
               >
                 Tracker
               </button>
@@ -1272,18 +1270,18 @@ export default function App() {
               <button 
                 type="button"
                 onClick={() => { setActiveTab('blog'); setSelectedProduct(null); }}
-                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 ${activeTab === 'blog' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
+                className={`hover:text-[#b3c5ff] transition-colors cursor-pointer py-1 whitespace-nowrap shrink-0 ${activeTab === 'blog' ? 'text-[#3898ff] font-bold underline decoration-2 underline-offset-4' : ''}`}
               >
                 Blog
               </button>
 
               {/* More Links Dropdown */}
-              <div className="relative" onMouseLeave={() => setIsMoreMenuOpen(false)}>
+              <div className="relative shrink-0" onMouseLeave={() => setIsMoreMenuOpen(false)}>
                 <button 
                   type="button"
                   onMouseEnter={() => setIsMoreMenuOpen(true)}
                   onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-                  className="hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1"
+                  className="hover:text-[#b3c5ff] transition-colors flex items-center gap-1 cursor-pointer py-1 whitespace-nowrap"
                 >
                   <span>More</span>
                   <ChevronDown size={14} />
@@ -1388,11 +1386,7 @@ export default function App() {
             </nav>
 
             {/* Right Controls: Search, Theme Toggle, Wishlist, Cart, User HUD, Mobile Toggle */}
-            <div className="flex items-center gap-2 sm:gap-3">
-
-
-
-
+            <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-2.5 shrink-0">
 
               {/* Search Button for ALL screens */}
               <button 
@@ -1406,6 +1400,28 @@ export default function App() {
                 title="Search products and packages"
               >
                 <Search size={18} />
+              </button>
+
+              {/* AI Sparkle Icon Button (Visible on Mobile & Tablet Portrait; Desktop/Tablet Landscape uses the Center Nav link) */}
+              <button 
+                type="button"
+                id="tour-ai-btn"
+                onClick={() => {
+                  setActiveTab('ai');
+                  setSelectedProduct(null);
+                  setIsMobileMenuOpen(false);
+                  setIsUserDropdownOpen(false);
+                  setIsCartOpen(false);
+                }}
+                className={`lg:hidden p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+                  activeTab === 'ai'
+                    ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md shadow-amber-400/20'
+                    : 'text-[#c2c6d8] hover:text-[#b3c5ff] border-white/10 bg-[#171b27] hover:border-white/20'
+                }`}
+                title="AI Advisor"
+                aria-label="AI Advisor"
+              >
+                <Sparkles size={18} className={activeTab === 'ai' ? 'text-slate-950' : 'text-amber-400'} />
               </button>
 
               {/* Wishlist Button (Desktop/Tablet Header - Hidden on Mobile) */}
@@ -1465,13 +1481,13 @@ export default function App() {
                   setIsMobileMenuOpen(false);
                   setIsUserDropdownOpen(false);
                 }}
-                className="relative bg-[#0066ff] text-white p-2 sm:px-4 sm:py-2 rounded-xl font-bold active:scale-95 duration-150 shadow-lg cursor-pointer hover:bg-[#0052cc] transition-all flex items-center gap-1.5 text-[13px]"
+                className="relative bg-[#0066ff] text-white p-2 xl:px-4 xl:py-2 rounded-xl font-bold active:scale-95 duration-150 shadow-lg cursor-pointer hover:bg-[#0052cc] transition-all flex items-center gap-1.5 text-[13px]"
                 title="View Cart"
               >
                 <ShoppingBag size={18} />
-                <span className="hidden sm:inline">Cart</span>
+                <span className="hidden xl:inline">Cart</span>
                 {totalCartItems > 0 && (
-                  <span className="bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#0e131e] -ml-0.5 sm:ml-1">
+                  <span className="bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#0e131e] -ml-0.5 sm:ml-0.5">
                     {totalCartItems}
                   </span>
                 )}
@@ -2382,16 +2398,16 @@ export default function App() {
 
         {/* VIEW 5: ADMIN LOGISTICS CONTROL TERMINAL */}
         {activeTab === 'admin' && !selectedProduct && (
-          (isAdmin || isEditor) ? (
-            <AdminPanel isUserAdmin={isAdmin} isUserEditor={isEditor} />
+          (isAdmin || isEditor || currentUser?.email === 'jeemestore@gmail.com' || auth.currentUser?.email === 'jeemestore@gmail.com') ? (
+            <AdminPanel isUserAdmin={true} isUserEditor={true} />
           ) : (
-            <AdminLoginGate 
+            <AdminLoginCard 
+              onLoginSuccess={handleLoginSuccess}
               onUnlockAdmin={() => {
                 setIsAdmin(true);
                 setIsEditor(true);
                 localStorage.setItem('skyit_sim_admin', 'true');
               }}
-              onOpenLogin={() => setIsLoginOpen(true)}
             />
           )
         )}

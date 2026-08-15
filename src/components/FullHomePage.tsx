@@ -468,7 +468,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                   onClick={() => onNavigate('quote')}
                   className="bg-[#0066ff] text-[#f8f7ff] px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-[18px] sm:text-[22px] font-bold hover:brightness-110 transition-all safety-glow cursor-pointer"
                 >
-                  Deploy Energy System
+                  Install Solar Power
                 </button>
                 <button 
                   type="button"
@@ -736,38 +736,37 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                   </div>
 
                   {/* Daytime Solar Panel Inclusion Toggle */}
-                  <div className="p-3.5 sm:p-4 rounded-2xl bg-[#171b27] border border-[#0066ff]/30 space-y-2.5 text-left">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div>
-                        <span className="text-[11px] font-bold text-[#b3c5ff] uppercase tracking-wider block">Include Solar Panels?</span>
-                        <span className="text-[10px] text-[#c2c6d8]">Calculate with daytime solar generation or inverter-only</span>
-                      </div>
-                      <div className="flex p-0.5 bg-[#303541] rounded-xl border border-white/10 shrink-0 w-full sm:w-auto">
-                        <button
-                          type="button"
-                          onClick={() => setIncludeDaytimeSolar(true)}
-                          className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer text-center ${
-                            includeDaytimeSolar 
-                              ? 'bg-[#0066ff] text-white shadow' 
-                              : 'text-[#c2c6d8] hover:text-white'
-                          }`}
-                        >
-                          Yes (Solar)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIncludeDaytimeSolar(false);
-                          }}
-                          className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer text-center ${
-                            !includeDaytimeSolar 
-                              ? 'bg-amber-500 text-slate-950 shadow' 
-                              : 'text-[#c2c6d8] hover:text-white'
-                          }`}
-                        >
-                          No (Inverter Only)
-                        </button>
-                      </div>
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-[#171b27] border border-[#0066ff]/30 space-y-3 text-left">
+                    <div className="space-y-0.5">
+                      <span className="text-[11px] font-bold text-[#b3c5ff] uppercase tracking-wider block">Include Solar Panels?</span>
+                      <span className="text-[10.5px] text-[#c2c6d8] block leading-snug">Calculate with daytime solar generation or inverter-only</span>
+                    </div>
+
+                    <div className="flex p-1 bg-[#303541] rounded-xl border border-white/10 w-full gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setIncludeDaytimeSolar(true)}
+                        className={`flex-1 py-2 px-3 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer text-center ${
+                          includeDaytimeSolar 
+                            ? 'bg-[#0066ff] text-white shadow-md' 
+                            : 'text-[#c2c6d8] hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        Yes (Solar)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIncludeDaytimeSolar(false);
+                        }}
+                        className={`flex-1 py-2 px-3 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer text-center ${
+                          !includeDaytimeSolar 
+                            ? 'bg-amber-500 text-slate-950 shadow-md font-black' 
+                            : 'text-[#c2c6d8] hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        No (Inverter Only)
+                      </button>
                     </div>
 
                     {includeDaytimeSolar ? (

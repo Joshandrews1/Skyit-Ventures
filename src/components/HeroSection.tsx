@@ -296,7 +296,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-98 text-slate-950 text-xs sm:text-sm font-black py-3.5 px-6 rounded-xl flex items-center gap-2 uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
               >
                 <Zap size={17} className="fill-slate-950" />
-                <span>Turnkey Solar Packages</span>
+                <span>Install Solar Power</span>
               </button>
 
               <button
