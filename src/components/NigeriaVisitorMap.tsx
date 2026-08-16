@@ -205,7 +205,7 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
   const [selectedStateId, setSelectedStateId] = useState<string | null>(null);
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
   const [searchStateQuery, setSearchStateQuery] = useState<string>('');
-  const [mobileView, setMobileView] = useState<'map' | 'details'>('map');
+  const [mobileView, setMobileView] = useState<'details' | 'map'>('details');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState<number>(6);
   const [centerCoords, setCenterCoords] = useState<{ lat: number; lng: number }>({ lat: 9.0820, lng: 8.6753 });
@@ -613,20 +613,8 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
         </div>
       </div>
 
-      {/* 3. Mobile View Switcher Tabs (Map vs. Details) */}
+      {/* 3. Mobile View Switcher Tabs (Details / Directory FIRST, then Map) */}
       <div className="lg:hidden flex bg-slate-950 p-1 rounded-xl border border-slate-800">
-        <button
-          type="button"
-          onClick={() => setMobileView('map')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            mobileView === 'map'
-              ? 'bg-slate-800 text-white shadow-xs font-black'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Compass size={14} className="text-amber-400" />
-          <span>Map View</span>
-        </button>
         <button
           type="button"
           onClick={() => setMobileView('details')}
@@ -639,13 +627,25 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
           <Layers size={14} className="text-emerald-400" />
           <span>{selectedStateNode ? `${selectedStateNode.stateName} Details` : 'All 36 States List'}</span>
         </button>
+        <button
+          type="button"
+          onClick={() => setMobileView('map')}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            mobileView === 'map'
+              ? 'bg-slate-800 text-white shadow-xs font-black'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Compass size={14} className="text-amber-400" />
+          <span>Map View</span>
+        </button>
       </div>
 
       {/* 4. Main Body: Dual Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
-        {/* LEFT COLUMN: MAP VIEW (SHOWS ALL STATES OR ZOOMED-IN STATE) */}
-        <div className={`lg:col-span-7 ${mobileView === 'details' ? 'hidden lg:block' : 'block'}`}>
+        {/* MAP VIEW COLUMN */}
+        <div className={`order-2 lg:order-1 lg:col-span-7 ${mobileView === 'details' ? 'hidden lg:block' : 'block'}`}>
           <div className="bg-slate-950 border border-slate-800 rounded-2xl relative min-h-[380px] sm:min-h-[460px] flex flex-col justify-between overflow-hidden shadow-inner">
             
             <div className="relative w-full h-[360px] sm:h-[440px] rounded-2xl overflow-hidden">
@@ -796,30 +796,30 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
         </div>
 
         {/* RIGHT COLUMN: 36 STATES LIST OR SELECTED STATE INSPECTOR */}
-        <div className={`lg:col-span-5 space-y-4 ${mobileView === 'map' ? 'hidden lg:block' : 'block'}`}>
+        <div className={`order-1 lg:order-2 lg:col-span-5 space-y-4 ${mobileView === 'map' ? 'hidden lg:block' : 'block'}`}>
           
           {/* VIEW A: IF NO SPECIFIC STATE IS SELECTED -> SHOW ALL 36 STATES DIRECTORY FIRST */}
           {!selectedStateNode ? (
             <div className="bg-gradient-to-br from-[#121726] to-[#0c101c] border border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-lg space-y-4">
               
               {/* National Overview Summary */}
-              <div className="flex items-start justify-between border-b border-slate-700/60 pb-3">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 font-mono">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 font-mono block truncate">
                     Federal Republic of Nigeria
                   </span>
-                  <h4 className="text-lg font-black font-display text-white flex items-center gap-2 mt-0.5">
-                    <Globe2 className="text-amber-400 shrink-0" size={20} />
-                    <span>36 States &bull; Traffic Directory</span>
+                  <h4 className="text-base sm:text-lg font-black font-display text-white flex items-center gap-2 mt-0.5 truncate">
+                    <Globe2 className="text-amber-400 shrink-0" size={18} />
+                    <span className="truncate">36 States Directory</span>
                   </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
                     Select any state to zoom in and inspect communities
                   </p>
                 </div>
 
-                <div className="text-right">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <div className="shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 whitespace-nowrap shrink-0 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
                     <span>{totalNigeriaLiveActive} Live Now</span>
                   </span>
                 </div>
@@ -876,7 +876,7 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
               </div>
 
               {/* Comprehensive Scrollable List of ALL 36 States */}
-              <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1 text-xs scrollbar-thin">
+              <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1 text-xs scrollbar-thin">
                 {filtered36States.map((state, idx) => {
                   const data = stateStats[state.id] || { visitsCount: 0, ordersCount: 0, revenue: 0, liveActive: 0 };
                   const isTopOne = idx === 0 && data.visitsCount > 0;
@@ -887,47 +887,47 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
                       key={state.id}
                       type="button"
                       onClick={() => handleSelectState(state)}
-                      className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between cursor-pointer border ${
+                      className={`w-full text-left p-2.5 sm:p-3 rounded-xl transition-all flex items-center justify-between gap-2 sm:gap-3 cursor-pointer border ${
                         isTopOne 
                           ? 'bg-slate-900/95 border-amber-500/50 text-white shadow-xs'
                           : 'bg-slate-900/70 hover:bg-slate-850 border-slate-800/80 text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-black ${
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-black shrink-0 ${
                           isTopOne ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
                         }`}>
                           #{idx + 1}
                         </span>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-xs text-white truncate">{state.stateName}</span>
-                            <span className="text-[10px] text-slate-400">({state.capital})</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <span className="font-bold text-xs sm:text-sm text-white whitespace-nowrap">{state.stateName}</span>
+                            <span className="text-[10px] text-slate-400 hidden sm:inline truncate">({state.capital})</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 block mt-0.5 font-mono">
-                            {state.region} &bull; {data.visitsCount > 0 ? formatTimeAgo(data.lastActiveTimestamp) : 'No visits in window'}
+                          <span className="text-[10px] text-slate-400 block mt-0.5 font-mono truncate">
+                            {state.region} &bull; {data.visitsCount > 0 ? formatTimeAgo(data.lastActiveTimestamp) : 'No visits'}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {isLive && (
-                          <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/60 border border-emerald-500/40 px-1.5 py-0.5 rounded-md">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                          <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/60 border border-emerald-500/40 px-1.5 py-0.5 rounded-md whitespace-nowrap shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
                             <span>{data.liveActive} live</span>
                           </span>
                         )}
                         
-                        <span className={`font-mono text-xs font-black px-2 py-1 rounded-md border ${
+                        <span className={`font-mono text-[11px] sm:text-xs font-black px-2 py-0.5 rounded-md border whitespace-nowrap shrink-0 ${
                           data.visitsCount > 0
-                            ? 'bg-slate-950 text-amber-300 border-slate-700'
+                            ? 'bg-slate-950 text-amber-300 border-amber-400/40'
                             : 'bg-slate-950/50 text-slate-400 border-slate-800'
                         }`}>
-                          {data.visitsCount} views
+                          {data.visitsCount} <span className="hidden md:inline">views</span>
                         </span>
                         
-                        <ChevronRight size={14} className="text-slate-500" />
+                        <ChevronRight size={13} className="text-slate-500 shrink-0" />
                       </div>
                     </button>
                   );
@@ -941,8 +941,8 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
               
               {/* Selected State Header Card */}
               <div className="bg-gradient-to-br from-[#121726] to-[#0c101c] border border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-lg space-y-4">
-                <div className="flex items-start justify-between border-b border-slate-700/60 pb-3">
-                  <div>
+                <div className="flex items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+                  <div className="min-w-0 flex-1">
                     <button
                       type="button"
                       onClick={handleResetToAllStates}
@@ -950,25 +950,25 @@ export const NigeriaVisitorMap: React.FC<NigeriaVisitorMapProps> = ({ visits, or
                     >
                       &larr; Back to All 36 States
                     </button>
-                    <h4 className="text-lg sm:text-xl font-black font-display text-white flex items-center gap-2">
-                      <MapPin className="text-amber-400 shrink-0" size={20} />
-                      <span>{selectedStateNode.stateName} State</span>
+                    <h4 className="text-base sm:text-xl font-black font-display text-white flex items-center gap-2 truncate">
+                      <MapPin className="text-amber-400 shrink-0" size={18} />
+                      <span className="truncate">{selectedStateNode.stateName} State</span>
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
                       Capital: <strong className="text-white">{selectedStateNode.capital}</strong> &bull; {selectedStateNode.region}
                     </p>
                   </div>
 
-                  <div className="text-right">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
+                  <div className="shrink-0 text-right">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border whitespace-nowrap shadow-xs ${
                       selectedStateData.liveActive > 0 
                         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' 
                         : 'bg-slate-800 text-slate-400 border-slate-700'
                     }`}>
-                      <span className={`w-2 h-2 rounded-full ${selectedStateData.liveActive > 0 ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${selectedStateData.liveActive > 0 ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
                       <span>{selectedStateData.liveActive > 0 ? `${selectedStateData.liveActive} Live Now` : 'Idle'}</span>
                     </span>
-                    <span className="text-[10px] text-slate-400 block mt-1">
+                    <span className="text-[10px] text-slate-400 block mt-1 whitespace-nowrap">
                       {formatTimeAgo(selectedStateData.lastActiveTimestamp)}
                     </span>
                   </div>

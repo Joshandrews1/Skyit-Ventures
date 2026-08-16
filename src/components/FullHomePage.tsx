@@ -199,6 +199,84 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
     microwave: 0
   });
 
+  // Engineering Mode: Custom watts per appliance with localStorage persistence & save toast
+  const [isEngineeringMode, setIsEngineeringMode] = useState<boolean>(false);
+  const [wattsSavedToast, setWattsSavedToast] = useState<boolean>(false);
+  const [guestLoginPrompt, setGuestLoginPrompt] = useState<boolean>(false);
+  const [customApplianceWatts, setCustomApplianceWatts] = useState<Record<string, number | ''>>(() => {
+    try {
+      const saved = localStorage.getItem('solar_custom_appliance_watts');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // fallback
+    }
+    return {
+      bulbs: 15,
+      fans: 65,
+      tv: 150,
+      laptops: 80,
+      freezer: 250,
+      ac: 1200,
+      waterPump: 1000,
+      microwave: 1200
+    };
+  });
+
+  const handleSaveCustomWatts = () => {
+    if (!currentUser) {
+      setGuestLoginPrompt(true);
+      setTimeout(() => setGuestLoginPrompt(false), 5000);
+      return;
+    }
+
+    try {
+      // sanitize any empty strings before saving
+      const sanitized: Record<string, number> = {
+        bulbs: Number(customApplianceWatts.bulbs) || 15,
+        fans: Number(customApplianceWatts.fans) || 65,
+        tv: Number(customApplianceWatts.tv) || 150,
+        laptops: Number(customApplianceWatts.laptops) || 80,
+        freezer: Number(customApplianceWatts.freezer) || 250,
+        ac: Number(customApplianceWatts.ac) || 1200,
+        waterPump: Number(customApplianceWatts.waterPump) || 1000,
+        microwave: Number(customApplianceWatts.microwave) || 1200
+      };
+      setCustomApplianceWatts(sanitized);
+      localStorage.setItem('solar_custom_appliance_watts', JSON.stringify(sanitized));
+      setGuestLoginPrompt(false);
+      setWattsSavedToast(true);
+      setTimeout(() => setWattsSavedToast(false), 2500);
+    } catch (e) {
+      console.error('Failed to save custom watts', e);
+    }
+  };
+
+  const handleResetCustomWatts = () => {
+    const defaultWatts: Record<string, number> = {
+      bulbs: 15,
+      fans: 65,
+      tv: 150,
+      laptops: 80,
+      freezer: 250,
+      ac: 1200,
+      waterPump: 1000,
+      microwave: 1200
+    };
+    setCustomApplianceWatts(defaultWatts);
+    try {
+      localStorage.setItem('solar_custom_appliance_watts', JSON.stringify(defaultWatts));
+      setWattsSavedToast(true);
+      setTimeout(() => setWattsSavedToast(false), 2500);
+    } catch {
+      // ignore
+    }
+  };
+
+  // Package Tier Selection in Audit: 'budget' (lowest entry) or 'optimal' (recommended best-fit)
+  const [selectedAuditTier, setSelectedAuditTier] = useState<'budget' | 'optimal'>('budget');
+
   const [showAuditModal, setShowAuditModal] = useState<boolean>(false);
   const [downloadedRefCode, setDownloadedRefCode] = useState<string>('');
   const [backupHours, setBackupHours] = useState<number>(8);
@@ -210,30 +288,40 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
   const [includeDaytimeSolar, setIncludeDaytimeSolar] = useState<boolean>(true);
 
   // Pro Mode Battery & Solar Specs & Manual Overrides
-  const [batteryTech, setBatteryTech] = useState<'lithium' | 'tubular'>('lithium');
-  const [selectedBatterySpec, setSelectedBatterySpec] = useState<string>('51.2V_100Ah');
-  const [customBatteryAh, setCustomBatteryAh] = useState<number>(200);
+  const [batteryTech, setBatteryTech] = useState<'lithium' | 'tubular'>('tubular');
+  const [selectedBatterySpec, setSelectedBatterySpec] = useState<string>('12V_220Ah');
+  const [customBatteryAh, setCustomBatteryAh] = useState<number>(220);
   const [customBatteryVolt, setCustomBatteryVolt] = useState<number>(12);
   const [manualSystemVoltage, setManualSystemVoltage] = useState<number>(0); // 0 = auto
   const [peakSunHours, setPeakSunHours] = useState<number>(5.0);
   
   // Solar Panel Specs & Custom Panel Manual Input
-  const [panelWattage, setPanelWattage] = useState<number>(550);
+  const [panelWattage, setPanelWattage] = useState<number>(300);
   const [panelType, setPanelType] = useState<string>('Mono PERC');
-  const [selectedPanelPreset, setSelectedPanelPreset] = useState<string>('550W_Mono');
+  const [selectedPanelPreset, setSelectedPanelPreset] = useState<string>('300W_Mono');
   const [isCustomPanel, setIsCustomPanel] = useState<boolean>(false);
 
   const resetProEngineeringSettings = () => {
     setManualSystemVoltage(0);
-    setSelectedBatterySpec('51.2V_100Ah');
-    setBatteryTech('lithium');
-    setPanelWattage(550);
+    setSelectedBatterySpec('12V_220Ah');
+    setBatteryTech('tubular');
+    setPanelWattage(300);
     setPanelType('Mono PERC');
-    setSelectedPanelPreset('550W_Mono');
+    setSelectedPanelPreset('300W_Mono');
     setIsCustomPanel(false);
     setPeakSunHours(5.0);
     setBackupHours(8);
     setIncludeDaytimeSolar(true);
+    setCustomApplianceWatts({
+      bulbs: 15,
+      fans: 65,
+      tv: 150,
+      laptops: 80,
+      freezer: 250,
+      ac: 1200,
+      waterPump: 1000,
+      microwave: 1200
+    });
   };
 
   const updateAuditCount = (key: keyof typeof auditCounts, delta: number) => {
@@ -243,15 +331,45 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
     }));
   };
 
+  const updateCustomWatts = (key: string, val: string) => {
+    if (val === '') {
+      setCustomApplianceWatts(prev => ({
+        ...prev,
+        [key]: ''
+      }));
+      return;
+    }
+    const num = parseInt(val, 10);
+    if (!isNaN(num)) {
+      setCustomApplianceWatts(prev => ({
+        ...prev,
+        [key]: Math.min(15000, Math.max(0, num))
+      }));
+    }
+  };
+
+  const handleBlurCustomWatts = (key: string, fallbackDefault: number) => {
+    setCustomApplianceWatts(prev => {
+      const current = prev[key];
+      if (current === '' || current === undefined || current === 0) {
+        return {
+          ...prev,
+          [key]: fallbackDefault
+        };
+      }
+      return prev;
+    });
+  };
+
   const totalSustainedWattage = 
-    (auditCounts.bulbs * 15) + 
-    (auditCounts.fans * 65) + 
-    (auditCounts.tv * 150) + 
-    (auditCounts.laptops * 80) + 
-    (auditCounts.freezer * 250) + 
-    (auditCounts.ac * 1200) + 
-    (auditCounts.waterPump * 1000) +
-    (auditCounts.microwave * 1200);
+    (auditCounts.bulbs * (Number(customApplianceWatts.bulbs) || 15)) + 
+    (auditCounts.fans * (Number(customApplianceWatts.fans) || 65)) + 
+    (auditCounts.tv * (Number(customApplianceWatts.tv) || 150)) + 
+    (auditCounts.laptops * (Number(customApplianceWatts.laptops) || 80)) + 
+    (auditCounts.freezer * (Number(customApplianceWatts.freezer) || 250)) + 
+    (auditCounts.ac * (Number(customApplianceWatts.ac) || 1200)) + 
+    (auditCounts.waterPump * (Number(customApplianceWatts.waterPump) || 1000)) +
+    (auditCounts.microwave * (Number(customApplianceWatts.microwave) || 1200));
 
   // System Voltage Determination
   const autoSystemVoltage = useMemo(() => {
@@ -275,9 +393,6 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
     }
     if (selectedBatterySpec === '51.2V_200Ah') {
       return { label: '51.2V 200Ah Lithium (10.24kWh)', v: 51.2, ah: 200, wh: 10240 };
-    }
-    if (selectedBatterySpec === '25.6V_100Ah') {
-      return { label: '25.6V 100Ah Lithium (2.56kWh)', v: 25.6, ah: 100, wh: 2560 };
     }
     return {
       label: `${customBatteryVolt}V ${customBatteryAh}Ah Custom`,
@@ -329,7 +444,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
     ? Math.ceil((Math.max(requiredPvWattage, totalSustainedWattage * 1.35)) / 100) * 100
     : 0;
 
-  const activePanelWattage = panelWattage > 0 ? panelWattage : 550;
+  const activePanelWattage = panelWattage > 0 ? panelWattage : 300;
 
   const solarPanelCount = (includeDaytimeSolar && recommendedSolarWattage > 0) 
     ? Math.max(1, Math.ceil(recommendedSolarWattage / activePanelWattage))
@@ -340,25 +455,64 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
     ? Math.ceil((totalSolarWattageActual / activeSystemVoltage) * 1.25)
     : 0;
 
-  // Best Matched Solar Package from Catalogue based on simultaneous peak load
-  const bestMatchedPackage: SolarPackage = useMemo(() => {
-    if (totalSustainedWattage <= 900) {
+  // Sizing Strategy:
+  // 1. Lowest / Budget-friendly Package: Entry point with accessible price
+  // 2. Best / Optimal Package: Sized for full concurrent load + headroom
+  const budgetEntryPackage: SolarPackage = useMemo(() => {
+    if (totalSustainedWattage <= 1200) {
       return SOLAR_PACKAGES.tubular.find(p => p.id === 'tub-1.5') || SOLAR_PACKAGES.tubular[0];
-    } else if (totalSustainedWattage <= 1800) {
-      return SOLAR_PACKAGES.tubular.find(p => p.id === 'tub-2.5') || SOLAR_PACKAGES.tubular[1];
-    } else if (totalSustainedWattage <= 3000) {
-      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-4.0') || SOLAR_PACKAGES.lithium[0];
+    } else if (totalSustainedWattage <= 2200) {
+      return SOLAR_PACKAGES.tubular.find(p => p.id === 'tub-3.5-std') || SOLAR_PACKAGES.tubular[1];
+    } else if (totalSustainedWattage <= 3800) {
+      return SOLAR_PACKAGES.tubular.find(p => p.id === 'tub-5.0-std') || SOLAR_PACKAGES.tubular[3];
     } else if (totalSustainedWattage <= 5000) {
-      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-6.0-a') || SOLAR_PACKAGES.lithium[1];
-    } else if (totalSustainedWattage <= 8000) {
-      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-10.0-a') || SOLAR_PACKAGES.lithium[3];
+      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-4.0') || SOLAR_PACKAGES.lithium[0];
     } else {
-      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-10.0-b') || SOLAR_PACKAGES.lithium[4];
+      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-6.0-10') || SOLAR_PACKAGES.lithium[1];
     }
   }, [totalSustainedWattage]);
 
+  const optimalMatchedPackage: SolarPackage = useMemo(() => {
+    if (totalSustainedWattage <= 800) {
+      return SOLAR_PACKAGES.tubular.find(p => p.id === 'tub-1.5') || SOLAR_PACKAGES.tubular[0];
+    } else if (totalSustainedWattage <= 1600) {
+      return SOLAR_PACKAGES.tubular.find(p => p.id === 'tub-3.5-ext') || SOLAR_PACKAGES.tubular[2];
+    } else if (totalSustainedWattage <= 2800) {
+      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-4.0') || SOLAR_PACKAGES.lithium[0];
+    } else if (totalSustainedWattage <= 4500) {
+      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-6.0-10') || SOLAR_PACKAGES.lithium[1];
+    } else if (totalSustainedWattage <= 7500) {
+      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-6.0-15') || SOLAR_PACKAGES.lithium[2];
+    } else {
+      return SOLAR_PACKAGES.lithium.find(p => p.id === 'li-10.0-hyb') || SOLAR_PACKAGES.lithium[3];
+    }
+  }, [totalSustainedWattage]);
+
+  // Optional upgrade package for small loads when 1.5KVA is already optimal
+  const recommendedUpgradePackage: SolarPackage | null = useMemo(() => {
+    if (budgetEntryPackage.id === optimalMatchedPackage.id) {
+      // For small loads, provide a next-level upgrade option (e.g. 3.5KVA)
+      return SOLAR_PACKAGES.tubular.find(p => p.id === 'tub-3.5-std') || SOLAR_PACKAGES.tubular[1];
+    }
+    return null;
+  }, [budgetEntryPackage.id, optimalMatchedPackage.id]);
+
+  const isIdenticalMatch = budgetEntryPackage.id === optimalMatchedPackage.id;
+
+  // The active displayed package based on whether user chooses Lowest Entry vs Best Fit
+  const activeAuditPackage: SolarPackage = useMemo(() => {
+    if (isIdenticalMatch) {
+      return selectedAuditTier === 'optimal' && recommendedUpgradePackage 
+        ? recommendedUpgradePackage 
+        : budgetEntryPackage;
+    }
+    return selectedAuditTier === 'optimal' ? optimalMatchedPackage : budgetEntryPackage;
+  }, [isIdenticalMatch, selectedAuditTier, recommendedUpgradePackage, budgetEntryPackage, optimalMatchedPackage]);
+
+  const bestMatchedPackage = activeAuditPackage;
+
   // Realistic Inverter Sizing Calculation
-  const recommendedMinKva = totalSustainedWattage === 0 ? 0.8 : Math.max(1, (totalSustainedWattage / 600));
+  const recommendedMinKva = totalSustainedWattage === 0 ? 0.8 : Math.max(1.5, (totalSustainedWattage / 650));
 
   const auditRecommendedSystem = bestMatchedPackage.name;
 
@@ -480,9 +634,9 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
               </div>
             </div>
 
-            {/* Right Live Product Spotlight Card */}
+            {/* Right Live Product Spotlight Card (Hidden on mobile) */}
             {isLoadingProducts ? (
-              <div className="lg:col-span-5 flex justify-center lg:justify-end w-full">
+              <div className="hidden lg:flex lg:col-span-5 justify-center lg:justify-end w-full">
                 <div className="w-full max-w-md bg-[#f0f4fa] rounded-[24px] p-5 sm:p-6 border border-slate-200/90 shadow-2xl space-y-4 animate-pulse">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
                     <div className="h-4 w-36 bg-slate-300/80 rounded-md" />
@@ -504,7 +658,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                 </div>
               </div>
             ) : currentSpotlight ? (
-              <div className="lg:col-span-5 flex justify-center lg:justify-end w-full">
+              <div className="hidden lg:flex lg:col-span-5 justify-center lg:justify-end w-full">
                 <div className="w-full max-w-md bg-[#f0f4fa] text-[#0f172a] rounded-[24px] p-5 sm:p-6 border border-slate-200/90 shadow-2xl space-y-4 animate-fade-in">
                   {/* Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
@@ -626,8 +780,33 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                   Precision Energy Audit
                 </h2>
                 <p className="text-[13px] sm:text-[15px] text-[#c2c6d8] mt-1">
-                  Adjust appliance quantities below to calculate your realistic power demand and instantly find your best solar package match.
+                  Adjust appliance quantities or edit load wattages in Engineering Mode to find your budget entry package and view the recommended best fit.
                 </p>
+              </div>
+
+              {/* Edit Watts Toggle Switch */}
+              <div className="flex items-center gap-2.5 self-start md:self-auto bg-[#171b27] px-3 py-1.5 rounded-xl border border-white/10 shadow-xs">
+                <span className="text-xs font-bold text-[#dee2f2] flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="material-symbols-outlined text-amber-400 text-sm">tune</span>
+                  <span>Edit Watts</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isEngineeringMode}
+                  onClick={() => setIsEngineeringMode(!isEngineeringMode)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                    isEngineeringMode ? 'bg-amber-400' : 'bg-slate-700'
+                  }`}
+                >
+                  <span className="sr-only">Toggle Edit Watts</span>
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-950 shadow-md ring-0 transition duration-200 ease-in-out ${
+                      isEngineeringMode ? 'translate-x-4 bg-slate-950' : 'translate-x-0 bg-white'
+                    }`}
+                  />
+                </button>
               </div>
             </div>
 
@@ -671,50 +850,143 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {isEngineeringMode && (
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base text-amber-400 shrink-0">tune</span>
+                        <span><strong>Engineering Mode:</strong> Adjust individual appliance watts to match your exact ratings.</span>
+                      </div>
+                      {wattsSavedToast && (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950 font-black text-[10px] animate-fade-in flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">check_circle</span>
+                          Saved!
+                        </span>
+                      )}
+                    </div>
+
+                    {guestLoginPrompt && (
+                      <div className="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center justify-between gap-2 animate-fade-in">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="material-symbols-outlined text-base text-rose-400 shrink-0">lock</span>
+                          <span className="truncate">Please <strong>sign in</strong> or create an account to save custom load ratings.</span>
+                        </div>
+                        {onOpenLogin && (
+                          <button
+                            type="button"
+                            onClick={onOpenLogin}
+                            className="px-2.5 py-1 rounded-lg bg-rose-400 hover:bg-rose-300 text-slate-950 font-black text-[11px] shrink-0 cursor-pointer transition-all"
+                          >
+                            Sign In
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-500/20">
+                      <button
+                        type="button"
+                        onClick={handleResetCustomWatts}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-900 text-slate-300 hover:text-white border border-white/10 text-[11px] font-bold cursor-pointer transition-all flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-xs">restart_alt</span>
+                        <span>Reset Defaults</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveCustomWatts}
+                        className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] cursor-pointer transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                      >
+                        <span className="material-symbols-outlined text-xs">{currentUser ? 'save' : 'lock'}</span>
+                        <span>{currentUser ? 'Save Custom Watts' : 'Login to Save Watts'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Appliance Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { key: 'bulbs', name: 'LED Bulbs / Fittings', watts: 15, icon: 'lightbulb' },
-                    { key: 'fans', name: 'Ceiling / Standing Fans', watts: 65, icon: 'mode_fan' },
-                    { key: 'tv', name: 'Smart TV & Soundbar', watts: 150, icon: 'tv' },
-                    { key: 'laptops', name: 'Laptops / Routers', watts: 80, icon: 'laptop_chromebook' },
-                    { key: 'freezer', name: 'Freezer / Refrigerator', watts: 250, icon: 'kitchen' },
-                    { key: 'ac', name: 'Inverter AC (1.5HP)', watts: 1200, icon: 'ac_unit' },
-                    { key: 'waterPump', name: 'Water Pumping Motor', watts: 1000, icon: 'water_pump' },
-                    { key: 'microwave', name: 'Microwave / Kettle', watts: 1200, icon: 'microwave' },
-                  ].map((appliance) => (
-                    <div key={appliance.key} className="flex items-center justify-between p-3.5 bg-[#171b27] rounded-2xl border border-white/5 hover:border-white/10 transition-all">
-                      <div className="flex items-center gap-3 min-w-0 pr-2">
-                        <div className="w-9 h-9 rounded-xl bg-[#303541] flex items-center justify-center shrink-0 text-[#b3c5ff]">
-                          <span className="material-symbols-outlined text-lg">{appliance.icon}</span>
+                    { key: 'bulbs', name: 'LED Bulbs / Fittings', defaultWatts: 15, icon: 'lightbulb' },
+                    { key: 'fans', name: 'Ceiling / Standing Fans', defaultWatts: 65, icon: 'mode_fan' },
+                    { key: 'tv', name: 'Smart TV & Soundbar', defaultWatts: 150, icon: 'tv' },
+                    { key: 'laptops', name: 'Laptops / Routers', defaultWatts: 80, icon: 'laptop_chromebook' },
+                    { key: 'freezer', name: 'Freezer / Refrigerator', defaultWatts: 250, icon: 'kitchen' },
+                    { 
+                      key: 'ac', 
+                      name: (() => {
+                        const w = Number(customApplianceWatts.ac) || 1200;
+                        if (w <= 900) return 'Inverter AC (1.0HP)';
+                        if (w <= 1500) return 'Inverter AC (1.5HP)';
+                        return `Inverter AC (${(w / 746).toFixed(1)}HP)`;
+                      })(), 
+                      defaultWatts: 1200, 
+                      icon: 'ac_unit' 
+                    },
+                    { key: 'waterPump', name: 'Water Pumping Motor', defaultWatts: 1000, icon: 'water_pump' },
+                    { key: 'microwave', name: 'Microwave / Kettle', defaultWatts: 1200, icon: 'microwave' },
+                  ].map((appliance) => {
+                    const currentWatts = customApplianceWatts[appliance.key] ?? appliance.defaultWatts;
+                    return (
+                      <div key={appliance.key} className="flex flex-col justify-between p-3.5 bg-[#171b27] rounded-2xl border border-white/5 hover:border-white/10 transition-all gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 min-w-0 pr-2">
+                            <div className="w-9 h-9 rounded-xl bg-[#303541] flex items-center justify-center shrink-0 text-[#b3c5ff]">
+                              <span className="material-symbols-outlined text-lg">{appliance.icon}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-[#dee2f2] truncate">{appliance.name}</div>
+                              {isEngineeringMode ? (
+                                <div className="text-[11px] text-[#c2c6d8] flex items-center gap-1 mt-0.5">
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={customApplianceWatts[appliance.key] !== undefined ? customApplianceWatts[appliance.key] : appliance.defaultWatts}
+                                    onChange={(e) => updateCustomWatts(appliance.key, e.target.value)}
+                                    onBlur={() => handleBlurCustomWatts(appliance.key, appliance.defaultWatts)}
+                                    placeholder={String(appliance.defaultWatts)}
+                                    className="w-16 px-1.5 py-0.5 bg-slate-900 border border-amber-400/60 focus:border-amber-300 focus:outline-hidden rounded text-amber-300 font-mono text-xs font-bold text-center"
+                                  />
+                                  <span className="text-amber-400 font-bold text-[10px]">W each</span>
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-[#c2c6d8] mt-0.5">
+                                  {Number(currentWatts) || appliance.defaultWatts}W avg.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button 
+                              type="button"
+                              onClick={() => updateAuditCount(appliance.key as keyof typeof auditCounts, -1)}
+                              className="w-8 h-8 rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-transparent flex items-center justify-center text-slate-800 dark:text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <span className="text-base font-extrabold w-5 text-center text-slate-800 dark:text-[#dee2f2]">
+                              {auditCounts[appliance.key as keyof typeof auditCounts]}
+                            </span>
+                            <button 
+                              type="button"
+                              onClick={() => updateAuditCount(appliance.key as keyof typeof auditCounts, 1)}
+                              className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#303541] flex items-center justify-center text-slate-900 dark:text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-bold text-xs text-[#dee2f2] truncate">{appliance.name}</div>
-                          <div className="text-[11px] text-[#c2c6d8]">{appliance.watts}W avg.</div>
-                        </div>
+
+                        {isEngineeringMode && auditCounts[appliance.key as keyof typeof auditCounts] > 0 && (
+                          <div className="text-[10px] text-right font-mono text-amber-300/80 pt-1 border-t border-white/5">
+                            Subtotal: {(auditCounts[appliance.key as keyof typeof auditCounts] * (Number(currentWatts) || appliance.defaultWatts)).toLocaleString()} W
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button 
-                          type="button"
-                          onClick={() => updateAuditCount(appliance.key as keyof typeof auditCounts, -1)}
-                          className="w-8 h-8 rounded-full border border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-transparent flex items-center justify-center text-slate-800 dark:text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
-                        >
-                          -
-                        </button>
-                        <span className="text-base font-extrabold w-5 text-center text-slate-800 dark:text-[#dee2f2]">
-                          {auditCounts[appliance.key as keyof typeof auditCounts]}
-                        </span>
-                        <button 
-                          type="button"
-                          onClick={() => updateAuditCount(appliance.key as keyof typeof auditCounts, 1)}
-                          className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#303541] flex items-center justify-center text-slate-900 dark:text-white hover:bg-[#b3c5ff] hover:text-[#002b75] transition-all font-black text-sm cursor-pointer"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -787,19 +1059,110 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                     )}
                   </div>
 
-                  {/* Best Package Match Card */}
-                  <div className="p-4 rounded-2xl bg-[#171b27] border border-[#0066ff]/40 space-y-2 text-left">
+                  {/* Tier Selector: Lowest Budget Entry vs. Best Matched Package */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-[#c2c6d8]">
+                      <span>Suggested Package Options:</span>
+                      <span className="text-amber-300 font-mono text-[10px]">
+                        {isIdenticalMatch
+                          ? (selectedAuditTier === 'budget' ? '⭐ 100% Load Match' : '🚀 Expansion Upgrade')
+                          : (selectedAuditTier === 'budget' ? '💡 Budget-Friendly First' : '🌟 Best Full-Load Fit')}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 bg-[#171b27] p-1.5 rounded-2xl border border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAuditTier('budget')}
+                        className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between border ${
+                          selectedAuditTier === 'budget'
+                            ? (isIdenticalMatch
+                                ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-md'
+                                : 'bg-amber-500/20 border-amber-400 text-white shadow-md')
+                            : 'border-transparent text-[#c2c6d8] hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] uppercase font-black tracking-wider ${isIdenticalMatch ? 'text-emerald-300' : 'text-amber-300'}`}>
+                            {isIdenticalMatch ? '⭐ 1. Recommended Match' : '1. Lowest Entry'}
+                          </span>
+                          {selectedAuditTier === 'budget' && (
+                            <span className={`w-2 h-2 rounded-full ${isIdenticalMatch ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                          )}
+                        </div>
+                        <div className="font-extrabold text-xs text-white truncate mt-0.5">{budgetEntryPackage.name}</div>
+                        <div className={`text-sm font-black mt-1 ${isIdenticalMatch ? 'text-emerald-300' : 'text-amber-300'}`}>
+                          ₦{budgetEntryPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAuditTier('optimal')}
+                        className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between border ${
+                          selectedAuditTier === 'optimal'
+                            ? 'bg-[#0066ff]/25 border-[#0066ff] text-white shadow-md'
+                            : 'border-transparent text-[#c2c6d8] hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-black tracking-wider text-[#b3c5ff]">
+                            {isIdenticalMatch ? '2. Future Upgrade Tier' : '2. Best Fit (Recommended)'}
+                          </span>
+                          {selectedAuditTier === 'optimal' && <span className="w-2 h-2 rounded-full bg-[#0066ff]" />}
+                        </div>
+                        <div className="font-extrabold text-xs text-white truncate mt-0.5">
+                          {isIdenticalMatch && recommendedUpgradePackage ? recommendedUpgradePackage.name : optimalMatchedPackage.name}
+                        </div>
+                        <div className="text-sm font-black text-[#b3c5ff] mt-1">
+                          ₦{(isIdenticalMatch && recommendedUpgradePackage ? recommendedUpgradePackage.price : optimalMatchedPackage.price).toLocaleString('en-US').replace(/\s+/g, '')}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Selected Package Details Card */}
+                  <div className={`p-4 rounded-2xl border space-y-2 text-left transition-all ${
+                    selectedAuditTier === 'budget'
+                      ? (isIdenticalMatch ? 'bg-[#171b27] border-emerald-500/40' : 'bg-[#171b27] border-amber-500/40')
+                      : 'bg-[#171b27] border-[#0066ff]/40'
+                  }`}>
                     <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
-                      <span className="text-[#b3c5ff]">Best Package Match</span>
-                      <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-[10px]">Optimal Fit</span>
+                      <span className={
+                        selectedAuditTier === 'budget'
+                          ? (isIdenticalMatch ? 'text-emerald-400' : 'text-amber-400')
+                          : 'text-[#b3c5ff]'
+                      }>
+                        {isIdenticalMatch
+                          ? (selectedAuditTier === 'budget' ? '⭐ Recommended Best Match (Small Load)' : '🚀 Future Upgrade / Extra Capacity')
+                          : (selectedAuditTier === 'budget' ? '💡 Lowest Entry Package' : '🌟 Recommended Best Fit')}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        selectedAuditTier === 'budget'
+                          ? (isIdenticalMatch 
+                              ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20' 
+                              : 'bg-amber-400/10 text-amber-300 border border-amber-400/20')
+                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      }`}>
+                        {isIdenticalMatch
+                          ? (selectedAuditTier === 'budget' ? '100% Best Fit' : 'Heavy Load Headroom')
+                          : (selectedAuditTier === 'budget' ? 'Budget Friendly' : '100% Load Match')}
+                      </span>
                     </div>
                     <div className="text-base font-black text-[#dee2f2]">{bestMatchedPackage.name}</div>
-                    <div className="text-2xl font-black text-[#0066ff]">₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</div>
+                    <div className={`text-2xl font-black ${
+                      selectedAuditTier === 'budget'
+                        ? (isIdenticalMatch ? 'text-emerald-400' : 'text-amber-400')
+                        : 'text-[#0066ff]'
+                    }`}>
+                      ₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}
+                    </div>
                     <p className="text-xs text-[#c2c6d8] line-clamp-2">{bestMatchedPackage.description}</p>
-                    <div className="pt-1 flex flex-wrap gap-1.5 text-[10px] text-[#b3c5ff] font-medium">
-                      <span className="bg-[#303541] px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.kva}</span>
-                      <span className="bg-[#303541] px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.batteryInfo}</span>
-                      <span className="bg-[#303541] px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.panels}x Solar Panels</span>
+                    <div className="pt-1 flex flex-wrap gap-1.5 text-[10px] font-medium">
+                      <span className="bg-[#303541] text-[#b3c5ff] px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.kva}</span>
+                      <span className="bg-[#303541] text-[#b3c5ff] px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.batteryInfo}</span>
+                      <span className="bg-[#303541] text-[#b3c5ff] px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.panels}x Solar Panels</span>
+                      <span className="bg-[#303541] text-amber-300 px-2 py-0.5 rounded border border-white/5">{bestMatchedPackage.acSupport}</span>
                     </div>
                   </div>
 
@@ -888,7 +1251,7 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
                     className="w-full py-3 px-3 rounded-xl bg-[#0066ff] hover:bg-[#0052cc] text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg active:scale-95"
                   >
                     <span className="material-symbols-outlined text-base sm:text-lg shrink-0">shopping_cart</span>
-                    <span className="hidden sm:inline">Order Recommended Package (₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')})</span>
+                    <span className="hidden sm:inline">Order {selectedAuditTier === 'budget' ? 'Budget' : 'Optimal'} Package (₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')})</span>
                     <span className="sm:hidden font-extrabold">Order Package</span>
                     <span className="sm:hidden bg-white/20 px-2 py-0.5 rounded-md text-[10px] font-black shrink-0">₦{bestMatchedPackage.price.toLocaleString('en-US').replace(/\s+/g, '')}</span>
                   </button>
