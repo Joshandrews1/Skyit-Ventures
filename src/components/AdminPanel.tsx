@@ -59,7 +59,12 @@ import {
   XCircle,
   TrendingUp,
   Users,
-  BookOpen
+  BookOpen,
+  Menu,
+  ArrowLeft,
+  Store,
+  LayoutDashboard,
+  Sliders
 } from 'lucide-react';
 
 interface AIQuoteResult {
@@ -87,9 +92,14 @@ interface AIQuoteResult {
 interface AdminPanelProps {
   isUserAdmin?: boolean;
   isUserEditor?: boolean;
+  onNavigateToStore?: () => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isUserEditor = false }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ 
+  isUserAdmin = false, 
+  isUserEditor = false,
+  onNavigateToStore
+}) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -775,186 +785,167 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
     return matchesSearch && matchesStatus;
   });
 
+  const navItems = [
+    { id: 'logistics' as const, label: 'Deliveries & Orders', shortLabel: 'Orders', icon: Truck, badge: orders.length > 0 ? String(orders.length) : undefined, color: 'text-sky-400' },
+    { id: 'analytics' as const, label: 'Sales & Analytics', shortLabel: 'Analytics', icon: TrendingUp, color: 'text-emerald-400' },
+    { id: 'quote' as const, label: 'AI Proposals & Quotes', shortLabel: 'AI Quotes', icon: Sparkles, color: 'text-indigo-400' },
+    { id: 'packages' as const, label: 'Solar Packages', shortLabel: 'Packages', icon: Zap, color: 'text-amber-400' },
+    { id: 'products' as const, label: 'Product Catalog', shortLabel: 'Catalog', icon: Package, color: 'text-blue-400' },
+    { id: 'blog' as const, label: 'Blog & Articles', shortLabel: 'Blog', icon: BookOpen, color: 'text-purple-400' },
+    ...(isUserAdmin ? [{ id: 'roles' as const, label: 'Role Permissions', shortLabel: 'Roles', icon: Users, color: 'text-rose-400' }] : [])
+  ];
+
   return (
     <div className="space-y-6" id="admin-panel-container">
       
-      {/* Welcome Banner */}
-      <div className="bg-[#050505] p-6 rounded-3xl border border-gray-800 text-white relative overflow-hidden flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-brand/10 rounded-full blur-3xl pointer-events-none" />
+      {/* EXECUTIVE ADMIN TOP BAR: Mode Switcher, Status & Storefront Switcher */}
+      <div className="bg-[#0e131e] border border-white/10 rounded-2xl p-3 sm:p-4.5 flex items-center justify-between gap-2.5 sm:gap-4 shadow-xl backdrop-blur-md sticky top-16 z-30">
         
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <span className="bg-brand text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-sm tracking-wide">
-              Secure Cloud Management
-            </span>
-            <span className="text-emerald-400 font-mono text-[9px] flex items-center gap-1 bg-emerald-950/40 px-2 py-0.5 border border-emerald-800/50 rounded">
-              ● Firebase Online
+        {/* Left: Brand Hub Identity */}
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#0066ff] to-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/20 shrink-0">
+            <LayoutDashboard size={17} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display font-black text-xs sm:text-base text-white tracking-tight leading-none truncate">
+                Admin Console
+              </h2>
+              <span className="hidden md:inline-flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full font-mono shrink-0">
+                ● Live Sync
+              </span>
+            </div>
+            <span className="text-[10px] sm:text-[11px] text-[#8e95b0] hidden sm:block truncate">
+              SkyIT Operations Workspace
             </span>
           </div>
-          <h2 className="font-display font-black text-2xl tracking-tight text-white leading-none">
-            SkyIT Ventures Management Suite
-          </h2>
-          <p className="text-xs text-gray-400">
-            Comprehensive hub for overseeing logistics, AI-powered document generation, and inventory management.
-          </p>
         </div>
 
-        {/* Admin Tools Tour Trigger Button */}
-        <div className="shrink-0">
+        {/* Right: Quick Action Controls & Storefront Switcher */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Admin Interactive Tour Button */}
           <button
             type="button"
             onClick={() => setIsAdminTourOpen(true)}
-            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black px-4 py-2.5 rounded-2xl transition-all flex items-center gap-2 cursor-pointer shadow-md hover:scale-105 active:scale-95 shrink-0"
+            className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0 whitespace-nowrap"
             id="btn-admin-tour"
             title="Start Guided Admin Suite Tour"
           >
-            <Sparkles size={15} className="text-amber-400 fill-amber-400 animate-pulse" />
-            <span>Admin Tools Tour 🎓</span>
+            <Sparkles size={13} className="text-amber-400 fill-amber-400 animate-pulse shrink-0" />
+            <span className="hidden sm:inline">Admin Tour 🎓</span>
+            <span className="sm:hidden">Tour</span>
           </button>
+
+          {/* Switch to Storefront Button */}
+          {onNavigateToStore && (
+            <button
+              type="button"
+              onClick={onNavigateToStore}
+              className="bg-[#171b27] hover:bg-white/10 text-[#b3c5ff] hover:text-white border border-white/10 text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0 whitespace-nowrap"
+              title="Switch to Customer Storefront View"
+            >
+              <Store size={13} className="text-[#0066ff] shrink-0" />
+              <span className="hidden md:inline">Customer Storefront View</span>
+              <span className="md:hidden">Store View</span>
+            </button>
+          )}
         </div>
       </div>
 
       {feedbackMsg && (
-        <div className="p-3.5 bg-brand-light text-brand text-xs font-semibold rounded-xl border border-brand/20 flex items-center gap-1.5 animate-scale-up">
-          <Sparkles size={14} className="fill-brand/20 animate-spin" />
+        <div className="p-3.5 bg-[#171b27] text-[#b3c5ff] text-xs font-semibold rounded-2xl border border-[#0066ff]/30 flex items-center gap-2 animate-scale-up shadow-md">
+          <Sparkles size={15} className="text-[#0066ff] animate-spin" />
           <span>{feedbackMsg}</span>
         </div>
       )}
 
-      {/* Slideable Tabs Selector Navigation Container */}
-      <div className="relative flex items-center border-b border-slate-200">
+      {/* DEDICATED ADMIN WORKSPACE LAYOUT (Sticky & Scrollable Sidebar on Desktop + Full Screen Content) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
         
-        {/* Left sliding button */}
-        <button
-          onClick={() => handleNavigateView('prev')}
-          disabled={adminView === views[0]}
-          className={`absolute left-0 z-10 p-2.5 h-full flex items-center bg-gradient-to-r from-white via-white/80 to-transparent transition-opacity ${
-            adminView === views[0] ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:text-brand'
-          }`}
-          title="Slide to previous setup"
-          aria-label="Previous view"
-        >
-          <div className="bg-slate-50 border border-slate-200 rounded-full p-1 shadow-3xs active:scale-90 transition-transform">
-            <ChevronLeft size={13} strokeWidth={2.5} />
+        {/* DESKTOP SIDEBAR NAVIGATION (Sticky & Vertically Scrollable on Desktop, Hidden on Mobile) */}
+        <aside className="hidden lg:block lg:col-span-3 space-y-3 sticky top-36 max-h-[calc(100vh-10rem)] overflow-y-auto scrollbar-thin">
+          <div className="bg-[#0e131e] border border-white/10 rounded-2xl p-3 space-y-1.5 shadow-xl">
+            <div className="px-3 py-2 border-b border-white/5 mb-1 flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#8e95b0]">Admin Modules</span>
+              <span className="text-[10px] font-bold text-[#0066ff] bg-[#0066ff]/10 px-2 py-0.5 rounded-md border border-[#0066ff]/20">
+                v2.4
+              </span>
+            </div>
+
+            {navItems.map((item) => {
+              const IconComp = item.icon;
+              const isActive = adminView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  id={`admin-tab-${item.id}`}
+                  data-tour-tab={item.id}
+                  onClick={() => setAdminView(item.id)}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer group ${
+                    isActive 
+                      ? 'bg-[#0066ff] text-white shadow-lg shadow-blue-600/30' 
+                      : 'text-[#c2c6d8] hover:bg-[#171b27] hover:text-white border border-transparent hover:border-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <IconComp size={16} className={isActive ? 'text-white' : item.color} />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-[#b3c5ff] border border-white/10'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        </button>
 
-        {/* Scrollable Tabs */}
-        <div 
-          ref={tabsRef}
-          className="flex-1 flex gap-3 overflow-x-auto scrollbar-none flex-nowrap whitespace-nowrap px-8 sm:px-0 w-full scroll-smooth select-none md:justify-center"
-          style={{ WebkitOverflowScrolling: 'touch' }}
-        >
-          <button
-            id="admin-tab-logistics"
-            onClick={() => setAdminView('logistics')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
-              adminView === 'logistics' 
-                ? 'bg-brand text-white border-brand' 
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Truck size={14} />
-            <span>📦 Deliveries</span>
-          </button>
+          {/* Quick Context Card */}
+          <div className="p-4 rounded-2xl bg-[#171b27] border border-white/5 space-y-2">
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+              <span className="material-symbols-outlined text-sm">security</span>
+              <span>Enterprise RBAC</span>
+            </div>
+            <p className="text-[11px] text-[#8e95b0] leading-relaxed">
+              Operations are strictly logged and secured with Firestore real-time synchronization.
+            </p>
+          </div>
+        </aside>
 
-          <button
-            id="admin-tab-analytics"
-            onClick={() => setAdminView('analytics')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
-              adminView === 'analytics' 
-                ? 'bg-brand text-white border-brand' 
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <TrendingUp size={14} />
-            <span>📊 Analytics</span>
-          </button>
-          
-          <button
-            id="admin-tab-quote"
-            onClick={() => setAdminView('quote')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
-              adminView === 'quote' 
-                ? 'bg-brand text-white border-brand' 
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Sparkles size={14} className={adminView === 'quote' ? 'text-white' : 'text-brand'} />
-            <span>✍️ AI Quotes</span>
-          </button>
-          
-          <button
-            id="admin-tab-packages"
-            onClick={() => setAdminView('packages')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
-              adminView === 'packages' 
-                ? 'bg-brand text-white border-brand' 
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Zap size={14} className={adminView === 'packages' ? 'text-white' : 'text-amber-500'} />
-            <span>⚡ Solar Packages</span>
-          </button>
-
-          <button
-            id="admin-tab-products"
-            onClick={() => setAdminView('products')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
-              adminView === 'products' 
-                ? 'bg-brand text-white border-brand' 
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Package size={14} />
-            <span>🛍️ Catalog</span>
-          </button>
-
-          <button
-            id="admin-tab-blog"
-            onClick={() => setAdminView('blog')}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
-              adminView === 'blog' 
-                ? 'bg-brand text-white border-brand' 
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <BookOpen size={14} />
-            <span>📰 Blog Articles</span>
-          </button>
-
-          {isUserAdmin && (
-            <button
-              id="admin-tab-roles"
-              onClick={() => setAdminView('roles')}
-              className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all border flex items-center gap-2 flex-shrink-0 cursor-pointer ${
-                adminView === 'roles' 
-                  ? 'bg-brand text-white border-brand' 
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <Users size={14} />
-              <span>🛡️ Roles</span>
-            </button>
-          )}
+        {/* MOBILE HORIZONTAL CHIPS SCROLLER (< lg screens only) */}
+        <div className="lg:hidden col-span-1 flex gap-2 overflow-x-auto pb-1.5 scrollbar-none select-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {navItems.map((item) => {
+            const IconComp = item.icon;
+            const isActive = adminView === item.id;
+            return (
+              <button
+                key={item.id}
+                id={`admin-tab-${item.id}-mobile`}
+                data-tour-tab={item.id}
+                onClick={() => setAdminView(item.id)}
+                className={`px-3 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap shrink-0 flex items-center gap-1.5 transition-all cursor-pointer border ${
+                  isActive 
+                    ? 'bg-[#0066ff] text-white border-[#0066ff] shadow-md shadow-blue-500/20' 
+                    : 'bg-[#171b27] text-[#c2c6d8] border-white/10 hover:border-white/20'
+                }`}
+              >
+                <IconComp size={14} className={isActive ? 'text-white' : item.color} />
+                <span>{item.shortLabel}</span>
+                {item.badge && (
+                  <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full font-mono ml-0.5">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Right sliding button */}
-        <button
-          onClick={() => handleNavigateView('next')}
-          disabled={adminView === views[views.length - 1]}
-          className={`absolute right-0 z-10 p-2.5 h-full flex items-center bg-gradient-to-l from-white via-white/80 to-transparent transition-opacity ${
-            adminView === views[views.length - 1] ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:text-brand'
-          }`}
-          title="Slide to next setup"
-          aria-label="Next view"
-        >
-          <div className="bg-slate-50 border border-slate-200 rounded-full p-1 shadow-3xs active:scale-90 transition-transform">
-            <ChevronRight size={13} strokeWidth={2.5} />
-          </div>
-        </button>
-
-      </div>
+        {/* MAIN ADMIN WORKSPACE CONTENT AREA (Spans 9 cols on Desktop, full width on Mobile) */}
+        <div className="col-span-1 lg:col-span-9 space-y-6">
 
       {adminView === 'analytics' ? (
         <AdminAnalyticsPanel 
@@ -2155,6 +2146,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isUserAdmin = false, isU
           )}
         </>
       )}
+
+        </div>
+
+      </div>
 
       {/* Admin Interactive Tour Modal */}
       <AdminInteractiveTour

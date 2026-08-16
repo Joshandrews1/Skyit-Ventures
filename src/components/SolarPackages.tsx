@@ -58,6 +58,53 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
   const [showGuide, setShowGuide] = useState<boolean>(true);
   const [autoSwitchNotice, setAutoSwitchNotice] = useState<string | null>(null);
 
+  // Engineering Mode: Custom watts per appliance with localStorage persistence
+  const [isEngineeringMode, setIsEngineeringMode] = useState<boolean>(false);
+  const [customApplianceWatts, setCustomApplianceWatts] = useState<Record<string, number | ''>>(() => {
+    try {
+      const saved = localStorage.getItem('packages_custom_appliance_watts');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // fallback
+    }
+    const defaults: Record<string, number> = {};
+    APPLIANCES.forEach(a => {
+      defaults[a.id] = a.watts;
+    });
+    return defaults;
+  });
+
+  const updateCustomWatts = (id: string, valStr: string) => {
+    if (valStr === '') {
+      setCustomApplianceWatts(prev => ({ ...prev, [id]: '' }));
+      return;
+    }
+    const cleanNum = parseInt(valStr.replace(/\D/g, ''), 10);
+    if (!isNaN(cleanNum)) {
+      setCustomApplianceWatts(prev => ({ ...prev, [id]: Math.min(15000, cleanNum) }));
+    }
+  };
+
+  const handleBlurCustomWatts = (id: string, defaultWatts: number) => {
+    const current = customApplianceWatts[id];
+    if (current === '' || current === undefined || current === null || Number(current) <= 0) {
+      setCustomApplianceWatts(prev => ({ ...prev, [id]: defaultWatts }));
+    }
+  };
+
+  const handleResetCustomWatts = () => {
+    const defaults: Record<string, number> = {};
+    APPLIANCES.forEach(a => {
+      defaults[a.id] = a.watts;
+    });
+    setCustomApplianceWatts(defaults);
+    try {
+      localStorage.removeItem('packages_custom_appliance_watts');
+    } catch {}
+  };
+
   // Helper to parse numerical KVA value
   const parseKvaVal = (str: string | undefined): number => {
     if (!str) return 1.5;
@@ -76,7 +123,18 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
     ? Math.max(...lithiumPackages.map(p => parseKvaVal(p.kva)))
     : 12.0;
 
-  const totalWatts = calculateTotalWatts(selectedAppliances);
+  const totalWatts = React.useMemo(() => {
+    let total = 0;
+    Object.entries(selectedAppliances).forEach(([id, rawQty]) => {
+      const qty = Number(rawQty);
+      if (qty > 0) {
+        const app = APPLIANCES.find(a => a.id === id);
+        const w = Number(customApplianceWatts[id]) || (app ? app.watts : 0);
+        total += w * qty;
+      }
+    });
+    return total;
+  }, [selectedAppliances, customApplianceWatts]);
 
   // Compute required system capacity KVA
   const numACs = (selectedAppliances['ac1'] || 0) + (selectedAppliances['ac15'] || 0);
@@ -549,63 +607,137 @@ export const SolarPackages: React.FC<SolarPackagesProps> = ({ onAddToCart, onOpe
 
         {/* STEP 2: Appliance Load Selection */}
         <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs font-display font-bold uppercase tracking-wider text-[#dee2f2] flex items-center gap-1.5">
               <Zap size={15} className="text-amber-400" />
               <span>2. Select Household / Office Appliances</span>
             </span>
+
+            {/* Edit Watts Engineering Mode Toggle */}
+            <div className="flex items-center gap-2 bg-[#171b27] px-3 py-1.5 rounded-xl border border-white/10 shadow-xs">
+              <span className="text-[11px] font-bold text-[#c2c6d8] flex items-center gap-1">
+                <SlidersHorizontal size={13} className="text-amber-400" />
+                <span>Edit Watts</span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isEngineeringMode}
+                onClick={() => setIsEngineeringMode(!isEngineeringMode)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                  isEngineeringMode ? 'bg-amber-400' : 'bg-slate-700'
+                }`}
+              >
+                <span className="sr-only">Toggle Edit Watts</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-950 shadow-md ring-0 transition duration-200 ease-in-out ${
+                    isEngineeringMode ? 'translate-x-4 bg-slate-950' : 'translate-x-0 bg-white'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
+          {/* Engineering Mode Banner */}
+          {isEngineeringMode && (
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2 animate-fade-in">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-amber-400 shrink-0">tune</span>
+                  <span className="font-bold text-amber-300">Engineering Mode:</span>
+                  <span className="text-amber-200/90 text-[11px]">Adjust individual appliance watts to match your exact ratings.</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleResetCustomWatts}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-xs">restart_alt</span>
+                    <span>Reset Defaults</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            {/* Sizing inputs */}
-          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {/* Sizing inputs - sticks in view while user reviews calculations on the right */}
+            <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 lg:sticky lg:top-24 self-start">
             {APPLIANCES.map((app) => {
               const qty = selectedAppliances[app.id] || 0;
+              const currentWatts = customApplianceWatts[app.id] !== undefined ? customApplianceWatts[app.id] : app.watts;
               return (
                 <div 
                   key={app.id} 
-                  className={`border rounded-2xl p-3 flex items-center justify-between transition-all ${
+                  className={`border rounded-2xl p-3 flex flex-col justify-between gap-2 transition-all ${
                     qty > 0 
                       ? 'border-[#0066ff]/50 bg-[#171b27] shadow-md' 
                       : 'border-white/10 bg-[#171b27]/80 hover:border-white/20'
                   }`}
                 >
-                  <div className="min-w-0 pr-2">
-                    <span className="text-xs font-bold text-[#dee2f2] block truncate">{app.name}</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                        app.type === 'heavy' ? 'text-rose-400' : app.type === 'medium' ? 'text-amber-400' : 'text-[#8e95b0]'
-                      }`}>
-                        {app.type}
-                      </span>
-                      <span className="text-[9px] text-[#8e95b0] font-mono">({app.label || `${app.watts}W`})</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 pr-1 flex-1">
+                      <span className="text-xs font-bold text-[#dee2f2] block truncate">{app.name}</span>
+                      
+                      {isEngineeringMode ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={customApplianceWatts[app.id] !== undefined ? customApplianceWatts[app.id] : app.watts}
+                            onChange={(e) => updateCustomWatts(app.id, e.target.value)}
+                            onBlur={() => handleBlurCustomWatts(app.id, app.watts)}
+                            placeholder={String(app.watts)}
+                            className="w-14 px-1 py-0.5 bg-slate-900 border border-amber-400/60 focus:border-amber-300 focus:outline-hidden rounded text-amber-300 font-mono text-[11px] font-bold text-center"
+                          />
+                          <span className="text-amber-400 font-bold text-[10px]">W each</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                            app.type === 'heavy' ? 'text-rose-400' : app.type === 'medium' ? 'text-amber-400' : 'text-[#8e95b0]'
+                          }`}>
+                            {app.type}
+                          </span>
+                          <span className="text-[9px] text-[#8e95b0] font-mono">({Number(currentWatts) || app.watts}W avg.)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-[#0e131e] border border-white/10 rounded-xl p-1 shrink-0">
+                      <button 
+                        type="button"
+                        onClick={() => handleQuantityChange(app.id, -1)}
+                        disabled={qty === 0}
+                        className="w-6 h-6 rounded-lg bg-[#171b27] border border-white/10 text-[#c2c6d8] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center font-bold text-xs cursor-pointer"
+                      >
+                        <Minus size={10} />
+                      </button>
+                      <span className="text-xs font-mono font-bold w-4 text-center text-[#dee2f2]">{qty}</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleQuantityChange(app.id, 1)}
+                        className="w-6 h-6 rounded-lg bg-[#171b27] border border-white/10 text-[#c2c6d8] hover:bg-white/10 flex items-center justify-center font-bold text-xs cursor-pointer"
+                      >
+                        <Plus size={10} />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-[#0e131e] border border-white/10 rounded-xl p-1 shrink-0">
-                    <button 
-                      type="button"
-                      onClick={() => handleQuantityChange(app.id, -1)}
-                      disabled={qty === 0}
-                      className="w-6 h-6 rounded-lg bg-[#171b27] border border-white/10 text-[#c2c6d8] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center font-bold text-xs cursor-pointer"
-                    >
-                      <Minus size={10} />
-                    </button>
-                    <span className="text-xs font-mono font-bold w-4 text-center text-[#dee2f2]">{qty}</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleQuantityChange(app.id, 1)}
-                      className="w-6 h-6 rounded-lg bg-[#171b27] border border-white/10 text-[#c2c6d8] hover:bg-white/10 flex items-center justify-center font-bold text-xs cursor-pointer"
-                    >
-                      <Plus size={10} />
-                    </button>
-                  </div>
+
+                  {isEngineeringMode && qty > 0 && (
+                    <div className="text-[10px] text-right font-mono text-amber-300/80 pt-1 border-t border-white/5">
+                      Subtotal: {(qty * (Number(currentWatts) || app.watts)).toLocaleString()} W
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
           {/* Calculator Results Recommendation Card */}
-          <div className="lg:col-span-5 xl:col-span-4 bg-[#171b27] border border-white/10 rounded-2xl p-4 sm:p-5 space-y-4 lg:sticky lg:top-20 shadow-xl">
+          <div className="lg:col-span-5 xl:col-span-4 bg-[#171b27] border border-white/10 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
             <h4 className="text-xs font-display font-bold text-[#dee2f2] uppercase tracking-widest border-b border-white/10 pb-2">
               Sizing Diagnostics
             </h4>

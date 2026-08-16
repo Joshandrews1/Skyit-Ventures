@@ -2430,7 +2430,11 @@ export default function App() {
         {/* VIEW 5: ADMIN LOGISTICS CONTROL TERMINAL */}
         {activeTab === 'admin' && !selectedProduct && (
           (isAdmin || isEditor || currentUser?.email === 'jeemestore@gmail.com' || auth.currentUser?.email === 'jeemestore@gmail.com') ? (
-            <AdminPanel isUserAdmin={true} isUserEditor={true} />
+            <AdminPanel 
+              isUserAdmin={true} 
+              isUserEditor={true} 
+              onNavigateToStore={() => setActiveTab('home')}
+            />
           ) : (
             <AdminLoginCard 
               onLoginSuccess={handleLoginSuccess}

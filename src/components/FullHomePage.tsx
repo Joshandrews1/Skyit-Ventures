@@ -813,7 +813,13 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
               {/* Left Column: Appliance Load Selector & Presets */}
-              <div className="lg:col-span-7 space-y-5 lg:sticky lg:top-24 self-start">
+              <div 
+                className="lg:col-span-7 space-y-5 lg:sticky self-start"
+                style={{
+                  top: 'calc(100vh - 100% - 2rem)',
+                  maxHeight: 'none'
+                }}
+              >
                 
                 {/* Simultaneous Load Explanation Notice */}
                 <div className="p-3.5 rounded-2xl bg-[#171b27] border border-[#0066ff]/30 flex items-start gap-3">
@@ -1295,13 +1301,12 @@ export const FullHomePage: React.FC<FullHomePageProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onSelectCategory('Solar Packages');
-                  onNavigate('shop');
+                  onNavigate('quote');
                 }}
                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-[#0066ff] to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 active:scale-95 shrink-0"
               >
                 <span className="material-symbols-outlined text-base">inventory_2</span>
-                <span>View All Solar Packages in Shop</span>
+                <span>View All Solar Packages</span>
                 <span className="material-symbols-outlined text-base">arrow_forward</span>
               </button>
             </div>

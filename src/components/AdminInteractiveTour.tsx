@@ -141,6 +141,29 @@ export const AdminInteractiveTour: React.FC<AdminInteractiveTourProps> = ({
     }
   }, [currentStepIndex, isOpen, currentStep, adminView, onNavigateAdminView]);
 
+  // Helper to locate the visible target element whether on desktop sidebar or mobile horizontal scroller
+  const getVisibleTargetElement = useCallback((targetId?: string) => {
+    if (!targetId) return null;
+    const tabKey = targetId.replace('admin-tab-', '');
+    const candidates = [
+      document.getElementById(targetId),
+      document.getElementById(`${targetId}-mobile`),
+      document.getElementById(`admin-tab-${tabKey}-mobile`),
+      document.getElementById(`admin-tab-${tabKey}`),
+      document.querySelector(`[data-tour-tab="${tabKey}"]`)
+    ];
+
+    for (const el of candidates) {
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          return el as HTMLElement;
+        }
+      }
+    }
+    return null;
+  }, []);
+
   // Scroll target into view on step change
   useEffect(() => {
     if (!isOpen || !currentStep || currentStep.noOverlay) return;
@@ -148,18 +171,23 @@ export const AdminInteractiveTour: React.FC<AdminInteractiveTourProps> = ({
     const targetId = currentStep.targetId;
     if (targetId) {
       const scrollToTarget = () => {
-        const el = document.getElementById(targetId);
+        const el = getVisibleTargetElement(targetId);
         if (el) {
-          // 1. Scroll horizontal scrollable tabs container if present
-          const scrollableParent = el.closest('.overflow-x-auto');
-          if (scrollableParent) {
+          // 1. Scroll horizontal scrollable tabs container if present (Mobile scroller)
+          const scrollableXParent = el.closest('.overflow-x-auto');
+          if (scrollableXParent) {
             const elRect = el.getBoundingClientRect();
-            const parentRect = scrollableParent.getBoundingClientRect();
+            const parentRect = scrollableXParent.getBoundingClientRect();
             const targetLeft = el.offsetLeft - (parentRect.width / 2) + (elRect.width / 2);
-            scrollableParent.scrollTo({ left: targetLeft, behavior: 'auto' });
+            scrollableXParent.scrollTo({ left: targetLeft, behavior: 'smooth' });
           }
-          // 2. Keep vertical scroll minimal
-          el.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+          // 2. Scroll vertical sidebar container if present (Desktop sidebar)
+          const scrollableYParent = el.closest('.overflow-y-auto');
+          if (scrollableYParent) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
         }
       };
 
@@ -171,7 +199,7 @@ export const AdminInteractiveTour: React.FC<AdminInteractiveTourProps> = ({
         clearTimeout(timer2);
       };
     }
-  }, [isOpen, currentStepIndex, currentStep, adminView]);
+  }, [isOpen, currentStepIndex, currentStep, adminView, getVisibleTargetElement]);
 
   // Highlight spotlight target location calculation
   const updateSpotlight = useCallback(() => {
@@ -186,7 +214,7 @@ export const AdminInteractiveTour: React.FC<AdminInteractiveTourProps> = ({
       return;
     }
 
-    const el = document.getElementById(targetId);
+    const el = getVisibleTargetElement(targetId);
     if (el) {
       const rect = el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
@@ -212,7 +240,7 @@ export const AdminInteractiveTour: React.FC<AdminInteractiveTourProps> = ({
       }
     }
     setTargetRect(null);
-  }, [isOpen, currentStep]);
+  }, [isOpen, currentStep, getVisibleTargetElement]);
 
   // Continuous animation frame loop for real-time spotlight tracking during scroll/resize
   useEffect(() => {
