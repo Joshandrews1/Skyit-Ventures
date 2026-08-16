@@ -1696,11 +1696,12 @@ export default function App() {
 
           {/* Mobile Navigation Drawer */}
           {isMobileMenuOpen && (
-            <div className="lg:hidden border-t border-white/10 bg-[#0e131e]/98 backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in shadow-2xl max-h-[80vh] overflow-y-auto">
-              <button 
-                onClick={() => { setIsOnboardingOpen(true); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 rounded-xl font-bold text-[14px] text-[#b3c5ff] bg-[#0066ff]/20 border border-[#0066ff]/40 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
-              >
+            <div className="lg:hidden fixed inset-x-0 top-[58px] sm:top-[66px] bottom-0 z-[999] bg-[#0e131e]/98 backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in shadow-2xl overflow-y-auto w-full h-[calc(100dvh-58px)] sm:h-[calc(100dvh-66px)] pb-16 flex flex-col justify-between">
+              <div className="space-y-3">
+                <button 
+                  onClick={() => { setIsOnboardingOpen(true); setIsMobileMenuOpen(false); }}
+                  className="w-full text-left px-4 py-3 rounded-xl font-bold text-[14px] text-[#b3c5ff] bg-[#0066ff]/20 border border-[#0066ff]/40 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+                >
                 <div className="flex items-center gap-3">
                   <Compass size={18} className="text-[#0066ff]" />
                   <span>Interactive App Tour</span>
@@ -1914,8 +1915,9 @@ export default function App() {
                   </div>
                 </div>
               )}
+              </div>
 
-              <div className="pt-3 border-t border-white/10 space-y-2">
+              <div className="pt-3 border-t border-white/10 space-y-2 mt-4 shrink-0">
                 {currentUser ? (
                   <div className="space-y-2">
                     <div className="px-3 py-2 bg-white/5 rounded-xl flex items-center justify-between">
@@ -2238,86 +2240,115 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Mobile Filter Panel (Shown inline when toggled) */}
+              {/* Mobile Filter Panel Sheet (Occupies 100% of mobile screen) */}
               {isMobileFiltersOpen && (
-                <div className="lg:hidden block bg-[#171b27] border border-white/10 rounded-2xl p-4 gap-4 grid sm:grid-cols-2 animate-fade-in">
-                  
-                  {/* Category Sorter */}
-                  <div className="bg-[#0e131e] p-4 rounded-xl border border-white/10 shadow-3xs">
-                    <div className="flex items-center gap-1.5 text-[#dee2f2] font-display font-bold mb-3 tracking-wide text-xs">
-                      <SlidersHorizontal size={13} className="text-[#0066ff] font-bold" />
-                      <span>System Categories</span>
+                <div className="lg:hidden fixed inset-0 z-[1000] bg-slate-950/80 backdrop-blur-md flex flex-col justify-end sm:justify-center p-0 sm:p-4 animate-fade-in">
+                  <div className="bg-[#171b27] border border-white/10 w-full sm:max-w-lg sm:mx-auto h-full sm:h-auto max-h-[100dvh] sm:max-h-[85vh] sm:rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+                    {/* Header */}
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#121623]">
+                      <div className="flex items-center gap-2 text-[#dee2f2]">
+                        <SlidersHorizontal size={18} className="text-[#0066ff]" />
+                        <h3 className="font-display font-bold text-base text-white">Filter & Sort Catalog</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileFiltersOpen(false)}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                        title="Close filters"
+                      >
+                        <X size={20} />
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-1">
-                      {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Accessories'].map((cat) => (
+                    {/* Body */}
+                    <div className="p-4 overflow-y-auto flex-1 space-y-4">
+                      {/* Category selector */}
+                      <div className="bg-[#0e131e] p-4 rounded-xl border border-white/10 shadow-xs">
+                        <label className="text-[11px] font-bold text-[#dee2f2] uppercase tracking-wider block mb-2.5">
+                          System Category
+                        </label>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {['All', 'Solar Panels', 'Inverters', 'Batteries', 'Security Systems', 'Accessories'].map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCategory(cat);
+                              }}
+                              className={`text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex justify-between items-center cursor-pointer ${
+                                selectedCategory === cat 
+                                  ? 'bg-[#0066ff] text-white font-bold shadow-xs' 
+                                  : 'text-[#c2c6d8] bg-white/5 hover:bg-white/10 hover:text-white'
+                              }`}
+                            >
+                              <span>{cat}</span>
+                              <ChevronRight size={14} className={selectedCategory === cat ? 'text-white' : 'text-slate-500'} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Cost & Promos */}
+                      <div className="bg-[#0e131e] p-4 rounded-xl border border-white/10 shadow-xs space-y-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-[#dee2f2] uppercase block mb-1.5 tracking-wider">
+                            Sort Cost Option
+                          </label>
+                          <select
+                            value={priceSort}
+                            onChange={(e) => setPriceSort(e.target.value as any)}
+                            className="w-full bg-[#171b27] border border-white/20 text-[#dee2f2] rounded-xl p-3 text-xs focus:ring-1 focus:ring-[#0066ff] focus:outline-none cursor-pointer"
+                          >
+                            <option value="default">Default Sizing Rank</option>
+                            <option value="low-high">Price: Low to High</option>
+                            <option value="high-low">Price: High to Low</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-[#dee2f2] uppercase block mb-1.5 tracking-wider">
+                            SkyIT Promos
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setDiscountFilter(prev => prev === 'high' ? 'All' : 'high')}
+                            className={`w-full p-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center border transition-all cursor-pointer ${
+                              discountFilter === 'high' 
+                                ? 'bg-amber-400 text-slate-950 border-amber-400 font-extrabold shadow-sm' 
+                                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                            }`}
+                          >
+                            🔥 Promo Drops &ge; 15% OFF
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="p-4 border-t border-white/10 bg-[#121623] flex gap-3">
+                      {(selectedCategory !== 'All' || searchQuery !== '' || priceSort !== 'default' || discountFilter !== 'All') && (
                         <button
-                          key={cat}
+                          type="button"
                           onClick={() => {
-                            setSelectedCategory(cat);
+                            setSelectedCategory('All');
+                            setSearchQuery('');
+                            setPriceSort('default');
+                            setDiscountFilter('All');
                           }}
-                          className={`text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all flex justify-between items-center ${
-                            selectedCategory === cat 
-                              ? 'bg-[#0066ff]/20 text-[#b3c5ff] font-bold border-l-2 border-[#0066ff] pl-2' 
-                              : 'text-[#c2c6d8] hover:bg-white/5 hover:text-white'
-                          }`}
+                          className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer text-center"
                         >
-                          <span>{cat}</span>
-                          <ChevronRight size={11} className={selectedCategory === cat ? 'text-[#0066ff]' : 'text-slate-500'} />
+                          Clear Filters
                         </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Refine options */}
-                  <div className="bg-[#0e131e] p-4 rounded-xl border border-white/10 shadow-3xs space-y-4 animate-fade-in">
-                    <h4 className="text-xs font-display font-bold text-[#dee2f2] tracking-wide border-b border-white/10 pb-1.5">Refine Database</h4>
-                    
-                    {/* Price sorting */}
-                    <div>
-                      <label className="text-[10px] font-bold text-[#c2c6d8] uppercase block mb-1 tracking-wider">Sort Cost Option</label>
-                      <select
-                        value={priceSort}
-                        onChange={(e) => setPriceSort(e.target.value as any)}
-                        className="w-full bg-[#171b27] border border-white/10 text-[#dee2f2] rounded-lg p-2 text-xs focus:ring-1 focus:ring-[#0066ff] focus:outline-hidden"
-                      >
-                        <option value="default" className="bg-[#171b27] text-[#dee2f2]">Default Sizing Rank</option>
-                        <option value="low-high" className="bg-[#171b27] text-[#dee2f2]">Price: Low to High</option>
-                        <option value="high-low" className="bg-[#171b27] text-[#dee2f2]">Price: High to Low</option>
-                      </select>
-                    </div>
-
-                    {/* Percentage discount options */}
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5 tracking-wider">SkyIT Promos</label>
+                      )}
                       <button
-                        onClick={() => setDiscountFilter(prev => prev === 'high' ? 'All' : 'high')}
-                        className={`w-full p-2 rounded-lg text-xs font-bold tracking-wide uppercase text-center border transition-all ${
-                          discountFilter === 'high' 
-                            ? 'bg-red-50 text-red-650 border-red-200 font-bold' 
-                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                        }`}
+                        type="button"
+                        onClick={() => setIsMobileFiltersOpen(false)}
+                        className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0066ff] hover:bg-[#0052cc] transition-colors cursor-pointer shadow-md text-center"
                       >
-                        🔥 Promo Drops &gt;= 15%
+                        Apply Filters ({filteredProducts.length})
                       </button>
                     </div>
-
-                    {/* Reset triggers */}
-                    {(selectedCategory !== 'All' || searchQuery !== '' || priceSort !== 'default' || discountFilter !== 'All') && (
-                      <button
-                        onClick={() => {
-                          setSelectedCategory('All');
-                          setSearchQuery('');
-                          setPriceSort('default');
-                          setDiscountFilter('All');
-                        }}
-                        className="w-full bg-slate-100 hover:bg-slate-150 text-slate-700 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all text-center border border-slate-200"
-                      >
-                        Clear Search Criteria
-                      </button>
-                    )}
                   </div>
-
                 </div>
               )}
 

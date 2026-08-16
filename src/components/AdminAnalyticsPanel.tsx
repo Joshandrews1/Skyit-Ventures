@@ -35,7 +35,7 @@ type TimeRange = 'live' | '1hr' | '24hrs' | '7days' | '30days' | '1yr' | 'all';
 type ChartMode = 'revenue' | 'visitors';
 
 export const AdminAnalyticsPanel: React.FC<AdminAnalyticsPanelProps> = ({ orders, onNavigateTab }) => {
-  const [timeRange, setTimeRange] = useState<TimeRange>('all');
+  const [timeRange, setTimeRange] = useState<TimeRange>('24hrs');
   const [chartMode, setChartMode] = useState<ChartMode>('visitors');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(2); // Default hover to middle node for visual preview
   const [firestoreVisits, setFirestoreVisits] = useState<VisitLog[]>([]);

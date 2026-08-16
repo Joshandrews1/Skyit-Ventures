@@ -41,8 +41,11 @@ import {
   Wand2,
   Play,
   Save,
-  Clock
+  Clock,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
+import { FullScreenTextEditor, ExpandableTextarea } from './FullScreenTextEditor';
 
 export interface UnmatchedItem {
   extractedName: string;
@@ -179,6 +182,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [aiDraft, setAiDraft] = useState('');
+  const [isAiPromptExpanded, setIsAiPromptExpanded] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [compressing, setCompressing] = useState(false);
@@ -195,6 +199,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
 
   // AI Batch Price Updater states
   const [batchRawText, setBatchRawText] = useState('');
+  const [isBatchTextExpanded, setIsBatchTextExpanded] = useState(false);
   const [isDetectingBatch, setIsDetectingBatch] = useState(false);
   const [batchDetectError, setBatchDetectError] = useState('');
   const [batchSuccessMsg, setBatchSuccessMsg] = useState('');
@@ -285,6 +290,17 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
       return () => clearTimeout(timer);
     }
   }, [batchDetectError]);
+
+  // Escape key handler for fullscreen AI prompt modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isAiPromptExpanded) {
+        setIsAiPromptExpanded(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAiPromptExpanded]);
 
   useEffect(() => {
     fetchProductsOnce();
@@ -478,6 +494,13 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
       }
 
       setSuccessMsg("✨ AI Catalog Specialist successfully pre-filled your catalog entry fields with multiple images! Review and customize as needed.");
+      setIsAiPromptExpanded(false);
+      setTimeout(() => {
+        const formEl = document.getElementById('single-product-form');
+        if (formEl) {
+          formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 60);
     } catch (err: any) {
       console.error(err);
       setErrorMsg("AI Assistant Failure: " + (err.message || "Failed to process natural language request."));
@@ -702,31 +725,81 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
       }
     });
 
-    const headers = ['ID', 'Name', 'Category', 'Price_NGN', 'Original_Price_NGN', 'Discount_Percent', 'Stock_Available', 'Rating', 'Source'];
+    const escapeCsv = (val: any): string => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val);
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
+    const headers = [
+      'ID',
+      'Name',
+      'Category',
+      'Price_NGN',
+      'Original_Price_NGN',
+      'Discount_Percent',
+      'Stock_Available',
+      'Allow_COD',
+      'Image_Primary_URL',
+      'Additional_Image_URLs',
+      'All_Images_List',
+      'Description',
+      'Features',
+      'Specifications',
+      'Rating',
+      'Rating_Count',
+      'Source'
+    ];
+
     const csvRows = listToExport.map(p => {
       const isCustom = customProducts.some(cp => cp.id === p.id);
+      const primaryImage = p.image || (p.images && p.images[0]) || '';
+      
+      // All unique image URLs
+      const allImagesArray = Array.from(
+        new Set([p.image, ...(p.images || [])].filter((img): img is string => Boolean(img && img.trim())))
+      );
+      
+      // Additional images (excluding the primary one)
+      const additionalImages = allImagesArray.filter(img => img !== primaryImage);
+
+      const featuresString = (p.features || []).filter(Boolean).join('; ');
+      
+      const specsString = p.specs 
+        ? Object.entries(p.specs).map(([k, v]) => `${k}: ${v}`).join('; ')
+        : '';
+
       return [
-        p.id,
-        `"${p.name.replace(/"/g, '""')}"`,
-        `"${p.category.replace(/"/g, '""')}"`,
+        escapeCsv(p.id),
+        escapeCsv(p.name),
+        escapeCsv(p.category),
         p.price,
-        p.originalPrice,
-        p.discountPercent,
-        p.stock,
-        p.rating.toFixed(1),
-        isCustom ? 'Firestore Catalog Custom' : 'Default Preset'
+        p.originalPrice || p.price,
+        p.discountPercent || 0,
+        p.stock ?? 10,
+        p.allowCOD !== false ? 'TRUE' : 'FALSE',
+        escapeCsv(primaryImage),
+        escapeCsv(additionalImages.join('; ')),
+        escapeCsv(allImagesArray.join('; ')),
+        escapeCsv(p.description || ''),
+        escapeCsv(featuresString),
+        escapeCsv(specsString),
+        (p.rating || 5.0).toFixed(1),
+        p.ratingCount || 1,
+        escapeCsv(isCustom ? 'Firestore Catalog Custom' : 'Default Preset')
       ].join(',');
     });
 
-    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const csvContent = '\uFEFF' + [headers.join(','), ...csvRows].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `skyit_ventures_products_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `skyit_ventures_catalog_products_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleStartEdit = (prod: Product) => {
@@ -1249,24 +1322,58 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
 
           {/* Input Textarea & Action Bar */}
           <div className="space-y-3">
-            <div className="relative">
+            <div className="relative group">
               <textarea
                 value={batchRawText}
                 onChange={(e) => setBatchRawText(e.target.value)}
                 placeholder="Paste supplier pricelist, invoice text, or price notes here...&#10;e.g.&#10;1. Felicity Solar 550W Mono Panel - ₦135,000 (10% promo)&#10;2. Deye 5KVA Hybrid Inverter - ₦620,000&#10;3. Luminous 220Ah Tubular Battery - ₦275,000"
                 rows={4}
-                className="w-full bg-slate-950/80 border border-indigo-500/30 text-xs sm:text-sm text-slate-100 placeholder-slate-400 rounded-2xl p-4 focus:outline-hidden focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors font-mono leading-relaxed resize-y"
+                className="w-full bg-slate-950/80 border border-indigo-500/30 text-xs sm:text-sm text-slate-100 placeholder-slate-400 rounded-2xl p-4 pr-24 focus:outline-hidden focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors font-mono leading-relaxed resize-y"
               />
-              {batchRawText && (
+              <div className="absolute right-3 top-3 flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => { setBatchRawText(''); setDetectedUpdates([]); setUnmatchedItems([]); setBatchDetectError(''); setBatchSuccessMsg(''); }}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-white text-xs font-bold bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700 cursor-pointer"
+                  onClick={() => setIsBatchTextExpanded(true)}
+                  className="text-amber-400 hover:text-slate-950 text-xs font-bold bg-slate-900/90 hover:bg-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/40 hover:border-amber-400 transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                  title="Expand to full blank page editor"
                 >
-                  Clear Text
+                  <Maximize2 size={12} />
+                  <span className="hidden sm:inline">Expand</span>
                 </button>
-              )}
+                {batchRawText && (
+                  <button
+                    type="button"
+                    onClick={() => { setBatchRawText(''); setDetectedUpdates([]); setUnmatchedItems([]); setBatchDetectError(''); setBatchSuccessMsg(''); }}
+                    className="text-slate-400 hover:text-white text-xs font-bold bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Full Blank Page Editor for Bulk Supplier Pricelist */}
+            <FullScreenTextEditor
+              isOpen={isBatchTextExpanded}
+              onClose={() => setIsBatchTextExpanded(false)}
+              title="Bulk Supplier Pricelist & Invoices — Full Blank Page"
+              subtitle="Paste raw WhatsApp supplier text, messy invoices, or multi-page price catalogs"
+              value={batchRawText}
+              onChange={setBatchRawText}
+              placeholder="Paste raw supplier pricelist, invoice text, or price notes here...
+
+e.g.
+1. Felicity Solar 550W Mono Panel - ₦135,000 (10% promo)
+2. Deye 5KVA Hybrid Inverter - ₦620,000
+3. Luminous 220Ah Tubular Battery - ₦275,000"
+              primaryActionLabel="Detect Prices via AI"
+              onPrimaryAction={() => {
+                setIsBatchTextExpanded(false);
+                handleDetectPrices();
+              }}
+              isPrimaryActionLoading={isDetectingBatch}
+              primaryActionIcon={<Sparkles size={15} className="fill-slate-950 text-slate-950" />}
+            />
 
             {/* Notifications */}
             {batchDetectError && (
@@ -1610,39 +1717,76 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
           </div>
 
           <div className="space-y-2">
-            <textarea
-              value={aiDraft}
-              onChange={(e) => setAiDraft(e.target.value)}
-              placeholder="e.g. Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, original price ₦1,850,000, features 20% promotional discount..."
-              rows={3}
-              className="w-full bg-slate-950/70 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 rounded-xl p-3 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors resize-y min-h-[80px] leading-relaxed font-sans"
-            />
-            
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <span className="text-[10px] text-slate-400">
-                💡 Natural language inputs support any specification detail.
-              </span>
+            <div className="relative group">
+              <textarea
+                value={aiDraft}
+                onChange={(e) => setAiDraft(e.target.value)}
+                placeholder="e.g. Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, original price ₦1,850,000, features 20% promotional discount..."
+                rows={3}
+                className="w-full bg-slate-950/70 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 rounded-xl p-3 pr-10 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors resize-y min-h-[80px] leading-relaxed font-sans"
+              />
               <button
                 type="button"
-                onClick={handleAiRetrieve}
-                disabled={isAiGenerating || compressing}
-                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black tracking-wide uppercase transition-all shrink-0 cursor-pointer text-white"
+                onClick={() => setIsAiPromptExpanded(true)}
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-slate-900/90 hover:bg-amber-400 hover:text-slate-950 text-slate-400 border border-slate-700 hover:border-amber-400 transition-all cursor-pointer shadow-xs"
+                title="Expand to Full Blank Page"
               >
-                {isAiGenerating ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" />
-                    <span>Analyzing Draft...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={13} className="fill-white" />
-                    <span>Auto-Fill Form via AI Writer</span>
-                  </>
-                )}
+                <Maximize2 size={13} />
               </button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] text-slate-400">
+                  💡 Natural language inputs support any specification detail.
+                </span>
+                {aiDraft.length > 0 && (
+                  <span className="text-[10px] text-indigo-300 font-mono bg-indigo-950/60 border border-indigo-500/30 px-2 py-0.5 rounded-md">
+                    {aiDraft.length} chars
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={handleAiRetrieve}
+                  disabled={isAiGenerating || compressing}
+                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black tracking-wide uppercase transition-all shrink-0 cursor-pointer text-white"
+                >
+                  {isAiGenerating ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Analyzing Draft...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} className="fill-white" />
+                      <span>Auto-Fill Form via AI Writer</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Universal Full Blank Page Editor for Gemini AI Writer Prompt */}
+        <FullScreenTextEditor
+          isOpen={isAiPromptExpanded}
+          onClose={() => setIsAiPromptExpanded(false)}
+          title="Gemini Catalog AI Writer — Full Blank Page"
+          subtitle="Distraction-free canvas for pasting raw invoices, equipment datasheets, or prompt notes"
+          value={aiDraft}
+          onChange={setAiDraft}
+          placeholder="Start typing or paste your product instructions here...
+
+Example:
+Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, original price ₦1,850,000 with 15% discount. Features dual MPPT, 98% efficiency, WiFi monitoring, and 5-year manufacturer warranty."
+          primaryActionLabel="Auto-Fill Catalog Form"
+          onPrimaryAction={handleAiRetrieve}
+          isPrimaryActionLoading={isAiGenerating}
+          primaryActionIcon={<Sparkles size={15} className="fill-slate-950 text-slate-950" />}
+        />
 
         {/* Unmatched Supplier Items Queue Banner (when unmatched items exist) */}
         {unmatchedItems.length > 0 && (() => {
@@ -1928,17 +2072,17 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
           </div>
 
           {/* Row 2: Description */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Market Overview description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide a compelling commercial and engineering description of the product and its target performance environment..."
-              rows={3}
-              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 p-2.5 rounded-xl focus:border-brand focus:outline-hidden leading-relaxed resize-y min-h-[70px]"
-              required
-            />
-          </div>
+          <ExpandableTextarea
+            label="Market Overview description"
+            modalTitle="Product Description & Market Overview"
+            modalSubtitle="Provide a compelling commercial and engineering description with full blank canvas clarity"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Provide a compelling commercial and engineering description of the product and its target performance environment..."
+            rows={3}
+            className="bg-slate-50 border border-slate-200 text-xs text-slate-800 p-2.5 rounded-xl focus:border-brand focus:outline-hidden leading-relaxed resize-y min-h-[70px]"
+            required
+          />
 
           {/* Row 3: Pricing, Stock, and COD Toggle */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 bg-slate-50/50 p-3 sm:p-4 rounded-2xl border border-slate-200/60">
@@ -2659,18 +2803,15 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
               </div>
 
               {/* Row 3: Description */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Product Overview / Description</label>
-                  <span className="text-[10px] text-amber-300 font-bold">✨ Pre-populated by AI</span>
-                </div>
-                <textarea
-                  value={modalDescription}
-                  onChange={(e) => setModalDescription(e.target.value)}
-                  rows={3}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 text-xs text-slate-200 p-2.5 rounded-xl focus:outline-hidden leading-relaxed"
-                />
-              </div>
+              <ExpandableTextarea
+                label="Product Overview / Description"
+                modalTitle={`Product Description — ${modalName || 'Unmatched Product'}`}
+                modalSubtitle="Edit complete marketing copy and technical overview on a full blank canvas"
+                value={modalDescription}
+                onChange={(e) => setModalDescription(e.target.value)}
+                rows={3}
+                className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 text-xs text-slate-200 p-2.5 rounded-xl focus:outline-hidden leading-relaxed"
+              />
 
               {/* Row 4: Stock & COD */}
               <div className="grid grid-cols-2 gap-3">
