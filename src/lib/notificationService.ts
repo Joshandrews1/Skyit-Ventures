@@ -228,7 +228,7 @@ export async function createUserNotification(
 
 // Subscribe to realtime user notifications from Firestore + merge local
 export function subscribeUserNotifications(
-  userEmail: string,
+  userEmail: string | undefined,
   userId: string | undefined,
   onUpdate: (notifications: UserNotification[]) => void
 ): () => void {
@@ -238,26 +238,55 @@ export function subscribeUserNotifications(
     return () => {};
   }
 
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+  const rawEmail = (userEmail || '').trim();
+
   try {
     const notifsRef = collection(db, 'user_notifications');
-    // Subscribe to query
-    const q = query(notifsRef, where('userEmail', '==', userEmail));
+    const notifMap = new Map<string, UserNotification>();
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const currentLocal = getLocalNotifications();
-      const notifMap = new Map<string, UserNotification>();
-      
-      // Preserve local-only notifications that don't match this user's email
-      currentLocal.forEach(n => {
-        if (!n.userEmail || (n.userEmail && n.userEmail !== userEmail)) {
-          notifMap.set(n.id, n);
-        }
-      });
-
-      // Add active notifications from Firestore for this user
+    // Subscribe to query by userEmail
+    const unsubEmail = cleanEmail ? onSnapshot(query(notifsRef, where('userEmail', '==', rawEmail)), (snapshot) => {
       snapshot.forEach(docSnap => {
         const notif = docSnap.data() as UserNotification;
         notifMap.set(notif.id, notif);
+      });
+      emitCombined();
+    }, (error) => {
+      console.warn("Firestore userEmail notification snapshot notice:", error);
+    }) : () => {};
+
+    // Also subscribe by lowercase email if different
+    const unsubCleanEmail = (cleanEmail && cleanEmail !== rawEmail) ? onSnapshot(query(notifsRef, where('userEmail', '==', cleanEmail)), (snapshot) => {
+      snapshot.forEach(docSnap => {
+        const notif = docSnap.data() as UserNotification;
+        notifMap.set(notif.id, notif);
+      });
+      emitCombined();
+    }, () => {}) : () => {};
+
+    // Subscribe by userId if available
+    const unsubUid = userId ? onSnapshot(query(notifsRef, where('userId', '==', userId)), (snapshot) => {
+      snapshot.forEach(docSnap => {
+        const notif = docSnap.data() as UserNotification;
+        notifMap.set(notif.id, notif);
+      });
+      emitCombined();
+    }, (error) => {
+      console.warn("Firestore userId notification snapshot notice:", error);
+    }) : () => {};
+
+    function emitCombined() {
+      const currentLocal = getLocalNotifications();
+
+      // Include valid local items matching this user
+      currentLocal.forEach(n => {
+        const nEmail = (n.userEmail || '').trim().toLowerCase();
+        if ((cleanEmail && nEmail === cleanEmail) || (userId && n.userId === userId)) {
+          if (!notifMap.has(n.id)) {
+            notifMap.set(n.id, n);
+          }
+        }
       });
 
       const combined = Array.from(notifMap.values()).sort(
@@ -266,18 +295,31 @@ export function subscribeUserNotifications(
 
       saveLocalNotifications(combined);
       onUpdate(combined);
-    }, (error) => {
-      console.warn("Firestore notification snapshot warning, falling back to local:", error);
-      const currentLocal = getLocalNotifications();
-      const filtered = currentLocal.filter(n => !n.userEmail || n.userEmail === userEmail || (userId && n.userId === userId));
-      onUpdate(filtered);
-    });
+    }
 
-    return unsubscribe;
+    // Initial emit with whatever is in local
+    const currentLocal = getLocalNotifications();
+    const initialMatching = currentLocal.filter(n => {
+      const nEmail = (n.userEmail || '').trim().toLowerCase();
+      return (cleanEmail && nEmail === cleanEmail) || (userId && n.userId === userId);
+    });
+    if (initialMatching.length > 0) {
+      initialMatching.forEach(n => notifMap.set(n.id, n));
+      onUpdate(initialMatching);
+    }
+
+    return () => {
+      unsubEmail();
+      unsubCleanEmail();
+      unsubUid();
+    };
   } catch (err) {
     console.warn("Failed to subscribe user notifications:", err);
     const currentLocal = getLocalNotifications();
-    const filtered = currentLocal.filter(n => !n.userEmail || n.userEmail === userEmail || (userId && n.userId === userId));
+    const filtered = currentLocal.filter(n => {
+      const nEmail = (n.userEmail || '').trim().toLowerCase();
+      return !n.userEmail || (cleanEmail && nEmail === cleanEmail) || (userId && n.userId === userId);
+    });
     onUpdate(filtered);
     return () => {};
   }
@@ -298,19 +340,23 @@ export async function markNotificationAsRead(notificationId: string, read: boole
 }
 
 // Mark all notifications as read for a user
-export async function markAllNotificationsAsRead(userEmail?: string) {
+export async function markAllNotificationsAsRead(userEmail?: string, userId?: string) {
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+  const rawEmail = (userEmail || '').trim();
+
   const current = getLocalNotifications();
   const updated = current.map(n => {
-    if (!userEmail || n.userEmail === userEmail) {
+    const nEmail = (n.userEmail || '').trim().toLowerCase();
+    if (!userEmail || (cleanEmail && nEmail === cleanEmail) || (userId && n.userId === userId)) {
       return { ...n, read: true };
     }
     return n;
   });
   saveLocalNotifications(updated);
 
-  if (userEmail) {
+  if (rawEmail) {
     try {
-      const q = query(collection(db, 'user_notifications'), where('userEmail', '==', userEmail));
+      const q = query(collection(db, 'user_notifications'), where('userEmail', '==', rawEmail));
       const snap = await getDocs(q);
       snap.forEach(async (d) => {
         if (!d.data().read) {
@@ -319,6 +365,20 @@ export async function markAllNotificationsAsRead(userEmail?: string) {
       });
     } catch (e) {
       console.warn("Firestore markAllRead warning:", e);
+    }
+  }
+
+  if (cleanEmail && cleanEmail !== rawEmail) {
+    try {
+      const q = query(collection(db, 'user_notifications'), where('userEmail', '==', cleanEmail));
+      const snap = await getDocs(q);
+      snap.forEach(async (d) => {
+        if (!d.data().read) {
+          await updateDoc(doc(db, 'user_notifications', d.id), { read: true }).catch(() => {});
+        }
+      });
+    } catch (e) {
+      console.warn("Firestore markAllRead clean email warning:", e);
     }
   }
 }
@@ -338,20 +398,38 @@ export async function deleteNotification(notificationId: string) {
 }
 
 // Clear all notifications for a user or guest
-export async function clearAllNotifications(userEmail?: string) {
+export async function clearAllNotifications(userEmail?: string, userId?: string) {
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+  const rawEmail = (userEmail || '').trim();
+
   const current = getLocalNotifications();
-  const updated = userEmail ? current.filter(n => n.userEmail && n.userEmail !== userEmail) : [];
+  const updated = userEmail ? current.filter(n => {
+    const nEmail = (n.userEmail || '').trim().toLowerCase();
+    return n.userEmail && nEmail !== cleanEmail && (!userId || n.userId !== userId);
+  }) : [];
   saveLocalNotifications(updated);
 
-  if (userEmail) {
+  if (rawEmail) {
     try {
-      const q = query(collection(db, 'user_notifications'), where('userEmail', '==', userEmail));
+      const q = query(collection(db, 'user_notifications'), where('userEmail', '==', rawEmail));
       const snap = await getDocs(q);
       snap.forEach(async (d) => {
         await deleteDoc(doc(db, 'user_notifications', d.id)).catch(() => {});
       });
     } catch (e) {
       console.warn("Firestore clearAllNotifications warning:", e);
+    }
+  }
+
+  if (cleanEmail && cleanEmail !== rawEmail) {
+    try {
+      const q = query(collection(db, 'user_notifications'), where('userEmail', '==', cleanEmail));
+      const snap = await getDocs(q);
+      snap.forEach(async (d) => {
+        await deleteDoc(doc(db, 'user_notifications', d.id)).catch(() => {});
+      });
+    } catch (e) {
+      console.warn("Firestore clearAllNotifications clean email warning:", e);
     }
   }
 }

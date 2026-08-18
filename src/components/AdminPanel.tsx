@@ -799,7 +799,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     <div className="space-y-6" id="admin-panel-container">
       
       {/* EXECUTIVE ADMIN TOP BAR: Mode Switcher, Status & Storefront Switcher */}
-      <div className="bg-[#0e131e] border border-white/10 rounded-2xl p-3 sm:p-4.5 flex items-center justify-between gap-2.5 sm:gap-4 shadow-xl backdrop-blur-md sticky top-16 z-30">
+      <div className="bg-[#0e131e] border border-white/10 rounded-2xl p-3 sm:p-4.5 flex items-center justify-between gap-2.5 sm:gap-4 shadow-xl backdrop-blur-md z-30">
         
         {/* Left: Brand Hub Identity */}
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
@@ -821,7 +821,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         </div>
 
-        {/* Right: Quick Action Controls & Storefront Switcher */}
+        {/* Right: Quick Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Admin Interactive Tour Button */}
           <button
@@ -835,20 +835,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <span className="hidden sm:inline">Admin Tour 🎓</span>
             <span className="sm:hidden">Tour</span>
           </button>
-
-          {/* Switch to Storefront Button */}
-          {onNavigateToStore && (
-            <button
-              type="button"
-              onClick={onNavigateToStore}
-              className="bg-[#171b27] hover:bg-white/10 text-[#b3c5ff] hover:text-white border border-white/10 text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0 whitespace-nowrap"
-              title="Switch to Customer Storefront View"
-            >
-              <Store size={13} className="text-[#0066ff] shrink-0" />
-              <span className="hidden md:inline">Customer Storefront View</span>
-              <span className="md:hidden">Store View</span>
-            </button>
-          )}
         </div>
       </div>
 

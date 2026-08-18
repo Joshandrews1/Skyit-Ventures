@@ -106,6 +106,13 @@ export interface UserNotification {
   read: boolean;
   createdAt: string;
   actionUrl?: string;
+  link?: string;
+  details?: {
+    location?: string;
+    ip?: string;
+    device?: string;
+    browser?: string;
+  };
   metadata?: {
     orderId?: string;
     status?: string;

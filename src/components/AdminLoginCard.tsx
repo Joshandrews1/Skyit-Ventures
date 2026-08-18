@@ -21,6 +21,8 @@ import {
   updateProfile 
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { dispatchLoginSecurityAlert } from '../lib/notificationService';
+import { logUserLoginPinpoint } from '../lib/visitorTracker';
 
 interface AdminLoginCardProps {
   onLoginSuccess: (user: any, isAdmin: boolean) => void;
@@ -59,6 +61,18 @@ export const AdminLoginCard: React.FC<AdminLoginCardProps> = ({
         }
       } catch (e) {
         console.warn("Admin check notice:", e);
+      }
+
+      // Trigger fraud detection email and security notification & exact login pinpoint
+      if (user.email) {
+        dispatchLoginSecurityAlert(
+          user.email,
+          user.displayName || 'Administrator',
+          'Admin Google OAuth 2.0 Sign-In',
+          user.uid
+        ).catch(e => console.warn("Failed to dispatch admin google login alert:", e));
+
+        logUserLoginPinpoint(user.email, user.displayName || 'Administrator').catch(e => console.warn("Failed to log admin google pinpoint:", e));
       }
 
       onLoginSuccess(user, isAdminUser);
@@ -138,6 +152,18 @@ export const AdminLoginCard: React.FC<AdminLoginCardProps> = ({
         }
       } catch (e) {
         console.warn("Admin check notice:", e);
+      }
+
+      // Trigger fraud detection email and security notification & exact login pinpoint
+      if (user.email) {
+        dispatchLoginSecurityAlert(
+          user.email,
+          user.displayName || name.trim() || 'Administrator',
+          mode === 'signup' ? 'Admin New Account Registration' : 'Admin Email Password Login',
+          user.uid
+        ).catch(e => console.warn("Failed to dispatch admin login alert:", e));
+
+        logUserLoginPinpoint(user.email, user.displayName || name.trim() || 'Administrator').catch(e => console.warn("Failed to log admin pinpoint:", e));
       }
 
       onLoginSuccess(user, isAdminUser);

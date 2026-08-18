@@ -30,6 +30,7 @@ interface NotificationsPageProps {
 export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   notifications,
   userEmail,
+  currentUser,
   onNavigateTab
 }) => {
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -40,6 +41,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   const [isDetailMenuOpen, setIsDetailMenuOpen] = useState<boolean>(false);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
 
+  const userId = currentUser?.uid;
+
   // Sync prop changes with internal state
   useEffect(() => {
     setItemsList(notifications);
@@ -49,9 +52,9 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   useEffect(() => {
     const hasUnread = notifications.some(n => !n.read);
     if (hasUnread) {
-      markAllNotificationsAsRead(userEmail);
+      markAllNotificationsAsRead(userEmail, userId);
     }
-  }, [notifications, userEmail]);
+  }, [notifications, userEmail, userId]);
 
   const handleSelectNotification = (notif: UserNotification) => {
     if (!notif.read) {
@@ -73,7 +76,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   };
 
   const handleMarkAllRead = () => {
-    markAllNotificationsAsRead(userEmail);
+    markAllNotificationsAsRead(userEmail, userId);
     setItemsList(prev => prev.map(n => ({ ...n, read: true })));
     if (selectedNotif) {
       setSelectedNotif(prev => prev ? { ...prev, read: true } : null);
@@ -81,7 +84,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   };
 
   const handleClearAll = () => {
-    clearAllNotifications(userEmail);
+    clearAllNotifications(userEmail, userId);
     setItemsList([]);
     setSelectedNotif(null);
   };

@@ -1450,7 +1450,7 @@ export default function App() {
                 id="tour-notifications-btn"
                 onClick={() => { 
                   setActiveTab('notifications'); 
-                  markAllNotificationsAsRead(currentUser?.email);
+                  markAllNotificationsAsRead(currentUser?.email, currentUser?.uid);
                   setSelectedProduct(null); 
                   setIsMobileMenuOpen(false);
                   setIsUserDropdownOpen(false);
