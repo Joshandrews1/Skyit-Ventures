@@ -183,6 +183,8 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
   }, [currentUser]);
 
   // Hook to subscribe to user's chat history threads real-time
+  const isStreamingRef = useRef(false);
+
   useEffect(() => {
     if (!currentUser) {
       setThreads([]);
@@ -213,6 +215,11 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
       });
 
       setThreads(loadedThreads);
+
+      // Do NOT overwrite messages if an AI stream is currently typing into state
+      if (isStreamingRef.current) {
+        return;
+      }
 
       // Keep active list messages selected and in-sync if thread exists
       if (activeThreadId) {
@@ -449,6 +456,17 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
       });
     }
 
+    // Streaming Assistant message placeholder
+    const placeholderAssistantMsg: ChatMessage = {
+      sender: 'assistant',
+      text: '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const messagesWithPlaceholder = [...updatedMessages, placeholderAssistantMsg];
+    setMessages(messagesWithPlaceholder);
+    isStreamingRef.current = true;
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -459,26 +477,87 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
           images: currentImages.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
           summary: currentThreadSummary,
           products: activeProducts,
-          userName: getUserFirstName()
+          userName: getUserFirstName(),
+          stream: true
         })
       });
 
-      if (!response.ok) throw new Error("Connection failed.");
+      if (!response.ok || !response.body) throw new Error("Connection failed.");
 
-      const data = await response.json();
-      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let accumulatedText = '';
+      let finalData: any = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Standard SSE splits by double newlines or single newlines
+        const blocks = buffer.split('\n\n');
+        buffer = blocks.pop() || '';
+
+        for (const block of blocks) {
+          const trimmedBlock = block.trim();
+          if (!trimmedBlock) continue;
+
+          // Extract event and data lines
+          const lines = trimmedBlock.split('\n');
+          let eventName = 'chunk';
+          let dataStr = '';
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              eventName = line.substring(6).trim();
+            } else if (line.startsWith('data:')) {
+              dataStr = line.substring(5).trim();
+            }
+          }
+
+          if (!dataStr) continue;
+
+          try {
+            const parsed = JSON.parse(dataStr);
+
+            if (eventName === 'chunk' || (!parsed.reply && parsed.text !== undefined)) {
+              const chunkText = parsed.text || '';
+              if (chunkText) {
+                accumulatedText += chunkText;
+                setMessages(prev => {
+                  const copy = [...prev];
+                  if (copy.length > 0 && copy[copy.length - 1].sender === 'assistant') {
+                    copy[copy.length - 1] = {
+                      ...copy[copy.length - 1],
+                      text: accumulatedText
+                    };
+                  }
+                  return copy;
+                });
+              }
+            } else if (eventName === 'done' || parsed.reply !== undefined) {
+              finalData = parsed;
+            }
+          } catch (e) {
+            console.warn("[SSE Parse Warn]", e);
+          }
+        }
+      }
+
       const recommended: Product[] = [];
-      if (data.recommendedProductIds && Array.isArray(data.recommendedProductIds)) {
-        data.recommendedProductIds.forEach((id: string) => {
+      if (finalData?.recommendedProductIds && Array.isArray(finalData.recommendedProductIds)) {
+        finalData.recommendedProductIds.forEach((id: string) => {
           const matched = activeProducts.find(p => p.id === id);
-          if (matched) recommended.push(matched);
+          if (matched && !recommended.some(p => p.id === matched.id)) recommended.push(matched);
         });
       }
 
       const allSolarPackages = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
       const recommendedPkgs: SolarPackage[] = [];
-      if (data.recommendedPackageIds && Array.isArray(data.recommendedPackageIds)) {
-        data.recommendedPackageIds.forEach((pkgId: string) => {
+      if (finalData?.recommendedPackageIds && Array.isArray(finalData.recommendedPackageIds)) {
+        finalData.recommendedPackageIds.forEach((pkgId: string) => {
           const matchedPkg = allSolarPackages.find(p => p.id === pkgId);
           if (matchedPkg && !recommendedPkgs.some(p => p.id === matchedPkg.id)) {
             recommendedPkgs.push(matchedPkg);
@@ -486,19 +565,19 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
         });
       }
 
-      const assistantMsg: ChatMessage = {
+      const finalizedAssistantMsg: ChatMessage = {
         sender: 'assistant',
-        text: data.reply,
+        text: finalData?.reply || accumulatedText || "I am ready to help you with your solar and security requirements.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         suggestedProducts: recommended.length > 0 ? recommended : undefined,
         suggestedPackages: recommendedPkgs.length > 0 ? recommendedPkgs : undefined
       };
 
-      const finalMessages = [...updatedMessages, assistantMsg];
+      const finalMessages = [...updatedMessages, finalizedAssistantMsg];
       setMessages(finalMessages);
-      setCurrentThreadSummary(data.summary || '');
+      setCurrentThreadSummary(finalData?.summary || '');
 
-      // final persistence update with AI reply
+      // Final persistence update with completed AI reply
       if (currentUser && currentId) {
         try {
           await setDoc(doc(db, 'chat_threads', currentId), {
@@ -506,7 +585,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
             userId: currentUser.uid,
             title: finalMessages[0]?.text ? (finalMessages[0].text.length > 35 ? finalMessages[0].text.substring(0, 35) + '...' : finalMessages[0].text) : "Saved Chat",
             messages: cleanMessagesForFirestore(finalMessages),
-            summary: data.summary || '',
+            summary: finalData?.summary || '',
             updatedAt: new Date().toISOString()
           }, { merge: true });
           
@@ -542,6 +621,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
         }
       }
     } finally {
+      isStreamingRef.current = false;
       setIsLoading(false);
     }
   };
@@ -1120,8 +1200,20 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
                         )}
                       </div>
                     ) : (
-                      <div className="space-y-1.5">
-                         {formatReplyText(msg.text)}
+                      <div className="space-y-1.5 min-h-[20px]">
+                        {msg.text ? (
+                          <>
+                            {formatReplyText(msg.text)}
+                            {isLoading && idx === messages.length - 1 && (
+                              <span className="inline-block w-1.5 h-3.5 bg-[#adc6ff] animate-pulse ml-0.5 align-middle rounded-xs" />
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2 py-1 text-slate-400 text-xs">
+                            <span className="inline-block w-2 h-2 bg-[#adc6ff] rounded-full animate-ping" />
+                            <span className="text-slate-400 font-medium">SkyIT Consultant is typing...</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1236,14 +1328,6 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
                 </div>
               ))}
 
-              {/* Live generating state placeholder */}
-              {isLoading && (
-                <div className="flex items-center gap-2.5 text-slate-300 text-xs bg-white/[0.03] border border-white/10 p-3 px-4 rounded-xl w-fit shadow-xs">
-                  <Loader2 className="animate-spin text-[#adc6ff]" size={14} />
-                  <span className="font-medium tracking-wide">AI Advisor is thinking...</span>
-                </div>
-              )}
-              
               <div ref={scrollRef} />
             </div>
           )}

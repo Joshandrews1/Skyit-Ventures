@@ -43,7 +43,10 @@ import {
   Save,
   Clock,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Camera,
+  Video,
+  FlipHorizontal
 } from 'lucide-react';
 import { FullScreenTextEditor, ExpandableTextarea } from './FullScreenTextEditor';
 
@@ -347,7 +350,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
     }
   }, [unmatchedItems, detectedUpdates, batchRawText, activeUnmatchedIndex]);
 
-  // Helper: Client-side canvas compression & scaling
+  // Helper: Client-side canvas compression & scaling with ultra-light WebP quantization
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -383,14 +386,200 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
           }
           
           ctx.drawImage(img, 0, 0, width, height);
-          // Export at 82% JPEG quality (gorgeous detail, small under 100KB footprint)
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          
+          // Export as modern ultra-lightweight WebP format (75% quality for featherlight web payload)
+          // WebP delivers 30-50% smaller sizes than JPEG with identical visual fidelity
+          let dataUrl = canvas.toDataURL('image/webp', 0.75);
+          
+          // Fallback check: if browser doesn't support WebP export, canvas returns image/png or image/jpeg
+          if (!dataUrl.startsWith('data:image/webp')) {
+            dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+          }
+          
           resolve(dataUrl);
         };
         img.onerror = () => reject(new Error("Failed to render file onto canvas bounds."));
       };
       reader.onerror = (e) => reject(e);
     });
+  };
+
+  // Camera Snap Feature States (for live camera photo capture)
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [cameraTarget, setCameraTarget] = useState<'cover' | 'gallery' | 'modalCover' | 'modalGallery'>('cover');
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState('');
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  // Camera Permission Dialog State (triggered when clicking upload photo to prompt for camera access or file upload)
+  const [isCameraPromptOpen, setIsCameraPromptOpen] = useState(false);
+  const [cameraPromptTarget, setCameraPromptTarget] = useState<'cover' | 'gallery' | 'modalCover' | 'modalGallery'>('cover');
+  const coverFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const galleryFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const modalFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Trigger permission prompt when clicking upload photo
+  const handleUploadPhotoClick = (target: 'cover' | 'gallery' | 'modalCover' | 'modalGallery') => {
+    setCameraPromptTarget(target);
+    setIsCameraPromptOpen(true);
+  };
+
+  // User decides to launch camera after prompt
+  const handleConfirmCameraAccess = () => {
+    setIsCameraPromptOpen(false);
+    handleOpenCamera(cameraPromptTarget);
+  };
+
+  // User chooses local file picker instead of camera
+  const handleChooseLocalFile = () => {
+    setIsCameraPromptOpen(false);
+    if (cameraPromptTarget === 'cover') {
+      coverFileInputRef.current?.click();
+    } else if (cameraPromptTarget === 'gallery') {
+      galleryFileInputRef.current?.click();
+    } else if (cameraPromptTarget === 'modalCover') {
+      modalFileInputRef.current?.click();
+    }
+  };
+
+  // Start Camera with selected facing mode
+  const startCamera = async (facing: 'environment' | 'user' = cameraFacingMode) => {
+    setCameraLoading(true);
+    setCameraError('');
+    
+    // Stop any existing stream first
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API is not supported on this browser/device.");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facing,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(e => console.warn("Video play interrupted:", e));
+      }
+    } catch (err: any) {
+      console.error("Camera access error:", err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError("Camera permission was denied. Please allow camera access in your browser settings.");
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError("No camera hardware found on this device.");
+      } else {
+        setCameraError("Could not access camera: " + (err.message || "Unknown error."));
+      }
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  // Stop camera and cleanup media stream
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraModalOpen(false);
+    setCameraError('');
+  };
+
+  // Toggle between Rear ('environment') and Front ('user') camera
+  const toggleCameraFacing = () => {
+    const nextFacing = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    setCameraFacingMode(nextFacing);
+    startCamera(nextFacing);
+  };
+
+  // Open camera for specific target slot
+  const handleOpenCamera = (target: 'cover' | 'gallery' | 'modalCover' | 'modalGallery') => {
+    setCameraTarget(target);
+    setIsCameraModalOpen(true);
+    startCamera(cameraFacingMode);
+  };
+
+  // Capture frame from active video stream and compress to base64
+  const handleSnapPhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setCameraError("Camera is still warming up. Please try snapping in a moment.");
+      return;
+    }
+
+    try {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 800;
+      let width = video.videoWidth;
+      let height = video.videoHeight;
+
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error("Could not create canvas context for snap.");
+      }
+
+      // If front camera, mirror image back for natural perspective
+      if (cameraFacingMode === 'user') {
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+      }
+
+      ctx.drawImage(video, 0, 0, width, height);
+      
+      // Export snapshot as modern ultra-lightweight WebP format (75% quality)
+      let dataUrl = canvas.toDataURL('image/webp', 0.75);
+      if (!dataUrl.startsWith('data:image/webp')) {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+      }
+
+      // Assign to the appropriate image target
+      if (cameraTarget === 'cover') {
+        setImagePreview(dataUrl);
+        setSuccessMsg("📸 Photo captured as ultra-light WebP and set as primary cover!");
+      } else if (cameraTarget === 'gallery') {
+        setExtraImages(prev => [...prev, dataUrl].slice(0, 8));
+        setSuccessMsg("📸 Photo captured as ultra-light WebP and added to gallery!");
+      } else if (cameraTarget === 'modalCover') {
+        setModalImage(dataUrl);
+      } else if (cameraTarget === 'modalGallery') {
+        setModalExtraImages(prev => [...prev, dataUrl].slice(0, 8));
+      }
+
+      // Close camera modal
+      stopCamera();
+    } catch (err: any) {
+      console.error("Snap photo error:", err);
+      setCameraError("Failed to snap photo: " + (err.message || "Unknown error."));
+    }
   };
 
   // Image upload trigger
@@ -1219,8 +1408,8 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
         {/* ===================================================================== */}
         {/* CATALOG WORKSPACE MODE SWITCHER BAR */}
         {/* ===================================================================== */}
-        <div className="bg-slate-900/95 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="bg-[#171b27] border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <div className={`p-2.5 rounded-2xl border transition-all shrink-0 ${
               bulkEditMode 
                 ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
@@ -1228,18 +1417,20 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
             }`}>
               {bulkEditMode ? <Tag size={20} className="text-amber-400" /> : <Plus size={20} className="text-indigo-400" />}
             </div>
-            <div>
-              <h2 className="font-display font-black text-base text-white flex items-center gap-2">
-                <span>{bulkEditMode ? 'AI Bulk Price Updater Mode' : 'Product Catalog Management'}</span>
-                <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full border ${
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-display font-black text-sm sm:text-base text-white tracking-tight">
+                  {bulkEditMode ? 'AI Bulk Price Updater Mode' : 'Product Catalog Management'}
+                </h2>
+                <span className={`text-[10px] uppercase font-mono font-bold px-2.5 py-0.5 rounded-full border shrink-0 ${
                   bulkEditMode 
                     ? 'bg-amber-400/20 border-amber-400/40 text-amber-300' 
                     : 'bg-indigo-400/20 border-indigo-400/40 text-indigo-300'
                 }`}>
                   {bulkEditMode ? 'Batch Prices' : 'Single Entry'}
                 </span>
-              </h2>
-              <p className="text-xs text-slate-300 mt-0.5">
+              </div>
+              <p className="text-xs text-[#8e95b0] mt-1 leading-relaxed">
                 {bulkEditMode 
                   ? 'Paste raw supplier price lists or invoices. AI matches items and lets you review changes before publishing live.'
                   : 'Add new products, edit individual items, or use Gemini AI sales copywriter.'}
@@ -1247,34 +1438,34 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({ onProductUploade
             </div>
           </div>
 
-          {/* Mode Switch Pills */}
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 self-stretch sm:self-auto justify-between sm:justify-start shrink-0">
+          {/* Mode Switch Pills Underneath */}
+          <div className="flex items-center gap-2 bg-[#0e131e] p-1.5 rounded-2xl border border-white/10 w-full sm:w-fit">
             <button
               type="button"
               onClick={() => setBulkEditMode(false)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 ${
                 !bulkEditMode 
-                  ? 'bg-indigo-600 text-white shadow-md' 
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#0066ff] text-white shadow-md shadow-blue-500/20' 
+                  : 'text-[#8e95b0] hover:text-white hover:bg-white/5'
               }`}
             >
-              <Plus size={14} />
+              <Plus size={14} className="shrink-0" />
               <span>Single Entry</span>
             </button>
 
             <button
               type="button"
               onClick={() => setBulkEditMode(true)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 ${
                 bulkEditMode 
-                  ? 'bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md' 
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md shadow-indigo-500/20' 
+                  : 'text-[#8e95b0] hover:text-white hover:bg-white/5'
               }`}
             >
-              <Sparkles size={14} className={bulkEditMode ? 'fill-amber-300 text-amber-300' : ''} />
+              <Sparkles size={14} className={`shrink-0 ${bulkEditMode ? 'fill-amber-300 text-amber-300' : ''}`} />
               <span>Bulk Price Edit</span>
               {detectedUpdates.length > 0 && (
-                <span className="bg-amber-400 text-slate-950 text-[10px] font-mono font-black px-1.5 py-0.2 rounded-full">
+                <span className="bg-amber-400 text-slate-950 text-[10px] font-mono font-black px-1.5 py-0.2 rounded-full shrink-0">
                   {detectedUpdates.length}
                 </span>
               )}
@@ -2158,18 +2349,28 @@ Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, origina
               <div className="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200/50">
                 <span className="text-[10px] font-bold uppercase text-brand tracking-wider block">1. Cover Image (Required)</span>
                 
-                <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3 text-center hover:bg-slate-100/50 transition-colors relative">
+                <div>
+                  {/* Hidden file input for cover */}
                   <input
+                    ref={coverFileInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    className="hidden"
                   />
-                  <div className="flex flex-col items-center gap-1">
-                    <ImageIcon size={18} className="text-slate-400" />
-                    <span className="text-[11px] font-bold text-slate-700">Replace Cover Photo</span>
-                    <span className="text-[9px] text-slate-400">Click to upload JPG, PNG or WebP</span>
-                  </div>
+
+                  {/* Upload Photo Button -> Prompts for Camera Access or File Upload */}
+                  <button
+                    type="button"
+                    onClick={() => handleUploadPhotoClick('cover')}
+                    className="w-full bg-slate-900 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 text-white rounded-xl p-3.5 text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer font-bold active:scale-98 shadow-sm group"
+                  >
+                    <div className="flex items-center gap-2 text-amber-400 group-hover:text-amber-300">
+                      <Upload size={18} className="stroke-[2.5]" />
+                      <span className="text-xs font-black uppercase tracking-wider text-white">Upload Photo</span>
+                    </div>
+                    <span className="text-[10px] text-amber-200/90 font-medium">Use Live Device Camera or Storage</span>
+                  </button>
                 </div>
 
                 <div className="space-y-1">
@@ -2200,7 +2401,7 @@ Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, origina
                       />
                       <div>
                         <span className="text-[10px] font-bold text-slate-700 block">Cover Loaded</span>
-                        <span className="text-[9px] text-emerald-600 font-medium">Ready in high quality</span>
+                        <span className="text-[9px] text-emerald-600 font-medium">Ready in high quality WebP</span>
                       </div>
                     </div>
                   ) : (
@@ -2213,19 +2414,29 @@ Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, origina
               <div className="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200/50">
                 <span className="text-[10px] font-bold uppercase text-indigo-600 tracking-wider block">2. Auxiliary Gallery Images</span>
                 
-                <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3 text-center hover:bg-slate-100/50 transition-colors relative">
+                <div>
+                  {/* Hidden file input for gallery */}
                   <input
+                    ref={galleryFileInputRef}
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={handleExtraFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    className="hidden"
                   />
-                  <div className="flex flex-col items-center gap-1">
-                    <Plus size={18} className="text-indigo-500" />
-                    <span className="text-[11px] font-bold text-slate-700">Upload Gallery Photos</span>
-                    <span className="text-[9px] text-slate-400">Add multiple extra images together</span>
-                  </div>
+
+                  {/* Upload Gallery Photos -> Prompts for Camera Access or File Upload */}
+                  <button
+                    type="button"
+                    onClick={() => handleUploadPhotoClick('gallery')}
+                    className="w-full bg-slate-900 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 text-white rounded-xl p-3.5 text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer font-bold active:scale-98 shadow-sm group"
+                  >
+                    <div className="flex items-center gap-2 text-amber-400 group-hover:text-amber-300">
+                      <Plus size={18} className="stroke-[3]" />
+                      <span className="text-xs font-black uppercase tracking-wider text-white">Upload Photos</span>
+                    </div>
+                    <span className="text-[10px] text-amber-200/90 font-medium">Use Live Device Camera or Multi-File</span>
+                  </button>
                 </div>
 
                 <div className="space-y-1">
@@ -2286,11 +2497,11 @@ Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, origina
             </div>
 
             {/* Performance information notice box */}
-            <div className="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl text-[11px] text-indigo-900 flex items-start gap-2">
-              <Info size={14} className="mt-0.5 shrink-0 text-indigo-700" />
+            <div className="bg-emerald-50/70 border border-emerald-200/80 p-3 rounded-xl text-[11px] text-emerald-950 flex items-start gap-2">
+              <Zap size={14} className="mt-0.5 shrink-0 text-emerald-600 fill-emerald-600" />
               <div>
-                <span className="font-bold block text-indigo-800">Dynamic Multi-Image Gallery Asset Compactor Active:</span>
-                Every manual file upload undergoes custom layout rendering, high-fidelity sizing and client-side quantization. This protects rapid boutique response speeds while ensuring crisp image detail in high density desktop views.
+                <span className="font-bold block text-emerald-900">Ultra-Lightweight WebP Image Engine Active:</span>
+                Every photo uploaded or camera snapshot is instantly converted and compressed into next-generation <strong className="font-extrabold text-emerald-800">WebP format</strong>. This reduces payload sizes by up to 50% compared to legacy JPG/PNG while preserving pristine display sharpness on all devices.
               </div>
             </div>
           </div>
@@ -2870,17 +3081,33 @@ Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, origina
 
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <label className="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black px-4 py-2 rounded-xl shadow-md cursor-pointer flex items-center gap-2 active:scale-95 transition-all uppercase tracking-wider">
+                      <input
+                        ref={modalFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleModalImageUpload}
+                        className="hidden"
+                        disabled={modalCompressing}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => handleUploadPhotoClick('modalCover')}
+                        disabled={modalCompressing}
+                        className="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black px-4 py-2.5 rounded-xl shadow-md cursor-pointer flex items-center gap-2 active:scale-95 transition-all uppercase tracking-wider disabled:opacity-50"
+                      >
                         <Upload size={14} className="stroke-[3]" />
                         <span>{modalCompressing ? 'Compressing...' : 'Upload Photo'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleModalImageUpload}
-                          className="hidden"
-                          disabled={modalCompressing}
-                        />
-                      </label>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCamera('modalCover')}
+                        className="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/40 text-xs font-black px-3.5 py-2.5 rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all uppercase tracking-wider"
+                      >
+                        <Camera size={14} className="text-amber-400 stroke-[2.5]" />
+                        <span>Take Picture</span>
+                      </button>
 
                       {modalImage && (
                         <button
@@ -2977,6 +3204,194 @@ Add an enterprise-grade 10KVA Pure Sine Wave Inverter, Brand is SunVolt, origina
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Camera Access Permission Request Modal */}
+      {isCameraPromptOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0f172a] border-2 border-amber-400 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col text-slate-100 ring-4 ring-amber-400/20">
+            {/* Modal Header */}
+            <div className="p-5 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shadow-md shrink-0">
+                  <Camera size={22} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="font-display font-black text-base text-white">Camera Access Request</h3>
+                  <p className="text-xs text-amber-300 font-bold">
+                    {cameraPromptTarget === 'cover' ? 'Catalog Cover Photo' : cameraPromptTarget === 'gallery' ? 'Gallery Multi-Slide' : 'Catalog Modal Photo'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCameraPromptOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Dismiss"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-slate-200 font-medium leading-relaxed">
+                  Would you like to grant camera permission to snap a live product picture directly with your device, or choose an existing photo file?
+                </p>
+                <div className="p-3 bg-amber-400/10 border border-amber-400/30 rounded-xl text-xs text-amber-200 flex items-start gap-2.5">
+                  <Zap size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    Photos are automatically optimized into high-speed, lightweight <strong className="text-amber-300">WebP format</strong> for instant web catalog loading.
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons - Gold Standard Readability */}
+              <div className="flex flex-col gap-2.5 pt-2">
+                {/* Primary Option: Allow Camera Access */}
+                <button
+                  type="button"
+                  onClick={handleConfirmCameraAccess}
+                  className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+                >
+                  <Camera size={18} className="stroke-[2.5]" />
+                  <span>Allow Camera & Take Live Picture</span>
+                </button>
+
+                {/* Secondary Option: Choose File From Device */}
+                <button
+                  type="button"
+                  onClick={handleChooseLocalFile}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm py-3.5 px-4 rounded-xl border border-slate-700 hover:border-slate-600 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+                >
+                  <Upload size={18} className="text-amber-400" />
+                  <span>Choose Photo File from Device</span>
+                </button>
+
+                {/* Cancel Option */}
+                <button
+                  type="button"
+                  onClick={() => setIsCameraPromptOpen(false)}
+                  className="w-full text-slate-400 hover:text-slate-200 font-semibold text-xs py-2 text-center transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Device Camera Photo Capture Modal */}
+      {isCameraModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#0b0f19] border-2 border-amber-400/50 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col text-slate-100 ring-4 ring-amber-400/10">
+            {/* Modal Header */}
+            <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-400 border border-amber-400/40 flex items-center justify-center">
+                  <Camera size={18} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">Capture Live Product Photo</h3>
+                  <p className="text-[10px] text-amber-300 font-mono">
+                    Target: {cameraTarget === 'cover' ? 'Primary Cover Photo' : cameraTarget === 'gallery' ? 'Gallery Slide' : 'Catalog Modal Photo'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close Camera"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Viewfinder Canvas Area */}
+            <div className="relative aspect-4/3 bg-black flex items-center justify-center overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${cameraFacingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+              />
+
+              {/* Viewfinder Grid Overlay */}
+              <div className="absolute inset-0 pointer-events-none border border-white/10 grid grid-cols-3 grid-rows-3">
+                <div className="border-r border-b border-white/10" />
+                <div className="border-r border-b border-white/10" />
+                <div className="border-b border-white/10" />
+                <div className="border-r border-b border-white/10" />
+                <div className="border-r border-b border-white/10" />
+                <div className="border-b border-white/10" />
+                <div className="border-r border-white/10" />
+                <div className="border-r border-white/10" />
+                <div />
+              </div>
+
+              {/* Center focus indicator */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-24 h-24 border-2 border-amber-400/60 rounded-2xl animate-pulse" />
+              </div>
+
+              {/* Camera loading state */}
+              {cameraLoading && (
+                <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center gap-2">
+                  <Loader2 size={28} className="animate-spin text-amber-400" />
+                  <span className="text-xs font-bold text-slate-200">Initializing camera hardware...</span>
+                </div>
+              )}
+
+              {/* Camera Error Banner */}
+              {cameraError && (
+                <div className="absolute inset-x-4 top-4 p-3 bg-rose-950/90 border border-rose-500 text-rose-200 rounded-xl text-xs flex items-start gap-2 shadow-lg backdrop-blur-sm">
+                  <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block text-rose-100">Camera Notice:</span>
+                    <span>{cameraError}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Controls Bar */}
+            <div className="p-4 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={toggleCameraFacing}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+                title="Switch Front/Back Camera"
+              >
+                <FlipHorizontal size={15} className="text-amber-400" />
+                <span className="hidden sm:inline">{cameraFacingMode === 'environment' ? 'Rear Cam' : 'Front Cam'}</span>
+              </button>
+
+              {/* Snap shutter button */}
+              <button
+                type="button"
+                onClick={handleSnapPhoto}
+                disabled={cameraLoading || !!cameraError}
+                className="w-16 h-16 rounded-full bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed border-4 border-slate-900 shadow-xl flex items-center justify-center text-slate-950 active:scale-90 transition-all cursor-pointer ring-4 ring-amber-400/30"
+                title="Snap Product Picture"
+              >
+                <Camera size={26} className="stroke-[2.5]" />
+              </button>
+
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

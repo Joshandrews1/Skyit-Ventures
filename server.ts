@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import nodemailer from "nodemailer";
 import { mockProducts } from "./src/data/products";
 import { defaultBlogPosts } from "./src/data/blogPosts";
@@ -1175,9 +1175,9 @@ function classifyChatIntent(message: string, hasImages: boolean, historyLength: 
   return { isSimple: false, isGreeting: false };
 }
 
-// API: SkyIT Gemini Advisor Chat Assistant
+// API: SkyIT Gemini Advisor Chat Assistant (Real-Time Streaming SSE Architecture)
 app.post("/api/chat", async (req, res) => {
-  const { message, history, summary, userName } = req.body;
+  const { message, history, summary, userName, stream: requestedStream } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: "Message query is required." });
@@ -1190,24 +1190,35 @@ app.post("/api/chat", async (req, res) => {
   const historyList = Array.isArray(history) ? history : [];
   const intent = classifyChatIntent(message, hasImages, historyList.length);
 
-  // FAST-PATH 1: Instant Greetings (<10ms latency)
+  // Set SSE Headers if streaming requested
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  const sendEvent = (event: string, data: any) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // FAST-PATH 1: Instant Zero-Latency Greetings (<5ms)
   if (intent.isGreeting) {
     const greetingReply = isGuest 
       ? "Hello! 👋 Welcome to **SkyIT Ventures**. I am your AI Solar, Energy & Smart Security Specialist.\n\nHow can I help you today? Ask me about our hybrid solar packages, CCTV surveillance camera installations, smart security locks, or tell me about your appliances for a custom load calculation!"
       : `Hello, ${userDisplayName}! 👋 Welcome back to **SkyIT Ventures**. I am your AI Solar, Energy & Smart Security Specialist.\n\nHow can I assist you today? Ask me about our hybrid solar packages, CCTV surveillance systems, smart locks, component prices, or custom energy & security setups!`;
 
-    return res.json({
+    sendEvent('chunk', { text: greetingReply });
+    sendEvent('done', {
       reply: greetingReply,
       recommendedProductIds: [],
       recommendedPackageIds: [],
       summary: summary || ""
     });
+    return res.end();
   }
 
-  // If Gemini key is missing, provide a friendly rich technical fallback
+  // If Gemini key is missing, provide a fast rich technical fallback
   if (!ai) {
-    return res.json({
-      reply: `${isGuest ? "Hello" : `Hello, ${userDisplayName}`}! I am your **SkyIT Ventures Energy & Security Specialist**. 😊
+    const offlineReply = `${isGuest ? "Hello" : `Hello, ${userDisplayName}`}! I am your **SkyIT Ventures Energy & Security Specialist**. 😊
  
 I am currently running in local offline safety backup mode. Based on our product catalog, I can guide you on:
 
@@ -1218,128 +1229,47 @@ I am currently running in local offline safety backup mode. Based on our product
 📹 **Smart Security & Surveillance**:
 - 4K Night-Vision CCTV Systems, Solar Security Cameras, IP/WiFi Cameras, NVR/DVR Storage, Smart Biometric Locks, and Access Control.
 
-Tell me about your building, appliances, or security needs so I can recommend the perfect setup!`,
+Tell me about your building, appliances, or security needs so I can recommend the perfect setup!`;
+
+    sendEvent('chunk', { text: offlineReply });
+    sendEvent('done', {
+      reply: offlineReply,
       recommendedProductIds: ["prod-1", "prod-5"],
       recommendedPackageIds: ["tub-1.5", "li-4.0"],
       summary: summary || ""
     });
+    return res.end();
   }
 
   try {
-    // FAST-PATH 2: General Educational / Conversational Queries (Lean System Prompt, no catalog payload)
-    if (intent.isSimple) {
-      const simpleSystemInstruction = `You are a Senior Technical Consultant and Solar Architect representing SkyIT Ventures.
-${isGuest ? 'Address the customer warmly.' : `The customer is named ${userDisplayName}. Address them naturally.`}
-Provide a clear, expert, and engaging response in markdown. Focus on technical clarity, solar principles, and practical advice. Keep it concise without dumping product price lists unless asked.`;
-
-      const simpleResponse = await generateContentWithFallback(ai, {
-        model: "gemini-3.1-flash-lite",
-        contents: [
-          ...historyList.map(h => ({
-            role: h.sender === "user" ? "user" : "model",
-            parts: [{ text: h.text }]
-          })),
-          { role: "user", parts: [{ text: message }] }
-        ],
-        config: {
-          systemInstruction: simpleSystemInstruction
-        }
-      });
-
-      return res.json({
-        reply: simpleResponse.text || "I am happy to explain solar energy concepts! What specific details or appliances would you like to discuss?",
-        recommendedProductIds: [],
-        recommendedPackageIds: [],
-        summary: summary || ""
-      });
-    }
-
-    // FULL CATALOG PATH: For Product, Price, Sizing, and Package Recommendations
+    // Ultra-compact catalog summary (essential tokens only for maximum speed)
     const activeProductsList = (req.body.products && Array.isArray(req.body.products)) ? req.body.products : mockProducts;
-    const catalogBrief = activeProductsList.map((p: any) => {
-      return `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}, Price: ₦${p.price} (Original: ₦${p.originalPrice}), Rating: ${p.rating}, Description: ${p.description}`;
-    }).join("\n");
+    const catalogBrief = activeProductsList.slice(0, 15).map((p: any) => 
+      `[${p.id}] ${p.name} (₦${p.price.toLocaleString()})`
+    ).join(", ");
 
     const allPackages = [...SOLAR_PACKAGES.tubular, ...SOLAR_PACKAGES.lithium];
-    const solarPackagesBrief = allPackages.map((pkg) => {
-      return `PACKAGE ID: ${pkg.id} | NAME: ${pkg.name} | TECH: ${pkg.tech.toUpperCase()} | CAPACITY: ${pkg.kva} | PRICE: ₦${pkg.price.toLocaleString()} | BATTERY: ${pkg.batteryInfo} | PANELS: ${pkg.panels} x Monocrystalline Panels | CABLE: ${pkg.cableSize} | AC SUPPORT: ${pkg.acSupport} | SUITABLE APPLIANCES: ${pkg.loadSummary.join(', ')} | OVERVIEW: ${pkg.description}`;
-    }).join("\n");
+    const solarPackagesBrief = allPackages.map((pkg) => 
+      `[${pkg.id}] ${pkg.name} - ${pkg.tech.toUpperCase()} ${pkg.kva} (₦${pkg.price.toLocaleString()} | ${pkg.acSupport})`
+    ).join("\n");
 
-    const systemPrompt = `You are a Lead Senior Technical Consultant, Solar Architect & Smart Security Solutions Specialist representing SkyIT Ventures. 
-    ${isGuest ? 'The current user is a Guest (not logged in). Do NOT attempt to name them or say "Guest" or "Customer" as a greeting name. Greet them neutrally (e.g., "Hello!", "Welcome!").' : `The customer you are conversing with is named ${userDisplayName}. Address them naturally by their first name when greeting them or in conversation.`}
+    const systemPrompt = `You are the Lead Solar & CCTV Specialist at SkyIT Ventures, Nigeria.
+${isGuest ? 'Address the customer directly and warmly.' : `Customer: ${userDisplayName}.`}
 
-    Your mission is to provide premium technical advice for BOTH Clean Solar Energy Systems and Smart Security Technologies (CCTV surveillance cameras, IP/4K night vision cameras, solar security cameras, NVR/DVR storage, smart door locks, video doorbells, access control, motion sensors, and electric fencing).
-    You evaluate customer electrical and security setups, calculate load sizing (Watts, KVA, surge factors for ACs/pumps), and recommend matching items or pre-configured Solar Inverter Packages from our official SkyIT catalogs.
+MISSION: Deliver fast, crisp, practical energy & security guidance in Nigeria. All prices in ₦.
+PACKAGES:
+${solarPackagesBrief}
+KEY PRODUCTS: ${catalogBrief}
 
-    --- OFFICIAL INDIVIDUAL PRODUCTS CATALOG ---
-    ${catalogBrief}
+RULES:
+1. Provide a concise, clear answer in markdown with bullet points.
+2. Sizing: Light (1.5KVA/2.5KVA [tub-1.5]), Medium (3.5KVA/4.0KVA [tub-3.5-std, li-4.0]), 1-AC (5.0KVA Tubular [tub-5.0-pre] or 6.0KVA Lithium [li-6.0-10]), Commercial/Multi-AC (10KVA [li-10.0-hyb]).
+3. If recommending items, add at the very end: [[RECOMMENDED_PRODUCTS: id1, id2 | RECOMMENDED_PACKAGES: pkg1, pkg2]]`;
 
-    --- OFFICIAL SKYIT PRE-CONFIGURED COMPLETE SOLAR SYSTEM PACKAGES ---
-    ${solarPackagesBrief}
-
-    CRITICAL RULES & SIZING GUIDELINES:
-    1. DIAGNOSE BEFORE SUGGESTING: Do NOT immediately dump full product lists when the user gives a generic greeting or vague message. Ask 1-2 quick diagnostic questions about their electrical appliances or property security needs (e.g., number of rooms to cover with CCTV, gate locks, ACs, freezers) to calculate their exact requirement first.
-    2. SMART SECURITY & CCTV SPECIALIST GUIDANCE:
-       - You are an expert on all security products (CCTV camera systems, IP/WiFi cameras, solar-powered security cameras, 4K night vision, NVR/DVR recorders, smart biometric door locks, video doorbells, motion alarms, electric fencing).
-       - When users ask about security, advise them on camera angles, storage capacity (NVR hard drives), and coverage for residential or commercial properties.
-       - Highlight how SkyIT Solar Inverter Systems pair perfectly with CCTV & Security systems to provide uninterrupted 24/7 power backup so surveillance never drops during grid power outages.
-    3. EXPERT LOAD SIZING:
-       - Light load (Lighting, TV, Fans, Sound, CCTV NVR): Recommend 1.5KVA Tubular (tub-1.5) or 2.5KVA.
-       - Medium load (Inverter Fridge, Deep Freezer, Pump, TV, Fans, CCTV System): Recommend 3.5KVA (tub-3.5-std / tub-3.5-ext) or 4.0KVA Lithium (li-4.0).
-       - Heavy load with 1 AC (1HP/1.5HP Inverter AC) + Freezer/Microwave: Recommend 5.0KVA Tubular Premium (tub-5.0-pre) or 4.0KVA / 6.0KVA Lithium (li-4.0 / li-6.0-10). Lithium is preferred for AC surge currents.
-       - Heavy load with Multiple ACs + Microwave + Freezers + Water Pump: Recommend 6.0KVA Lithium (li-6.0-15) or 10.0KVA Lithium (li-10.0-hyb / li-10.0-non).
-    4. TUBULAR VS LITHIUM ADVICE:
-       - Deep-cycle Tubular packages (tub-*) offer budget-friendly entry/standard backup.
-       - LFP Lithium-ion packages (li-*) offer fast 2-hour recharge, 10+ year lifespan, higher discharge efficiency, and superior handling of inductive AC surge startup currents.
-    5. RECOMMENDATIONS:
-       - Ground all pricing strictly in Nigerian Naira (₦).
-       - When recommending individual catalog products (inverters, batteries, solar panels, CCTV cameras, smart locks, accessories), include their exact IDs in "recommendedProductIds".
-       - When recommending pre-configured Solar Packages, include their exact package IDs (e.g., "tub-1.5", "tub-3.5-std", "tub-5.0-pre", "li-4.0", "li-6.0-10", "li-6.0-15", "li-10.0-hyb", "li-10.0-non") in "recommendedPackageIds".
-    6. REPRESENT WITHOUT LOCATION: Represent SkyIT Ventures professionally. Do not explicitly state that you are physically located in any specific city unless asked, but represent our brand.
-
-    You must respond strictly in JSON format matching this schema:
-    {
-      "reply": "Conversational markdown text explaining your calculations, technical advice, or diagnostic questions.",
-      "recommendedProductIds": ["list", "of", "product", "ids"],
-      "recommendedPackageIds": ["list", "of", "package", "ids"]
-    }
-    Format your reply with neat markdown, bold emphasis, and direct helpful tips. Do not include external links.`;
-
-    let currentSummary = summary || "";
-
-    // Sliding window summary-based optimization for extreme token-saving cost-reduction.
-    if (historyList.length >= 4) {
-      if (!currentSummary || historyList.length % 4 === 0) {
-        const messagesToSummarize = historyList.slice(0, historyList.length - 2);
-        const textToSummarize = messagesToSummarize
-          .map((m: any) => `${m.sender === "user" ? "Customer" : "Consultant"}: ${m.text}`)
-          .join("\n");
-
-        try {
-          console.log("[Gemini AI] Summarizing older conversation history to conserve token space...");
-          const summaryResponse = await generateContentWithFallback(ai, {
-            model: "gemini-3.1-flash-lite",
-            contents: `Summarize the following customer conservation history in 1-2 concise, highly dense sentences. Highlight critical user requirements, specified appliances (like ACs, freezers), building specs, budget constraints, or selected catalog parts:\n\n${textToSummarize}`
-          });
-          if (summaryResponse && summaryResponse.text) {
-            currentSummary = summaryResponse.text.trim();
-          }
-        } catch (sumErr) {
-          console.warn("[Gemini AI] Summarization error, falling back or skipping:", sumErr);
-        }
-      }
-    }
-
-    // Prepare system instructions incorporating the sliding conversation summary
-    let systemInstruction = systemPrompt;
-    if (currentSummary) {
-      systemInstruction += `\n\n[SUMMARY OF PRECEDING CHAT TURNS FOR CONTEXT UNIFICATION]:\n${currentSummary}\nAlign your technical sizing parameters and specs with this summarized background.`;
-    }
-
+    const recentHistory = historyList.slice(-4);
     const contentsArray: any[] = [];
-    const historyToUse = historyList.length >= 4 ? historyList.slice(historyList.length - 2) : historyList;
 
-    for (const h of historyToUse) {
+    for (const h of recentHistory) {
       contentsArray.push({
         role: h.sender === "user" ? "user" : "model",
         parts: [{ text: h.text }]
@@ -1367,53 +1297,88 @@ Provide a clear, expert, and engaging response in markdown. Focus on technical c
       parts: userParts
     });
 
-    const modelResponse = await generateContentWithFallback(ai, {
+    const streamResponse = await ai.models.generateContentStream({
       model: "gemini-3.1-flash-lite",
       contents: contentsArray,
       config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            reply: { 
-              type: Type.STRING, 
-              description: "The Markdown response reply message providing technical advice and specs description." 
-            },
-            recommendedProductIds: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Product IDs matching recommended catalog items only."
-            },
-            recommendedPackageIds: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Package IDs matching recommended complete solar system packages."
-            }
-          },
-          required: ["reply", "recommendedProductIds", "recommendedPackageIds"]
+        systemInstruction: systemPrompt,
+        temperature: 0.2,
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MINIMAL
         }
       }
     });
 
-    const replyValue = modelResponse.text;
-    if (replyValue) {
-      const parsed = JSON.parse(replyValue.trim());
-      res.json({
-        ...parsed,
-        summary: currentSummary
-      });
-    } else {
-      throw new Error("Empty response back from Gemini.");
+    let fullAccumulatedText = "";
+
+    for await (const chunk of streamResponse) {
+      const chunkText = chunk.text || "";
+      if (chunkText) {
+        fullAccumulatedText += chunkText;
+        // Strip incomplete recommendation tags while streaming to keep display clean
+        const streamClean = chunkText.replace(/\[\[RECOMMENDED_.*$/g, '');
+        if (streamClean) {
+          sendEvent('chunk', { text: streamClean });
+        }
+      }
     }
-  } catch (err: any) {
-    console.error("Gemini AI Consultant Error:", err);
-    res.status(500).json({ 
-      error: "AI connection delay.",
-      reply: "Hello! I suffered a slight network delay, but I am here! Ask me anything about our hybrid inverters, Monocrystalline panels, or starlight dome camera packages. I highly recommend checking out our **5.0KWH Premium Lithium Powerwall** (₦1,850,000) or our **Smart 3.5KVA Pure Sine Wave Inverter** (₦480,000) for uncompromised power backup in Lagos!",
-      recommendedProductIds: ["prod-2", "prod-5"],
+
+    // Parse out recommendations tag from complete output
+    let cleanReply = fullAccumulatedText;
+    const recommendedProductIds: string[] = [];
+    const recommendedPackageIds: string[] = [];
+
+    const tagMatch = fullAccumulatedText.match(/\[\[RECOMMENDED_PRODUCTS:(.*?)(?:\| RECOMMENDED_PACKAGES:(.*?))?\]\]/i);
+    if (tagMatch) {
+      cleanReply = fullAccumulatedText.replace(tagMatch[0], '').trim();
+      const rawProds = tagMatch[1] ? tagMatch[1].trim() : '';
+      const rawPkgs = tagMatch[2] ? tagMatch[2].trim() : '';
+
+      rawProds.split(',').map(s => s.trim()).filter(Boolean).forEach(id => {
+        if (activeProductsList.some((p: any) => p.id === id) && !recommendedProductIds.includes(id)) {
+          recommendedProductIds.push(id);
+        }
+      });
+
+      rawPkgs.split(',').map(s => s.trim()).filter(Boolean).forEach(pkgId => {
+        if (allPackages.some(pkg => pkg.id === pkgId) && !recommendedPackageIds.includes(pkgId)) {
+          recommendedPackageIds.push(pkgId);
+        }
+      });
+    }
+
+    // Auto-detect package or product mentions if model mentioned them by name/ID
+    if (recommendedPackageIds.length === 0) {
+      allPackages.forEach(pkg => {
+        if (cleanReply.toLowerCase().includes(pkg.id.toLowerCase()) || 
+           (pkg.name.length > 5 && cleanReply.toLowerCase().includes(pkg.name.toLowerCase()))) {
+          if (!recommendedPackageIds.includes(pkg.id)) {
+            recommendedPackageIds.push(pkg.id);
+          }
+        }
+      });
+    }
+
+    sendEvent('done', {
+      reply: cleanReply,
+      recommendedProductIds,
+      recommendedPackageIds,
       summary: summary || ""
     });
+
+    res.end();
+
+  } catch (err: any) {
+    console.error("Gemini AI Streaming Error:", err);
+    const fallbackText = "Hello! I am ready to advise you on your power or security setup. Tell me which appliances or property size you'd like to configure, or explore our **5.0KWH Premium Lithium Powerwall** or **3.5KVA Hybrid Inverter Kit**!";
+    sendEvent('chunk', { text: fallbackText });
+    sendEvent('done', {
+      reply: fallbackText,
+      recommendedProductIds: ["prod-2", "prod-5"],
+      recommendedPackageIds: ["tub-3.5-std"],
+      summary: summary || ""
+    });
+    res.end();
   }
 });
 

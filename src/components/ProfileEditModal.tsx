@@ -261,97 +261,112 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fade-in" id="profile-edit-modal-overlay">
-      <div 
-        className="bg-[#0D0D0D] text-gray-300 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-805 flex flex-col text-sm relative animate-scale-up"
-        id="profile-edit-modal-card"
-      >
-        {/* Header Block */}
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-[#0F0F0F] text-white">
-          <div className="flex items-center gap-2">
-            <User size={16} className="text-brand" />
-            <h3 className="font-display font-black tracking-wide uppercase text-xs">Edit User Profile</h3>
+    <div className="fixed inset-0 bg-[#0e131e] z-[100] flex flex-col animate-fade-in overflow-y-auto" id="profile-edit-modal-overlay">
+      {/* Top Navigation Bar */}
+      <header className="bg-[#0e131e]/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-40 px-4 sm:px-8 py-4 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-3 max-w-5xl mx-auto w-full justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand/15 border border-brand/30 flex items-center justify-center text-brand shadow-md shadow-brand/10">
+              <User size={20} />
+            </div>
+            <div>
+              <h2 className="font-display font-black text-base sm:text-lg text-white tracking-wide">
+                User Account & Security Profile
+              </h2>
+              <p className="text-xs text-[#8c90a1]">Manage your credentials, preferences and verified GPS telemetry</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 rounded-sm cursor-pointer"
+            className="p-2 rounded-xl bg-[#171b27] hover:bg-white/10 border border-white/10 text-[#c2c6d8] hover:text-white transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1.5 text-xs font-bold"
             aria-label="Close"
           >
-            <X size={15} strokeWidth={2.5} />
+            <X size={18} />
+            <span className="hidden sm:inline">Close</span>
           </button>
         </div>
+      </header>
 
+      {/* Main Full-Page Container */}
+      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 space-y-6" id="profile-edit-modal-card">
         {/* Modal Form */}
-        <form onSubmit={handleSave} className="p-6 space-y-5 flex-1 overflow-y-auto">
+        <form onSubmit={handleSave} className="bg-[#171b27] border border-white/10 rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl">
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-500/20 text-rose-300 text-xs">
-              ⚠️ {errorMsg}
+            <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">
-              ✓ {successMsg}
+            <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-sm font-semibold flex items-center gap-2">
+              <span>✓</span>
+              <span>{successMsg}</span>
             </div>
           )}
 
-          {/* Email Address Display (ReadOnly Block) */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-              Registered Email Address
-            </label>
-            <div className="relative flex items-center">
-              <Lock className="absolute left-3 text-gray-500" size={13} />
-              <input
-                type="email"
-                disabled
-                value={currentUser.email || ''}
-                className="w-full bg-[#151515] border border-gray-800 text-gray-500 rounded-xl p-2.5 pl-9 text-xs focus:outline-hidden cursor-not-allowed font-medium"
-                title="Email address is secured and cannot be mutated"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Email Address Display (ReadOnly Block) */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[#b3c5ff] uppercase tracking-wider block">
+                Registered Email Address
+              </label>
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3.5 text-[#8c90a1]" size={16} />
+                <input
+                  type="email"
+                  disabled
+                  value={currentUser.email || ''}
+                  className="w-full bg-[#0e131e] border border-white/10 text-[#8c90a1] rounded-2xl p-3.5 pl-11 text-sm focus:outline-hidden cursor-not-allowed font-medium shadow-inner"
+                  title="Email address is secured and cannot be mutated"
+                />
+              </div>
+              <p className="text-xs text-[#8c90a1] italic leading-relaxed">
+                Email addresses are locked to preserve transactional integrity and cannot be modified.
+              </p>
             </div>
-            <p className="text-[10px] text-gray-500 italic mt-0.5 leading-relaxed">
-              Email addresses are locked to preserve transactional integrity and cannot be modified.
-            </p>
-          </div>
 
-          {/* Display Name Field */}
-          <div className="space-y-1.5">
-            <label htmlFor="p-edit-name" className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-              Full Name / Display Name
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-2.5. text-slate-400" size={14} style={{ marginTop: '3px' }} />
-              <input
-                id="p-edit-name"
-                type="text"
-                required
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Enter your name..."
-                className="w-full bg-[#1A1A1A] border border-gray-800 text-white rounded-xl p-2.5 pl-9 text-xs focus:ring-1 focus:ring-brand focus:outline-hidden"
-              />
+            {/* Display Name Field */}
+            <div className="space-y-2">
+              <label htmlFor="p-edit-name" className="text-xs font-bold text-[#b3c5ff] uppercase tracking-wider block">
+                Full Name / Display Name
+              </label>
+              <div className="relative flex items-center">
+                <User className="absolute left-3.5 text-brand" size={16} />
+                <input
+                  id="p-edit-name"
+                  type="text"
+                  required
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your name..."
+                  className="w-full bg-[#0e131e] border border-white/10 text-white rounded-2xl p-3.5 pl-11 text-sm focus:border-brand focus:ring-1 focus:ring-brand focus:outline-hidden transition-colors shadow-inner"
+                />
+              </div>
+              <p className="text-xs text-[#8c90a1]">
+                This is displayed across your orders, invoices, and quotes.
+              </p>
             </div>
           </div>
 
           {/* Profile Picture Upload Zone */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+          <div className="space-y-3 pt-2">
+            <label className="text-xs font-bold text-[#b3c5ff] uppercase tracking-wider block">
               Profile Avatar
             </label>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-[#0e131e] border border-white/10">
               {/* Avatar Preview */}
               <div className="shrink-0">
                 {photoBase64 ? (
                   <img
                     src={photoBase64}
                     alt="Avatar preview"
-                    className="w-14 h-14 rounded-full border border-brand object-cover shadow-sm bg-stone-900"
+                    className="w-20 h-20 rounded-2xl border-2 border-brand object-cover shadow-lg bg-[#171b27]"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-zinc-800 text-slate-200 flex items-center justify-center font-black text-lg border border-gray-800 uppercase">
+                  <div className="w-20 h-20 rounded-2xl bg-[#1b1f2b] text-[#b3c5ff] flex items-center justify-center font-black text-2xl border-2 border-white/10 uppercase shadow-inner">
                     {(displayName || currentUser.email || "?").charAt(0)}
                   </div>
                 )}
@@ -363,12 +378,12 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 onDragOver={handleDrag}
                 onDragLeave={handleDrag}
                 onDrop={handleDrop}
-                className={`flex-1 min-h-[70px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-3 transition-colors relative cursor-pointer ${
+                className={`flex-1 w-full min-h-[90px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-4 transition-all relative cursor-pointer ${
                   dragActive 
-                    ? 'border-brand bg-brand/5' 
+                    ? 'border-brand bg-brand/10' 
                     : photoBase64 
-                      ? 'border-gray-800 hover:border-gray-700 bg-[#161616]' 
-                      : 'border-zinc-800 hover:border-zinc-750 bg-[#121212]'
+                      ? 'border-white/20 hover:border-brand/50 bg-[#171b27]' 
+                      : 'border-white/15 hover:border-white/30 bg-[#171b27]'
                 }`}
               >
                 <input
@@ -379,15 +394,15 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   title="Upload profile picture"
                 />
-                <div className="text-center space-y-1 pointer-events-none">
+                <div className="text-center space-y-1.5 pointer-events-none">
                   <div className="flex items-center justify-center text-brand">
-                    <Upload size={14} />
+                    <Upload size={18} />
                   </div>
-                  <p className="text-[10px] text-gray-400">
-                    <strong className="text-white hover:underline">Drag here</strong> or <span className="text-brand">browse files</span>
+                  <p className="text-xs text-[#dee2f2]">
+                    <strong className="text-white hover:underline">Drag image here</strong> or <span className="text-brand font-bold">browse local files</span>
                   </p>
-                  <p className="text-[8px] text-gray-500">
-                    PNG, JPG, or JPEG formats.
+                  <p className="text-[11px] text-[#8c90a1]">
+                    Supported formats: PNG, JPG, or JPEG (Max 5MB).
                   </p>
                 </div>
               </div>
@@ -395,55 +410,55 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           </div>
 
           {/* Last Login Location & Security Map */}
-          <div className="pt-4 border-t border-gray-800 space-y-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400 uppercase tracking-wider">
-                <ShieldCheck size={14} />
-                <span>Last Login Location & Map</span>
+          <div className="pt-6 border-t border-white/10 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-sky-400 uppercase tracking-wider">
+                <ShieldCheck size={18} />
+                <span>Last Login Location & Telemetry Map</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsLocModalOpen(true)}
-                  className="text-[10px] text-amber-300 font-extrabold bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                  className="text-xs text-amber-300 font-extrabold bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                 >
-                  <MapPin size={11} className="text-amber-400" />
+                  <MapPin size={13} className="text-amber-400" />
                   <span>Enable Live Location</span>
                 </button>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   Email Alert Sent
                 </span>
               </div>
             </div>
 
-            <div className="bg-[#141414] border border-gray-800 rounded-xl p-3 space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
-                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
-                    <MapPin size={10} className="text-rose-400" /> Location
+            <div className="bg-[#0e131e] border border-white/10 rounded-2xl p-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#8c90a1] uppercase font-bold flex items-center gap-1">
+                    <MapPin size={12} className="text-rose-400" /> Location
                   </span>
-                  <span className="text-gray-200 font-bold block truncate">{lastLoginInfo?.locationName || 'Lagos, Nigeria'}</span>
+                  <span className="text-[#dee2f2] font-bold block truncate">{lastLoginInfo?.locationName || 'Lagos, Nigeria'}</span>
                 </div>
-                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
-                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
-                    <Globe size={10} className="text-sky-400" /> IP Address
+                <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#8c90a1] uppercase font-bold flex items-center gap-1">
+                    <Globe size={12} className="text-sky-400" /> IP Address
                   </span>
-                  <span className="text-gray-200 font-mono font-bold block">{lastLoginInfo?.ip || '102.89.23.14'}</span>
+                  <span className="text-[#dee2f2] font-mono font-bold block">{lastLoginInfo?.ip || '102.89.23.14'}</span>
                 </div>
-                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
-                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
-                    <Clock size={10} className="text-amber-400" /> Session Time
+                <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#8c90a1] uppercase font-bold flex items-center gap-1">
+                    <Clock size={12} className="text-amber-400" /> Session Time
                   </span>
-                  <span className="text-gray-200 font-semibold block text-[10px]">
+                  <span className="text-[#dee2f2] font-semibold block text-xs truncate">
                     {lastLoginInfo?.timestamp ? new Date(lastLoginInfo.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Active Session'}
                   </span>
                 </div>
-                <div className="bg-[#1a1a1a] p-2 rounded-lg border border-gray-800/80 space-y-0.5">
-                  <span className="text-[9px] text-gray-400 uppercase font-bold block flex items-center gap-1">
-                    <Laptop size={10} className="text-indigo-400" /> Sign-in Method
+                <div className="bg-[#171b27] p-3 rounded-xl border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#8c90a1] uppercase font-bold flex items-center gap-1">
+                    <Laptop size={12} className="text-indigo-400" /> Sign-in Method
                   </span>
-                  <span className="text-gray-200 font-semibold block text-[10px] truncate">{lastLoginInfo?.loginMethod || 'Email Password'}</span>
+                  <span className="text-[#dee2f2] font-semibold block text-xs truncate">{lastLoginInfo?.loginMethod || 'Email Password'}</span>
                 </div>
               </div>
 
@@ -456,7 +471,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 const displayLocationName = lastLoginInfo?.locationName || `${resolvedFromCoords.communityName}, ${resolvedFromCoords.cityName}, ${resolvedFromCoords.stateName}`;
 
                 return (
-                  <div className="relative rounded-xl overflow-hidden border-2 border-amber-500/60 h-44 bg-slate-950 group shadow-2xl">
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-amber-500/60 h-64 sm:h-80 bg-slate-950 group shadow-2xl">
                     {/* Embedded Map centered exactly on logged lat/lng */}
                     <iframe
                       title="Last Login Geolocation Map"
@@ -472,13 +487,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     {/* EXACT PINPOINT MARKER OVERLAY (POSITIONS DIRECTLY AT CENTER SPOT WHERE LOGGED) */}
                     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-20 flex flex-col items-center">
                       {/* Pulsing Radar Circle */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full border-2 border-amber-400 animate-ping pointer-events-none" />
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-amber-400/40 pointer-events-none blur-xs" />
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-2 border-amber-400 animate-ping pointer-events-none" />
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-amber-400/40 pointer-events-none blur-xs" />
 
                       {/* Floating User Login Callout Tag */}
-                      <div className="bg-slate-950/95 border border-amber-400 text-white rounded-lg px-2.5 py-1 shadow-2xl backdrop-blur-md flex flex-col items-center text-center gap-0.5 mb-1 text-[10px] whitespace-nowrap">
-                        <div className="flex items-center gap-1 text-amber-300 font-extrabold uppercase tracking-wider text-[9px]">
-                          <Lock size={10} className="text-amber-400" />
+                      <div className="bg-slate-950/95 border border-amber-400 text-white rounded-xl px-3 py-1.5 shadow-2xl backdrop-blur-md flex flex-col items-center text-center gap-0.5 mb-1.5 text-xs whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 text-amber-300 font-extrabold uppercase tracking-wider text-[10px]">
+                          <Lock size={12} className="text-amber-400" />
                           <span>Exact Login Pinpoint</span>
                         </div>
                         <span className="font-bold text-white font-mono">
@@ -488,25 +503,25 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
                       {/* Gold Map Pin Teardrop Icon */}
                       <div className="relative flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white shadow-[0_0_20px_#f59e0b] flex items-center justify-center text-slate-950 font-black animate-bounce-slow">
-                          <MapPin size={18} className="fill-slate-950 text-amber-300" />
+                        <div className="w-10 h-10 rounded-full bg-amber-400 border-2 border-white shadow-[0_0_25px_#f59e0b] flex items-center justify-center text-slate-950 font-black animate-bounce-slow">
+                          <MapPin size={22} className="fill-slate-950 text-amber-300" />
                         </div>
-                        <div className="w-2.5 h-2.5 bg-amber-400 rotate-45 -mt-1 border-r border-b border-white" />
+                        <div className="w-3 h-3 bg-amber-400 rotate-45 -mt-1.5 border-r border-b border-white" />
                       </div>
                     </div>
 
-                    <div className="absolute bottom-2 left-2 bg-slate-950/90 border border-amber-500/50 backdrop-blur-md px-2.5 py-1 rounded-md text-[9px] text-amber-300 font-mono flex items-center gap-1.5 shadow-md z-30">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                      <span>📍 Verified Login Pinpoint: {displayLocationName}</span>
+                    <div className="absolute bottom-3 left-3 bg-slate-950/90 border border-amber-500/50 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs text-amber-300 font-mono flex items-center gap-2 shadow-md z-30 max-w-[80%] truncate">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+                      <span className="truncate">📍 Verified Login Pinpoint: {displayLocationName}</span>
                     </div>
 
                     {/* Expand / Pin Map Button */}
                     <button
                       type="button"
                       onClick={() => setIsFullMapModalOpen(true)}
-                      className="absolute top-2 right-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-lg transition-all z-30 cursor-pointer"
+                      className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg transition-all z-30 cursor-pointer active:scale-95"
                     >
-                      <Maximize2 size={12} />
+                      <Maximize2 size={14} />
                       <span>Expand Map</span>
                     </button>
                   </div>
@@ -598,31 +613,31 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 );
               })()}
 
-              <div className="text-[10px] text-slate-300 flex items-center gap-1.5 bg-sky-950/40 border border-sky-800/40 p-2 rounded-lg">
-                <MailCheck size={13} className="text-sky-400 shrink-0" />
+              <div className="text-xs text-[#b6c7e8] flex items-center gap-2 bg-sky-950/40 border border-sky-800/40 p-3 rounded-xl">
+                <MailCheck size={16} className="text-sky-400 shrink-0" />
                 <span>Security email dispatch sent to <strong className="text-sky-300">{currentUser.email}</strong> on login.</span>
               </div>
             </div>
           </div>
 
           {/* Danger Zone */}
-          <div className="pt-4 border-t border-gray-800">
-            <h4 className="text-[10px] font-bold text-rose-500 uppercase tracking-wider block mb-2">Danger Zone</h4>
-            <div className="bg-rose-950/10 border border-rose-950/20 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="pt-6 border-t border-white/10">
+            <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider block mb-3">Danger Zone</h4>
+            <div className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <p className="text-xs text-rose-300 font-semibold flex items-center gap-1.5">
-                  <Trash2 size={13} />
+                <p className="text-sm text-rose-300 font-bold flex items-center gap-2">
+                  <Trash2 size={16} />
                   <span>Delete Account</span>
                 </p>
-                <p className="text-[10px] text-gray-500 leading-relaxed mt-0.5">
-                  Permanently remove your account and order profile. This cannot be undone.
+                <p className="text-xs text-[#8c90a1] leading-relaxed mt-1">
+                  Permanently remove your account and order profile. This action is irreversible.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={isSaving}
-                className="bg-rose-950/25 hover:bg-rose-900/40 text-rose-300 hover:text-rose-200 border border-rose-900/40 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-40"
+                className="bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 hover:text-rose-200 border border-rose-500/30 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-40 active:scale-95"
               >
                 Delete Account
               </button>
@@ -630,32 +645,32 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           </div>
 
           {/* Action buttons */}
-          <div className="pt-2 flex items-center gap-3">
+          <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
             <button
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-center border border-zinc-800 transition-all cursor-pointer disabled:opacity-40"
+              className="w-full sm:w-1/3 bg-[#0e131e] hover:bg-white/5 text-[#dee2f2] py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider text-center border border-white/10 transition-all cursor-pointer disabled:opacity-40"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-1 bg-brand hover:bg-brand-hover text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer disabled:opacity-60"
+              className="w-full sm:w-2/3 bg-brand hover:bg-brand-hover text-white py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider text-center flex items-center justify-center gap-2 transition-all shadow-lg shadow-brand/20 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
             >
               {isSaving ? (
                 <>
-                  <Loader2 size={13} className="animate-spin" />
-                  <span>Saving...</span>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Saving Changes...</span>
                 </>
               ) : (
-                <span>Save Profile</span>
+                <span>Save Profile Changes</span>
               )}
             </button>
           </div>
         </form>
-      </div>
+      </main>
 
       {/* Just-In-Time Location Permission Modal */}
       <LocationPermissionModal
